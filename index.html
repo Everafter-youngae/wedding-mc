@@ -1,0 +1,1574 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사회자 대본 빌더</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --paper:#EDEFF2;
+  --card:#FFFFFF;
+  --ink:#15171C;
+  --ink2:#5C636D;
+  --ink3:#8A919B;
+  --line:#DCE0E6;
+  --line2:#EDF0F3;
+  --wine:#8A2540;
+  --wine-soft:#F6E9ED;
+  --gold:#A9863A;
+  --radius:10px;
+  --sans:"Noto Sans KR","Noto Sans",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --serif:"Noto Sans KR","Noto Sans",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans);background:var(--paper);color:var(--ink);
+  font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;background:var(--card);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px;padding:12px 16px;flex-wrap:wrap;
+}
+.tb-group{display:flex;align-items:center;gap:8px}
+.tb-div{width:1px;height:24px;background:var(--line);margin:0 4px}
+.brand{display:flex;align-items:baseline;gap:8px}
+.brand b{font-family:var(--serif);font-size:20px;font-weight:900;letter-spacing:-.03em}
+.brand span{font-size:12px;color:var(--ink3);letter-spacing:.12em}
+.btn{
+  border:1px solid var(--line);background:var(--card);border-radius:8px;
+  padding:9px 14px;font-size:14px;font-weight:500;color:var(--ink);min-height:40px;
+  transition:border-color .12s,background .12s;
+}
+.btn:hover{border-color:var(--ink3)}
+.btn.primary{background:var(--wine);border-color:var(--wine);color:#fff}
+.btn.primary:hover{background:#711e35}
+.btn.ghost{border-color:transparent;color:var(--ink2)}
+.btn.quiet{border-color:transparent;color:var(--ink3);padding:9px 10px}
+.btn.quiet:hover{background:var(--line2);color:var(--wine)}
+.btn.ghost:hover{background:var(--line2)}
+select.sel{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:9px 12px;font-size:14px;max-width:240px;min-height:40px}
+
+/* ---------- layout ---------- */
+.wrap{display:grid;grid-template-columns:minmax(340px,400px) 1fr;gap:0;align-items:start}
+.pane-l{
+  border-right:1px solid var(--line);background:var(--card);
+  height:calc(100vh - 53px);overflow-y:auto;position:sticky;top:53px;padding:0 0 80px;
+}
+.pane-r{padding:26px 26px 90px;min-width:0}
+
+/* ---------- form ---------- */
+.group{border-bottom:1px solid var(--line2)}
+.group>summary{
+  list-style:none;cursor:pointer;padding:16px;display:flex;align-items:center;gap:8px;
+  font-weight:600;font-size:15px;user-select:none;
+}
+.group>summary::-webkit-details-marker{display:none}
+.group>summary::before{
+  content:"";width:6px;height:6px;border-right:1.6px solid var(--ink3);border-bottom:1.6px solid var(--ink3);
+  transform:rotate(-45deg);transition:transform .15s;margin-left:1px;
+}
+.group[open]>summary::before{transform:rotate(45deg)}
+.group>summary:hover{background:var(--line2)}
+.gbody{padding:0 16px 20px}
+.f{margin-bottom:16px}
+.f>label{display:block;font-size:12px;color:var(--ink2);margin-bottom:6px;font-weight:500}
+.f input[type=text],.f input[type=date],.f input[type=time],.f select,.f textarea{
+  width:100%;border:1px solid var(--line);border-radius:8px;padding:12px;background:#fff;font-size:15px;
+}
+.f textarea{resize:vertical;min-height:66px;line-height:1.55}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--wine);outline:none}
+.row{display:flex;gap:12px}
+.row>*{flex:1;min-width:0}
+.hint{font-size:12px;color:var(--ink3);margin-top:6px;line-height:1.5}
+.check{display:flex;align-items:center;gap:10px;font-size:14px;padding:8px 0;cursor:pointer;min-height:40px}
+.check input{width:15px;height:15px;accent-color:var(--wine);margin:0}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:0;background:#fff;padding:11px 8px;font-size:14px;line-height:1.35;color:var(--ink2);border-left:1px solid var(--line);word-break:keep-all;min-height:44px}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed=true]{background:var(--wine-soft);color:var(--wine);font-weight:600}
+.toggle-order{padding:6px 0}
+.ord{display:flex;align-items:center;gap:12px;padding:8px 0;font-size:14px;border-bottom:1px solid var(--line2)}
+.ord:last-child{border-bottom:0}
+.ord input{accent-color:var(--wine);width:15px;height:15px}
+.ord .n{font-size:12px;color:var(--ink3);width:18px;font-variant-numeric:tabular-nums}
+.ord .t{flex:1}
+.ord button.t{text-align:left;border:0;background:transparent;padding:4px 0;font-size:14px;color:var(--ink);border-bottom:1px dashed transparent}
+.ord button.t:hover{color:var(--wine);border-bottom-color:var(--wine)}
+.ord .m{font-size:12px;color:var(--ink3);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sec-head{
+  padding:20px 16px 8px;font-size:12px;letter-spacing:.1em;color:var(--ink2);font-weight:600;
+  border-top:1px solid var(--line);background:#FAFBFC;
+}
+.group.sec>summary{padding-left:16px;font-weight:500}
+.group.sec>summary .sn{font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums;min-width:17px}
+.group.sec>summary .st{flex:1}
+.group.sec>summary .off{font-size:12px;color:var(--ink3);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.group.sec.is-off>summary .st{color:var(--ink3);text-decoration:line-through;text-decoration-color:var(--line)}
+.group.sec.is-off .gbody{opacity:.5}
+:target>summary,.group.flash>summary{background:var(--wine-soft)}
+
+/* ---------- preview ---------- */
+.sheet{max-width:860px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.sheet-head{padding:32px;border-bottom:2px solid var(--ink)}
+.sheet-head .dt{font-size:12px;letter-spacing:.12em;color:var(--ink2)}
+.sheet-head h1{font-family:var(--serif);font-size:30px;margin:8px 0 0;font-weight:900;letter-spacing:-.04em}
+.sheet-head h1 .heart{color:var(--wine);font-size:22px;vertical-align:2px;margin:0 8px}
+.sheet-head .sub{margin-top:12px;font-size:14px;color:var(--ink2)}
+.meta{display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;font-size:14px;color:var(--ink2)}
+.meta b{color:var(--ink);font-weight:600}
+
+.pgm{padding:24px 32px;border-bottom:1px solid var(--line)}
+.pgm h2,.blk h2{font-size:12px;letter-spacing:.1em;color:var(--ink2);font-weight:600;margin:0 0 16px}
+table.pgm-t{width:100%;border-collapse:collapse;font-size:14px}
+table.pgm-t td{padding:8px;border-bottom:1px solid var(--line2);vertical-align:top}
+table.pgm-t td.i{width:28px;color:var(--ink3);font-variant-numeric:tabular-nums}
+table.pgm-t td.t{width:38%;font-weight:500}
+table.pgm-t td.n{color:var(--ink2);font-size:14px}
+
+.blk{display:grid;grid-template-columns:170px 1fr;gap:0;border-bottom:1px solid var(--line)}
+.blk:last-child{border-bottom:0}
+.blk .cue{padding:24px 16px 24px 32px;background:#FAFBFC;border-right:1px solid var(--line2)}
+.blk .cue .num{font-size:12px;color:var(--ink3);letter-spacing:.1em}
+.blk .cue .ttl{font-family:var(--serif);font-size:16px;font-weight:700;margin-top:5px;line-height:1.3;letter-spacing:-.02em}
+.blk .cue .tag{display:inline-block;margin-top:12px;font-size:12px;color:var(--wine);background:var(--wine-soft);border-radius:4px;padding:3px 8px}
+.blk .cue .memo{margin-top:12px;font-size:12px;color:var(--ink2);white-space:pre-wrap;line-height:1.5}
+.blk .cue .time{margin-top:12px;font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums}
+.blk .body{padding:24px 32px 24px 24px;min-width:0}
+.script{font-size:16px;line-height:2.0;white-space:pre-wrap;word-break:keep-all}
+.script .brk{
+  display:inline-block;width:1px;height:.9em;background:var(--ink3);opacity:.55;
+  vertical-align:-.12em;margin:0 .38em;
+}
+.script .stage{color:var(--wine);font-size:14px;background:var(--wine-soft);border-radius:3px;padding:1px 5px}
+.script .kw{font-weight:700}
+.blk .tools{margin-top:12px;display:flex;gap:6px;opacity:0;transition:opacity .12s}
+.blk:hover .tools,.blk:focus-within .tools{opacity:1}
+.tools button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 12px;font-size:12px;color:var(--ink2)}
+.tools button:hover{border-color:var(--ink3);color:var(--ink)}
+textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:14px;font-size:15px;line-height:1.95;min-height:180px;resize:vertical}
+.edited-flag{color:var(--wine);font-size:12px;margin-left:8px}
+
+.empty{padding:60px 20px;text-align:center;color:var(--ink3)}
+
+.toast{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;
+  opacity:0;pointer-events:none;transition:all .2s;z-index:99;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- stage mode ---------- */
+.stagemode{position:fixed;inset:0;background:#0F1115;color:#F2F3F5;z-index:100;display:none;flex-direction:column}
+.stagemode.on{display:flex}
+.sm-top{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid #262A33;flex-wrap:wrap}
+.sm-top .step{font-size:12px;color:#8D95A3;letter-spacing:.1em;font-variant-numeric:tabular-nums}
+.sm-top .ttl{font-family:var(--serif);font-size:18px;font-weight:700;letter-spacing:-.02em}
+.sm-top .cue{font-size:12px;color:#C9A45C;margin-left:auto;text-align:right;white-space:pre-wrap;max-width:46%}
+.sm-body{flex:1;overflow-y:auto;padding:34px 24px 120px}
+.sm-body .inner{max-width:760px;margin:0 auto;font-size:27px;line-height:1.95;white-space:pre-wrap;word-break:keep-all;font-weight:500}
+.sm-body .brk{display:inline-block;width:2px;height:.8em;background:#C9A45C;opacity:.55;vertical-align:-.05em;margin:0 .34em}
+.sm-body .stage{display:inline-block;color:#C9A45C;font-size:20px;border:1px solid #3A3524;background:#1A1A14;border-radius:6px;padding:2px 10px}
+.sm-nav{position:absolute;bottom:0;left:0;right:0;display:flex;gap:10px;padding:14px 20px;background:linear-gradient(to top,#0F1115 60%,transparent)}
+.sm-nav button{flex:1;background:#1B1F27;border:1px solid #2C3240;color:#F2F3F5;border-radius:9px;padding:14px;font-size:15px;font-weight:600}
+.sm-nav button:active{background:#262C38}
+.sm-nav .x{flex:0 0 auto;background:transparent;border-color:transparent;color:#8D95A3;font-weight:400}
+.sm-prog{height:2px;background:#262A33}
+.sm-prog i{display:block;height:100%;background:var(--gold);transition:width .2s}
+
+/* ---------- responsive ---------- */
+@media (max-width:960px){
+  .wrap{grid-template-columns:1fr}
+  .pane-l{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}
+  .pane-r{padding:16px 12px 80px}
+  .sheet-head,.pgm{padding-left:20px;padding-right:20px}
+  .blk{grid-template-columns:1fr}
+  .blk .cue{padding:16px 20px 0;background:transparent;border-right:0;display:flex;flex-wrap:wrap;gap:10px;align-items:baseline}
+  .blk .cue .ttl{margin-top:0}
+  .blk .body{padding:12px 20px 22px}
+  .sm-body .inner{font-size:22px}
+}
+
+/* ---------- 모달 ---------- */
+.modal{position:fixed;inset:0;background:rgba(16,18,22,.42);z-index:90;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.modal.on{display:flex}
+.modal .box{background:var(--card);border-radius:14px;width:100%;max-width:620px;box-shadow:0 18px 50px rgba(0,0,0,.22)}
+.modal .mh{display:flex;align-items:center;gap:10px;padding:18px 22px;border-bottom:1px solid var(--line)}
+.modal .mh h3{font-family:var(--serif);font-size:20px;margin:0;font-weight:700;letter-spacing:-.02em}
+.modal .mh .x{margin-left:auto;border:0;background:transparent;color:var(--ink3);font-size:19px;line-height:1;padding:4px 6px}
+.modal .mb{padding:20px 22px}
+.modal .mf{display:flex;gap:8px;padding:14px 22px;border-top:1px solid var(--line);justify-content:flex-end;flex-wrap:wrap}
+.q-out{width:100%;min-height:300px;border:1px solid var(--line);border-radius:9px;padding:14px;font-size:13px;line-height:1.75;resize:vertical;white-space:pre-wrap}
+.opt{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line2);font-size:15px}
+.opt:last-child{border-bottom:0}
+.opt .lbl{flex:1}
+.opt .sub{display:block;font-size:12px;color:var(--ink3);margin-top:4px;line-height:1.5}
+.opt input[type=range]{width:150px;accent-color:var(--wine)}
+.opt input[type=checkbox]{width:16px;height:16px;accent-color:var(--wine)}
+.pv-note{font-size:14px;color:var(--ink2);background:var(--wine-soft);border-radius:8px;padding:14px 16px;line-height:1.6;margin-top:16px}
+
+/* ---------- print ---------- */
+@media print{
+  body{background:#fff}
+  .topbar,.pane-l,.tools,.toast,.stagemode,.modal,.edited-flag{display:none!important}
+  .wrap{display:block}
+  .pane-r{padding:0}
+  .sheet{border:0;border-radius:0;max-width:none;background:#fff}
+  .sheet-head{padding:0 0 18px;border-bottom:2px solid #000}
+  .pgm{padding:18px 0}
+  .blk .cue{background:#fff}
+
+  /* --- 큐시트(요약) 모드 : 화면과 동일한 2단 --- */
+  body.pm-cue .blk{page-break-inside:avoid;border-bottom:1px solid #bbb;grid-template-columns:150px 1fr}
+  body.pm-cue .blk .cue{padding:16px 14px 16px 0}
+  body.pm-cue .blk .body{padding:16px 0 16px 18px}
+  body.pm-cue .script{font-size:10.5pt;line-height:1.75}
+  body.pm-cue .pgm{page-break-after:always}
+
+  /* --- 리딩용(아이패드) 모드 : 1단 · 큰 글씨 · 순서당 한 장 --- */
+  body.pm-read .blk{display:block;border:0;padding:0}
+  body.pm-read .blk .cue{
+    display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    padding:0 0 10px;border:0;border-bottom:1.5pt solid #000;margin-bottom:22px;
+  }
+  body.pm-read .blk .cue .num{font-size:10pt;letter-spacing:.14em;color:#666}
+  body.pm-read .blk .cue .ttl{font-size:16pt;font-weight:700;margin:0}
+  body.pm-read .blk .cue .tag{margin:0;font-size:10pt;border-color:#bbb;background:#fff;color:#000}
+  body.pm-read .blk .cue .memo{margin:0;font-size:10pt;color:#444;flex-basis:100%}
+  body.pm-read .blk .cue .time{margin:0;font-size:9.5pt;color:#888}
+  body.pm-read .blk .body{padding:0}
+  body.pm-read .script{
+    font-size:var(--readpt,15pt);line-height:2.0;
+    orphans:3;widows:3;
+  }
+  body.pm-read .script .brk{background:#999;opacity:1;width:.8pt}
+  body.pm-read .script .stage{background:#F0F0F0;color:#000;border:.5pt solid #ccc;font-size:.85em}
+  body.pm-read.pb-on .blk{page-break-after:always}
+  body.pm-read.pb-on .blk:last-child{page-break-after:auto}
+  body.pm-read:not(.pb-on) .blk{page-break-inside:avoid;margin-bottom:30px}
+  body.pm-read.pm-land:not(.cols-on) .script{max-width:185mm}
+  body.pm-read.cols-on .script{column-count:2;column-gap:14mm}
+  body.pm-read.cols-on .script .stage{break-inside:avoid}
+  body.pm-read .pgm{page-break-after:always}
+  body.hide-pgm .pgm{display:none}
+  body.hide-head .sheet-head{display:none}
+}
+</style>
+
+<div class="topbar">
+  <div class="brand"><b>사회자 대본 빌더</b><span>WEDDING MC</span></div>
+  <div class="tb-div"></div>
+  <div class="tb-group">
+    <select class="sel" id="fileSel" title="저장된 예식"></select>
+    <button class="btn" id="btnNew">새 예식</button>
+    <button class="btn ghost" id="btnDup">복제</button>
+    <button class="btn" id="btnCloud" title="구글 시트에 저장된 대본 불러오기">시트에서 불러오기</button>
+    <button class="btn quiet" id="btnDel" title="이 예식 삭제">삭제</button>
+  </div>
+  <div class="tb-div"></div>
+  <div class="tb-group">
+    <button class="btn" id="btnAsk">사전 질문지</button>
+    <button class="btn" id="btnLink">응답 링크</button>
+    <button class="btn" id="btnSend">대본 보내기</button>
+    <button class="btn" id="btnInbox">응답 확인<span id="inboxDot" style="display:none;margin-left:5px;color:var(--wine)">●</span></button>
+  </div>
+  <div class="tb-div"></div>
+  <div class="tb-group">
+    <button class="btn ghost" id="btnCopy">텍스트 복사</button>
+    <button class="btn" id="btnPrint">PDF 만들기</button>
+    <button class="btn primary" id="btnStage">무대 모드</button>
+  </div>
+  <span id="saveStat" style="font-size:12px;color:var(--ink3);margin-left:auto;line-height:1.35;text-align:right"></span>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <div class="mh"><h3 id="mTitle"></h3><button class="x" id="mClose" aria-label="닫기">✕</button></div>
+    <div class="mb" id="mBody"></div>
+    <div class="mf" id="mFoot"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <aside class="pane-l" id="form"></aside>
+  <main class="pane-r"><div id="preview"></div></main>
+</div>
+
+<div class="stagemode" id="stage">
+  <div class="sm-prog"><i id="smProg"></i></div>
+  <div class="sm-top">
+    <span class="step" id="smStep"></span>
+    <span class="ttl" id="smTitle"></span>
+    <span class="cue" id="smCue"></span>
+  </div>
+  <div class="sm-body"><div class="inner" id="smBody"></div></div>
+  <div class="sm-nav">
+    <button class="x" id="smClose">닫기</button>
+    <button id="smPrev">← 이전</button>
+    <button id="smNext">다음 →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   1. 데이터 모델
+   ========================================================= */
+const SEC_DEFS = [
+  {key:'preshow',  title:'식전 안내',        dur:0,   cue:'예식 15분 전 / 5분 전 2회'},
+  {key:'opening',  title:'개식사',           dur:10,  cue:''},
+  {key:'candle',   title:'화촉점화',         dur:70,  cue:'입장 동선 확인 · 동시 점화'},
+  {key:'groom',    title:'신랑 입장',        dur:35,  cue:'입장 속도 체크'},
+  {key:'bride',    title:'신부 입장',        dur:60,  cue:'신랑 맞이 동선 · 드레스 정돈'},
+  {key:'bow',      title:'신랑·신부 맞절',   dur:25,  cue:'마주 선 자세 확인'},
+  {key:'ring',     title:'반지 교환',        dur:60,  cue:'반지 전달자 확인', off:true},
+  {key:'vow',      title:'혼인 서약',        dur:80,  cue:'서약서 준비 여부'},
+  {key:'declare',  title:'성혼 선언문',      dur:15,  cue:'선언문 인쇄본 지참'},
+  {key:'speech',   title:'축사',             dur:180, cue:'축사자 동선 · 마이크'},
+  {key:'song',     title:'축가',             dur:240, cue:'축가자 동선 · MR 확인'},
+  {key:'parents',  title:'양가 부모님께 인사',dur:70, cue:'드레스 매무새 · 혼주석 기립'},
+  {key:'guests',   title:'내빈께 인사',      dur:20,  cue:'신랑·신부 정면 전환'},
+  {key:'march',    title:'신랑·신부 행진',   dur:45,  cue:'행진 속도 · 하객 기립 유도'},
+  {key:'closing',  title:'폐식사',           dur:15,  cue:'촬영 안내 · 연회장 위치'},
+];
+
+function blank(){
+  const secs={};
+  SEC_DEFS.forEach(d=>secs[d.key]={on:!d.off,cue:d.cue,music:'',text:null});
+  return {
+    id:'w'+Date.now().toString(36),
+    groom:'', bride:'', date:'', time:'',
+    venue:'', floor:'', mcName:'',
+    relation:'신부', relationText:'대학 동기', story:'',
+    farGuests:'',
+    candleParent:'어머님', candleOn:true,
+    groomExtra:'',
+    brideTwoStep:false, brideEscort:'없음',
+    vowBy:'셀프', declareBy:'사회자',
+    speechWho:'신부', speechRel:'', speechNames:'',
+    songWho:'신랑', songRel:'', songName:'', songTitle:'',
+    parentsStyle:'포옹', parentsFirst:'신부',
+    marchYears:'', humble:true, photoNotice:true,
+    sections:secs,
+  };
+}
+
+/* =========================================================
+   2. 멘트 생성기  (( ) 안은 지문, / 는 호흡 구분)
+   ========================================================= */
+const G=w=>w.groom||'○○○', B=w=>w.bride||'○○○';
+const gGun=w=>`신랑 ${G(w)} 군`, bYang=w=>`신부 ${B(w)} 양`;
+function dateKo(w){
+  if(!w.date) return '○○○○년 ○월 ○일';
+  const [y,m,d]=w.date.split('-').map(Number);
+  return `${y}년 / ${m}월 / ${d}일`;
+}
+function dateShort(w){
+  if(!w.date) return '';
+  const [y,m,d]=w.date.split('-').map(Number);
+  const wd=['일','월','화','수','목','금','토'][new Date(w.date).getDay()];
+  return `${y}. ${String(m).padStart(2,'0')}. ${String(d).padStart(2,'0')} (${wd})`;
+}
+function timeKo(w){
+  if(!w.time) return '';
+  const [h,m]=w.time.split(':').map(Number);
+  const ap=h<12?'오전':'오후'; const hh=h%12===0?12:h%12;
+  return `${ap} ${hh}시${m?` ${m}분`:''}`;
+}
+
+const GEN={
+preshow:w=>`안내 말씀드립니다.
+
+잠시 후 ${gGun(w)}과 ${bYang(w)}의 예식이 시작될 예정이오니 / 내빈 여러분들께서는 식장 안으로 입장하여 / 자리에 착석해 주시기 바랍니다.
+
+소중한 시간을 위해 / 휴대폰은 잠시 꺼두거나 / 모두 진동으로 바꿔 주시기 바랍니다.`,
+
+opening:w=>{
+  const rel=w.relation==='신랑'?`신랑 ${G(w)} 군의 ${w.relationText||'○○'}`:`신부 ${B(w)} 양의 ${w.relationText||'○○'}`;
+  const far=w.farGuests?`${w.farGuests}에서 / 먼 길 마다않고 / ` : '';
+  const story=w.story?`\n\n${w.story}`:'';
+  return `하객 여러분, 안녕하십니까.
+
+저는 오늘 이 결혼식의 사회를 맡은 / ${rel}, / ${w.mcName||'○○○'}입니다.
+
+먼저, 주말 귀한 시간 내어 / ${far}신랑 신부의 새로운 시작을 축복하러 와주신 / 모든 하객 여러분께 / 양가를 대신해 / 진심으로 감사의 인사를 전합니다.${story}
+
+이제 두 사람이 하나 되어 걸어갈 첫 걸음이 / 오래도록 빛날 수 있도록, / 따뜻한 마음으로 지켜봐 주시고 / 축하의 박수도 많이 부탁드립니다.
+
+그럼 지금부터, / ${gGun(w)}과 ${bYang(w)}의 결혼식을 / 시작하겠습니다.`;
+},
+
+candle:w=>{
+  const P=w.candleParent, look=P==='어머님'?'곱게 한복을 차려입으신':'멋지게 차려입으신';
+  return `먼저, 두 사람의 앞날을 밝혀줄 / 화촉 점화가 있겠습니다.
+
+여러분 뒤쪽을 바라봐주세요. / ${look} / 두 분의 ${P}이 계십니다.
+
+그동안 자녀를 사랑으로 길러오신 / 두 ${P}의 발걸음에 / 깊은 감사와 존경의 마음을 담아 / 따뜻한 박수로 맞이해주시기 바랍니다. / 양가 ${P} 입장!
+
+(입장 · 단상 도착까지 대기)
+
+오늘의 결혼식이 있기까지 / 조건 없는 무한한 사랑으로 / ${G(w)} 군과 ${B(w)} 양을 길러오신 ${P}들께, / 그동안 아들 딸 키우시느라 정말 수고 많으셨다고 / 다시 한번 따뜻한 박수 부탁드립니다.
+
+이제 ${P}들께서는 / 단상 위에 마련된 화촉 앞에 마주서주시고, / 촛불을 밝혀주시겠습니다.
+
+(동시 점화)
+
+화촉은 / 두 가정이 하나가 됨을 상징하는 빛이며, / 신랑 신부의 새로운 출발을 축복하는 / 따뜻한 불꽃입니다.
+
+양가 ${P}들이 밝혀주신 / 이 한 쌍의 촛불처럼, / 두 사람도 서로를 환히 밝혀주는 / 인생의 든든한 동반자가 되길 바랍니다.
+
+이제 양가 ${P}께서는 / 서로 마주 보시고 / 인사를 나눠 주시기 바랍니다.
+
+(양가 ${P} 맞절)
+
+다음으로 / 하객 여러분을 향해 서주시기 바랍니다. / 오늘 귀한 발걸음 해주신 하객분들께 / 감사의 마음을 담아 인사드립니다.
+
+(내빈께 인사)
+
+양가 ${P}께서는 / 혼주석으로 이동하여 / 착석해 주시기 바랍니다.`;
+},
+
+groom:w=>{
+  const extra=w.groomExtra?`\n\n${w.groomExtra}`:'';
+  return `자, 그럼 이제 / 모두 뒤편을 함께 바라봐 주시기 바랍니다. / 오늘의 첫 번째 주인공, / 신랑 입장이 있겠습니다.
+
+어쩌면 살면서 / 가장 긴장되는 순간이 아닐까 싶습니다.${extra}
+
+지금 이 시간을 누구보다 기다려온 / 듬직한 ${gGun(w)}이 입장합니다. / 신랑 입장!
+
+(입장)
+
+힘찬 박수와 큰 환호 부탁드립니다. / 정말 씩씩합니다.
+
+(신랑님은 하객 여러분을 향해 서주시고, / 신부님을 맞이할 준비 해주시기 바랍니다.)`;
+},
+
+bride:w=>{
+  const esc=w.brideEscort!=='없음'?` / ${w.brideEscort}과 함께 걸어옵니다.`:'';
+  const two=w.brideTwoStep
+    ? `신부 등장!
+
+(문 뒤에서 등장 · 음악 잔잔히 / 10초)
+
+네, 정말 아름답죠? / 한결같았던 부모님의 사랑을 딛고 / 이제 영원한 사랑을 향해 걸어갑니다.
+
+신부 입장!
+
+(버진로드 · 음악 크게)`
+    : `신부 입장!`;
+  return `다음은, / 오늘 세상에서 가장 빛나는 신부를 맞이할 순서입니다.
+
+설레는 마음으로 첫발을 내딛는 신부를 위해, / 하객 여러분께서는 / 그 어느 때보다 뜨거운 축복의 박수 부탁드립니다.
+
+${two}
+
+지금 세상에서 가장 아름다운 신부 / ${B(w)} 양이 걸어오고 있습니다.${esc}
+
+한 사람의 인생이, / 또 다른 사람과 나란히 걷기 위한 / 첫 걸음입니다. / 이 아름다운 걸음을 / 아낌없는 큰 박수로 함께 해주시길 부탁드립니다.
+
+넋을 놓고 바라보고 있는 신랑님은 / 나가서 신부를 맞이해주시기 바랍니다. / 하객 여러분들은 / 사랑이 담긴 박수 부탁드립니다.`;
+},
+
+bow:w=>`드디어 오늘의 두 주인공이 / 세상에서 가장 중요하고 / 아름다운 약속의 장소에 섰습니다.
+
+이제 신랑, 신부가 / 부부로서 나누는 첫 인사 시간을 갖도록 하겠습니다. / 신랑, 신부 마주서 주시기 바랍니다.
+
+신랑, 신부는 / 서로 사랑하는 만큼, / 존경하는 만큼 / 눈빛을 담아 인사해주시길 바랍니다.
+
+(마주 선 모습 확인)
+
+신랑, 신부 / 서로에게 / 인사!`,
+
+ring:w=>`다음은 반지 교환입니다.
+
+반지는 / 시작도 끝도 없는 원의 모양으로, / 두 사람의 사랑이 / 끊어짐 없이 이어지기를 바라는 약속입니다.
+
+신랑은 신부에게, / 신부는 신랑에게 / 반지를 끼워 주시기 바랍니다.
+
+(반지 교환)
+
+하객 여러분께서는 / 따뜻한 박수로 / 두 사람의 약속을 함께 축복해주시기 바랍니다.`,
+
+vow:w=>{
+  if(w.vowBy==='주례'){
+    return `다음은 혼인 서약입니다.
+
+주례를 맡아주신 분의 물음에 / 신랑 신부는 / 큰 목소리로 답해주시기 바랍니다.
+
+(혼인 서약 진행)
+
+두 사람이 나눈 이 서약이 / 앞으로의 삶 속에서도 / 같은 마음으로 이어지길 바랍니다. / 하객 여러분께서는 / 박수로 함께 축복해주시기 바랍니다.`;
+  }
+  return `다음은 혼인 서약입니다.
+
+오늘 두 사람은 / 서로의 사랑과 믿음을 / 하객 여러분 모두 앞에서 / 직접 선언하려 합니다.
+
+신랑 신부는 함께 서서 / 준비한 서약을 낭독해주시기 바랍니다.
+
+(신랑 신부 혼인 서약 낭독)
+
+두 사람이 나눈 이 서약이 / 앞으로의 삶 속에서도 / 같은 마음으로 이어지길 바랍니다. / 하객 여러분께서는 / 박수로 함께 축복해주시기 바랍니다.`;
+},
+
+declare:w=>{
+  if(w.declareBy==='주례'){
+    return `이제 오늘 예식에서 / 가장 중요하고 경건한 순서입니다. / 바로 신랑, 신부가 부부됨을 알리는 / 성혼 선언문이 있겠습니다.
+
+이 순간만큼은 / 내빈 여러분들 모두 / 오늘의 두 주인공에게 / 온전히 집중해주시길 부탁드립니다.
+
+성혼 선언문은 / 주례를 맡아주신 분께서 낭독해주시겠습니다.
+
+(성혼 선언문 낭독)
+
+자, 이로써 두 사람은 부부가 되었습니다. / 여러분! 축복의 박수 부탁드립니다.`;
+  }
+  return `이제 오늘 예식에서 / 가장 중요하고 경건한 순서입니다. / 바로 신랑, 신부가 부부됨을 알리는 / 성혼 선언문이 있겠습니다.
+
+이 순간만큼은 / 내빈 여러분들 모두 / 오늘의 두 주인공에게 / 온전히 집중해주시길 부탁드립니다.
+
+성혼 선언문은 / 여기 계신 하객분들을 대표해 / 사회자인 제가 낭독하겠습니다.
+
+〈성혼 선언문〉
+
+${gGun(w)}과 / ${bYang(w)}은 / 서로에 대한 사랑과 믿음을 담은 혼인 서약으로 / 평생을 함께할 부부가 되기를 / 굳게 맹세하였습니다.
+
+이에 / 오늘 이 자리에 함께하신 모든 분들이 / 증인이 되어 / 두 사람이 부부가 되었음을 / 여러분 앞에 / 엄숙히 / 선언합니다.
+
+${dateKo(w)} / 사회자 / ${(w.mcName||'○○○').split('').join(' ')}
+
+자, 이로써 두 사람은 부부가 되었습니다. / 여러분! 축복의 박수 부탁드립니다.
+
+앞으로 두 사람이 함께 걸어갈 모든 날들이 / 믿음과 사랑 위에서 / 더욱 굳건해지길 바랍니다.`;
+},
+
+speech:w=>{
+  const who=w.speechWho==='신랑'?`신랑 ${G(w)} 군`:`신부 ${B(w)} 양`;
+  const rel=w.speechRel||`${w.speechWho}의 친구`;
+  const names=w.speechNames||'○○○';
+  const plural=names.includes(',')||names.includes('·');
+  return `이어서, 축사가 있겠습니다.
+
+오늘의 축사는 / ${rel} / ${names} 님이 준비했다고 하는데요,
+
+기쁠 때나 힘들 때나 / 누구보다 가까이서 / ${who}과 함께해온 ${plural?'분들':'분'}이기에 / 진심 어린 이야기를 들려주실 것 같습니다.
+
+하객 여러분께서는 / 큰 박수로 맞이해주시기 바랍니다.
+
+(축사)
+
+네, 웃음과 진심이 가득 담긴 축사로 / 이 자리를 더 따뜻하게 채워주셨습니다.
+
+진심이 가득한 축사를 전해준 / ${names} 님께 / 따뜻한 박수 / 다시 한번 부탁드립니다.`;
+},
+
+song:w=>{
+  const rel=w.songRel||`${w.songWho}의 친구`;
+  const nm=w.songName||'○○○';
+  const t=w.songTitle?` / ${w.songTitle}을(를) 준비했다고 하는데요,`:'';
+  return `이어서 / 오늘 두 사람을 축하하는 / 축가가 기다리고 있습니다.
+
+오늘의 축가는 / ${rel} / ${nm} 님이${t}
+
+여러분, 카메라 준비 되셨죠? / 큰 박수로 맞이해주시기 바랍니다.
+
+(축가)
+
+네, 정말 감미롭습니다. / 소중한 순간을 더욱 특별하게 만들어주신 / ${nm} 님께 / 다시 한 번 박수 부탁드립니다.`;
+},
+
+parents:w=>{
+  const cheer=w.parentsStyle==='화이팅';
+  const brideBlock=`${w.parentsFirst==='신부'?'':'이제 '}신랑, 신부는 / 신부 부모님을 향해 서주시기 바랍니다.
+
+예쁘게 키운 딸이 / 참 멋진 사람을 만나 / 이 자리에 섰습니다. / 수없이 변곡될 앞으로의 삶에 / 한결같이 지지해 줄 사람이 얼마나 중요한지 / 먼저 살아보신 우리 부모님들은 잘 아실 겁니다.
+
+두 사람, / 앞으로 어떠한 어려운 일이 있더라도 / 서로의 곁에서 한결같이 지지하고 응원하며 잘 살거라 / 마음을 담아 / 따뜻하게 안아주세요.
+
+(신랑, 신부 인사)
+
+아버님은 사위를, / 어머님은 딸을 / 한 번씩 안아 주시기 바랍니다.${cheer?`
+
+자, 네 분 / 손을 가운데 모으시고, / 잘 살라는 의미로 / 파이팅 한번 외치겠습니다. / 하나 둘 셋 — 화이팅!`:`
+
+(잘 살거라 하는 그 마음이 / 여기까지 전해집니다.)`}`;
+  const groomBlock=`${w.parentsFirst==='신부'?'이제 ':''}신랑, 신부는 / 신랑 부모님을 향해 서주시기 바랍니다.
+
+우리 멋지고 자랑스러운 아들이 / 참 아름다운 사람을 만나 / 두 손 꼭 잡고 이 자리에 섰습니다.
+
+이 두 사람, / 서로의 세상이 만나 / 그 누구보다 따뜻한 가정을 만들기를, / 서로를 예뻐하고 아끼고 사랑하며 / 오래도록 함께하거라 / 마음을 담아 따뜻하게 안아주십시오.
+
+(신랑, 신부 인사)
+
+어머님은 며느리를, / 아버님은 아들을 / 한 번씩 안아 주시기 바랍니다.${cheer?`
+
+마지막으로 네 분 / 손을 가운데 모으시고, / 잘 살라는 의미로 / 파이팅 한번 외치겠습니다. / 하나 둘 셋 — 화이팅!
+
+아우 정말 기운차네요. / 앞으로 이 기운처럼 / 화이팅 넘치는 행복만 가득하시길 바랍니다.`:''}`;
+  const first=w.parentsFirst==='신부'?[brideBlock,groomBlock]:[groomBlock,brideBlock];
+  return `다음은 / 사랑과 정성으로 길러 주신 부모님께 / 감사 인사 드리는 순서를 갖겠습니다.
+
+${first[0]}
+
+${first[1]}`;
+},
+
+guests:w=>`이제 신랑, 신부는 / 하객을 향하여 주시기 바랍니다.
+
+바쁘신 주말에도 이 자리를 위해 참석해주시고, / 신랑, 신부를 빛나는 주인공으로 만들어 주신 하객 여러분께 / 잘 살겠다 그 마음 가득 담아서 / 감사 인사를 올립니다.
+
+(신랑, 신부 하객 여러분께 인사)
+
+홀로 시작된 삶, / 이제 둘이 함께 나아갑니다. / 아낌없는 박수로 / 하나 된 두 사람을 축복해주시기 바랍니다.`,
+
+march:w=>{
+  const yrs=w.marchYears?`${w.marchYears}을 함께해온 두 사람, / ` : '';
+  return `${yrs}이제 두 사람은 하나가 되어 / 서로에게 평생의 계절이 되어줄 준비를 마쳤습니다.
+
+(행진곡 시작 ~ 약 13초)
+
+이 눈부신 순간, / 하객 여러분께서는 모두 자리에서 일어나셔서, / 신랑 신부의 발걸음마다 / 아낌없는 박수와 환호로 함께 축하해주시기 바랍니다.
+
+『행복한 미래를 향하여, / 신랑, 신부 행진!』`;
+},
+
+closing:w=>{
+  const humble=w.humble?`
+
+저 역시도 / 이제 하나가 된 두 사람의 모습을 보니 / 참 뜻깊고 벅찬 시간이었는데요, / 전문 사회자가 아니다 보니 / 조금 미숙한 부분이 있었더라도 / 넓은 마음으로 이해해주시면 감사하겠습니다.`:'';
+  const photo=w.photoNotice?`
+
+양가 가족 친지분들, / 직장 동료, 친구 분들은 / 기념 촬영이 예정되어 있사오니 / 멀리 가지 마시고, / 잠시만 자리에서 대기해 주시길 부탁드립니다.`:'';
+  const fl=w.floor?`${w.floor} `:'';
+  return `이상으로, / ${gGun(w)}과 ${bYang(w)}의 결혼식을 마치겠습니다.
+
+두 사람의 결혼을 축하해 주시기 위해 / 귀한 시간 내주신 모든 분들께 / 진심으로 감사의 말씀을 드립니다.${humble}${photo}
+
+하객 여러분들께서는 / ${fl}연회장에 피로연이 준비되어 있습니다. / 식권 지참하셔서 / 편히 식사하시기 바랍니다.
+
+감사합니다.`;
+},
+};
+
+/* =========================================================
+   3. 상태 / 저장
+   ========================================================= */
+let DB={list:[],cur:null};
+const KEY='mc-weddings-v1';
+const STORE=(typeof window!=='undefined'&&window.storage&&typeof window.storage.set==='function')
+  ? window.storage
+  : {
+      get:async k=>{ const v=localStorage.getItem(k); if(v===null) throw new Error('not found'); return {key:k,value:v}; },
+      set:async (k,v)=>{ localStorage.setItem(k,v); return {key:k,value:v}; },
+    };
+
+function cur(){ return DB.list.find(x=>x.id===DB.cur); }
+function titleOf(w){
+  const d=w.date?w.date.replace(/-/g,'.').slice(2):'날짜 미정';
+  return `${d}  ${w.bride||'신부'} ♡ ${w.groom||'신랑'}`;
+}
+let saveTimer=null, saving=false, dirty=false, lastSaved='', failCount=0, lastWrite=0, storageOK=null;
+
+function setStatus(s){
+  const el=document.getElementById('saveStat'); if(!el) return;
+  const map={
+    saving:['저장 중…','var(--ink3)'],
+    saved:['저장됨','var(--ink3)'],
+    cloud:['저장됨 · 구글 시트 백업 완료','var(--ink3)'],
+    retry:['다시 시도 중…','var(--gold)'],
+    fail:['⚠ 자동 저장 안 됨 · 백업 파일로 저장하세요','var(--wine)'],
+    off:['⚠ 이 브라우저에서는 자동 저장이 안 됩니다','var(--wine)'],
+  };
+  const [t,c]=map[s]||['',''];
+  el.textContent=t; el.style.color=c;
+  const bad=(s==='fail'||s==='off');
+  el.style.background=bad?'var(--wine-soft)':'transparent';
+  el.style.padding=bad?'6px 10px':'0';
+  el.style.borderRadius='6px';
+  el.style.fontWeight=bad?'500':'400';
+}
+
+function save(){
+  dirty=true;
+  try{ scheduleBackup(); }catch(e){}
+  if(storageOK===false){
+    // 일시적인 문제일 수 있으므로 20초마다 한 번씩 다시 시도합니다.
+    if(Date.now()-lastWrite<20000){ setStatus('fail'); return; }
+    failCount=0;
+  }
+  setStatus('saving'); schedule();
+}
+function schedule(ms){
+  if(saveTimer) return;
+  const gap=Date.now()-lastWrite;
+  saveTimer=setTimeout(flush, ms!=null?ms:Math.max(900,2200-gap));
+}
+async function flush(){
+  saveTimer=null;
+  if(saving||!dirty) return;
+  const payload=JSON.stringify(DB);
+  if(payload===lastSaved){ dirty=false; setStatus('saved'); return; }
+  saving=true;
+  try{
+    await STORE.set(KEY,payload);
+    lastSaved=payload; dirty=false; failCount=0; storageOK=true; lastWrite=Date.now();
+    setStatus('saved');
+  }catch(e){
+    lastWrite=Date.now(); failCount++;
+    if(failCount<=3){ setStatus('retry'); saving=false; schedule(1400*failCount); return; }
+    storageOK=false; setStatus('fail');
+  }finally{
+    saving=false;
+    if(dirty&&!saveTimer&&storageOK!==false) schedule();  }
+}
+async function load(){
+  try{
+    const r=await STORE.get(KEY);
+    if(r&&r.value){ DB=JSON.parse(r.value); lastSaved=r.value; }
+    storageOK=true;
+  }catch(e){
+    // 키가 아직 없으면 여기로 옵니다. 쓰기가 되는지 한 번 확인합니다.
+    try{ await STORE.set(KEY+':probe','1'); storageOK=true; }
+    catch(e2){ storageOK=false; }
+  }
+  if(!DB.list||!DB.list.length){ const w=blank(); DB={list:[w],cur:w.id}; }
+  if(!cur()) DB.cur=DB.list[0].id;
+  DB.print=Object.assign({mode:'read',pt:15,pageBreak:true,program:true,cover:true,orient:'landscape',cols:false},DB.print||{});
+  // 새로 추가된 섹션 보정
+  DB.list.forEach(w=>{ SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+  renderAll();
+  setStatus(storageOK===false?'off':'saved');
+}
+
+function set(k,v){ const w=cur(); w[k]=v; save(); renderAll(); }
+function setSec(key,k,v){ const w=cur(); w.sections[key][k]=v; save(); renderAll(); }
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'),1900);
+}
+
+/* =========================================================
+   4. 렌더 – 입력 폼
+   ========================================================= */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function txt(label,k,ph='',hint=''){
+  return `<div class="f"><label>${label}</label>
+    <input type="text" data-k="${k}" value="${esc(cur()[k])}" placeholder="${esc(ph)}">
+    ${hint?`<div class="hint">${hint}</div>`:''}</div>`;
+}
+function area(label,k,ph='',hint=''){
+  return `<div class="f"><label>${label}</label>
+    <textarea data-k="${k}" placeholder="${esc(ph)}">${esc(cur()[k])}</textarea>
+    ${hint?`<div class="hint">${hint}</div>`:''}</div>`;
+}
+function seg(label,k,opts){
+  return `<div class="f"><label>${label}</label><div class="seg">
+    ${opts.map(o=>`<button data-seg="${k}" data-v="${esc(o)}" aria-pressed="${cur()[k]===o}">${o}</button>`).join('')}
+  </div></div>`;
+}
+function chk(label,k){
+  return `<label class="check"><input type="checkbox" data-chk="${k}" ${cur()[k]?'checked':''}>${label}</label>`;
+}
+
+const SEC_FIELDS={
+  opening:()=>seg('누구 쪽 사람인가요','relation',['신부','신랑'])
+    +txt('사회자 이름','mcName','전주현')
+    +txt('관계','relationText','대학 동기 / 24년지기 친구 / 대학교 선배')
+    +txt('먼 길 오신 하객 지역','farGuests','서울, 양산, 부산','비워두면 해당 문장이 빠집니다.')
+    +area('두 사람과의 인연 한 문단','story','신부 김민주 양과 저는 대학 시절 과 동기로 처음 만났습니다. …','개식사 중간에 그대로 들어갑니다.'),
+  candle:()=>seg('점화 주체','candleParent',['어머님','아버님']),
+  groom:()=>area('특별 연출 멘트','groomExtra','밸런스 게임, 팔씨름 등 준비한 멘트를 넣으면 기본 멘트 사이에 들어갑니다.'),
+  bride:()=>chk('문 뒤 “등장” 후 다시 “입장”하는 2단 구성','brideTwoStep')
+    +seg('동행자','brideEscort',['없음','아버님','어머님','부모님']),
+  vow:()=>seg('진행 방식','vowBy',['셀프','주례']),
+  declare:()=>seg('낭독자','declareBy',['사회자','주례']),
+  speech:()=>seg('누구 측','speechWho',['신부','신랑'])
+    +txt('관계','speechRel','신부의 15년지기 대학 동기')
+    +txt('이름','speechNames','이소연, 김다슬','쉼표로 구분하면 복수 표현으로 바뀝니다.'),
+  song:()=>seg('누구 측','songWho',['신랑','신부'])
+    +txt('관계','songRel','신랑의 고등학교 친구')
+    +txt('이름','songName','이원주')
+    +txt('곡명','songTitle','이클립스 – 소나기'),
+  parents:()=>seg('인사 순서','parentsFirst',['신부','신랑'])
+    +seg('마무리 연출','parentsStyle',['포옹','화이팅']),
+  march:()=>txt('함께한 시간','marchYears','7년 / 열 번의 사계절','행진 첫 문장에 들어갑니다.'),
+  closing:()=>chk('기념 촬영 안내 넣기','photoNotice')
+    +chk('“전문 사회자가 아니다 보니…” 마무리 인사 넣기','humble'),
+};
+
+function musicCue(key){
+  const s=cur().sections[key];
+  return `<div class="row">
+    <div class="f"><label>음악</label><input type="text" data-sk="${key}" data-sf="music" value="${esc(s.music)}" placeholder="곡명 / 웨딩홀 보유곡"></div>
+    <div class="f"><label>큐 · 비고 메모</label><input type="text" data-sk="${key}" data-sf="cue" value="${esc(s.cue)}" placeholder="입장 동선 체크"></div>
+  </div>`;
+}
+
+function renderForm(){
+  const pane=document.getElementById('form');
+  const prev=new Set([...pane.querySelectorAll('details.group[open]')].map(d=>d.id));
+  const first=!pane.children.length;
+  const scroll=document.querySelector('.pane-l')?document.querySelector('.pane-l').scrollTop:0;
+  const op=id=>(first?['g-basic','g-order'].includes(id):prev.has(id))?'open':'';
+
+  const w=cur();
+  const active=SEC_DEFS.filter(d=>w.sections[d.key].on);
+  const total=active.reduce((s,d)=>s+estimate(d.key),0);
+
+  const orderList=SEC_DEFS.map((d,i)=>{
+    const s=w.sections[d.key];
+    return `<div class="ord">
+      <input type="checkbox" data-secon="${d.key}" ${s.on?'checked':''} aria-label="${d.title} 사용">
+      <span class="n">${i+1}</span>
+      <button class="t jump" data-jump="${d.key}">${d.title}</button>
+      <span class="m">${s.music?'♪ '+esc(s.music):''}</span>
+    </div>`;
+  }).join('');
+
+  const secGroups=SEC_DEFS.map((d,i)=>{
+    const s=w.sections[d.key];
+    const fields=(SEC_FIELDS[d.key]?SEC_FIELDS[d.key]():'')+musicCue(d.key);
+    return `<details class="group sec ${s.on?'':'is-off'}" id="g-${d.key}" ${op('g-'+d.key)}>
+      <summary><span class="sn">${String(i+1).padStart(2,'0')}</span><span class="st">${d.title}</span>
+        ${s.on?'':'<span class="off">미사용</span>'}</summary>
+      <div class="gbody">${fields}</div></details>`;
+  }).join('');
+
+  pane.innerHTML=`
+<details class="group" id="g-basic" ${op('g-basic')}><summary>기본 정보</summary><div class="gbody">
+  <div class="row">
+    <div class="f"><label>신부</label><input type="text" data-k="bride" value="${esc(w.bride)}" placeholder="김민주"></div>
+    <div class="f"><label>신랑</label><input type="text" data-k="groom" value="${esc(w.groom)}" placeholder="박관중"></div>
+  </div>
+  <div class="row">
+    <div class="f"><label>예식일</label><input type="date" data-k="date" value="${esc(w.date)}"></div>
+    <div class="f"><label>예식 시간</label><input type="time" data-k="time" value="${esc(w.time)}"></div>
+  </div>
+  <div class="row">
+    ${txt('예식장','venue','○○컨벤션 3층 그랜드홀')}
+    ${txt('연회장 층','floor','지하 1층')}
+  </div>
+</div></details>
+
+<details class="group" id="g-order" ${op('g-order')}><summary>식순 구성</summary><div class="gbody">
+  <div class="toggle-order">${orderList}</div>
+  <div class="hint" style="margin-top:10px">체크로 순서를 넣고 빼고, 이름을 누르면 그 순서의 세부 설정으로 이동합니다.</div>
+  <div class="hint" style="margin-top:8px;color:var(--wine)">사용 중인 순서 ${active.length}개 · 예상 진행 시간 약 ${Math.round(total/60)}분</div>
+</div></details>
+
+<div class="sec-head">순서별 세부 설정</div>
+${secGroups}
+
+<details class="group" id="g-export" ${op('g-export')}><summary>내보내기</summary><div class="gbody">
+  <button class="btn" id="btnJson" style="width:100%;margin-bottom:8px">이 대본 백업 파일 저장 (.json)</button>
+  <label class="btn" style="width:100%;display:block;text-align:center">백업 파일 불러오기
+    <input type="file" id="fileJson" accept="application/json" hidden></label>
+</div></details>`;
+
+  const p=document.querySelector('.pane-l'); if(p) p.scrollTop=scroll;
+}
+
+function jumpTo(key){
+  const g=document.getElementById('g-'+key); if(!g) return;
+  g.open=true;
+  g.scrollIntoView({behavior:'smooth',block:'start'});
+  const inp=g.querySelector('input[type=text],textarea'); if(inp) setTimeout(()=>inp.focus(),300);
+  g.classList.add('flash'); setTimeout(()=>g.classList.remove('flash'),1200);
+}
+
+/* =========================================================
+   5. 렌더 – 대본 미리보기
+   ========================================================= */
+function textOf(key){
+  const w=cur(), s=w.sections[key];
+  if(s.text!=null) return s.text;
+  return GEN[key](w);
+}
+function estimate(key){
+  const d=SEC_DEFS.find(x=>x.key===key);
+  const plain=textOf(key).replace(/\([^)]*\)/g,'').replace(/[\/\s]/g,'');
+  return Math.round(plain.length/4.0)+d.dur;
+}
+function fmtTime(sec){
+  const m=Math.floor(sec/60), s=sec%60;
+  return m?`약 ${m}분 ${s?s+'초':''}`.trim():`약 ${s}초`;
+}
+function scriptHTML(t){
+  return esc(t)
+    .replace(/\(([^)]*)\)/g,'<span class="stage">($1)</span>')
+    .replace(/\s\/\s/g,'<span class="brk"></span>')
+    .replace(/『([^』]*)』/g,'<span class="kw">$1</span>');
+}
+
+let editingKey=null;
+function renderPreview(){
+  const w=cur();
+  const list=SEC_DEFS.filter(d=>w.sections[d.key].on);
+  const head=`
+  <div class="sheet-head">
+    <div class="dt">${esc(dateShort(w))}${w.time?' · '+esc(timeKo(w)):''}</div>
+    <h1>${esc(w.bride||'신부')}<span class="heart">♡</span>${esc(w.groom||'신랑')}</h1>
+    <div class="sub">결혼식 식순 및 사회자 대본 &nbsp;·&nbsp; 사회 ${esc(w.mcName||'○○○')}</div>
+    <div class="meta">
+      ${w.venue?`<span>예식장 <b>${esc(w.venue)}</b></span>`:''}
+      ${w.floor?`<span>연회장 <b>${esc(w.floor)}</b></span>`:''}
+      <span>순서 <b>${list.length}개</b></span>
+      <span>예상 진행 <b>${Math.round(list.reduce((s,d)=>s+estimate(d.key),0)/60)}분</b></span>
+    </div>
+  </div>`;
+
+  const pgm=`<div class="pgm"><h2>식순</h2><table class="pgm-t">
+    ${list.map((d,i)=>{
+      const s=w.sections[d.key];
+      const note=[s.music,s.cue].filter(Boolean).join(' · ');
+      return `<tr><td class="i">${i+1}</td><td class="t">${d.title}</td><td class="n">${esc(note)}</td></tr>`;
+    }).join('')}
+  </table></div>`;
+
+  const blocks=list.map((d,i)=>{
+    const s=w.sections[d.key];
+    const body = editingKey===d.key
+      ? `<textarea class="edit" data-edit="${d.key}">${esc(textOf(d.key))}</textarea>
+         <div class="tools" style="opacity:1">
+           <button data-act="done" data-key="${d.key}">편집 완료</button>
+           <button data-act="reset" data-key="${d.key}">기본 멘트로 되돌리기</button>
+         </div>`
+      : `<div class="script">${scriptHTML(textOf(d.key))}</div>
+         <div class="tools">
+           <button data-act="edit" data-key="${d.key}">멘트 수정</button>
+           <button data-act="cue" data-key="${d.key}">큐 / 음악</button>
+           <button data-act="copy1" data-key="${d.key}">이 순서만 복사</button>
+         </div>`;
+    return `<div class="blk">
+      <div class="cue">
+        <div class="num">${String(i+1).padStart(2,'0')}</div>
+        <div class="ttl">${d.title}${s.text!=null?'<span class="edited-flag">수정됨</span>':''}</div>
+        ${s.music?`<div class="tag">♪ ${esc(s.music)}</div>`:''}
+        ${s.cue?`<div class="memo">${esc(s.cue)}</div>`:''}
+        <div class="time">${fmtTime(estimate(d.key))}</div>
+      </div>
+      <div class="body">${body}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('preview').innerHTML=
+    `<div class="sheet">${head}${pgm}${blocks||'<div class="empty">사용할 순서를 하나 이상 선택해 주세요.</div>'}</div>`;
+}
+
+function renderTop(){
+  const sel=document.getElementById('fileSel');
+  sel.innerHTML=DB.list.map(w=>`<option value="${w.id}" ${w.id===DB.cur?'selected':''}>${esc(titleOf(w))}</option>`).join('');
+}
+function renderAll(){ renderTop(); renderForm(); renderPreview(); if(DB.print) applyPrintClass(); }
+
+/* =========================================================
+   6. 이벤트
+   ========================================================= */
+document.getElementById('form').addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.k){ const w=cur(); w[t.dataset.k]=t.value; save();
+    clearTimeout(window._rp); window._rp=setTimeout(()=>{renderPreview();renderTop();},200); }
+  if(t.dataset.sk){ const w=cur(); w.sections[t.dataset.sk][t.dataset.sf]=t.value; save();
+    clearTimeout(window._rp); window._rp=setTimeout(renderPreview,200); }
+});
+document.getElementById('form').addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.chk){ set(t.dataset.chk,t.checked); }
+  if(t.dataset.secon){ setSec(t.dataset.secon,'on',t.checked); }
+});
+document.getElementById('form').addEventListener('click',e=>{
+  const b=e.target.closest('[data-seg]');
+  if(b){ set(b.dataset.seg,b.dataset.v); }
+  const j=e.target.closest('[data-jump]');
+  if(j){ jumpTo(j.dataset.jump); }
+  if(e.target.id==='btnJson') exportJson();
+});
+document.getElementById('form').addEventListener('change',e=>{
+  if(e.target.id==='fileJson') importJson(e.target.files[0]);
+});
+
+document.getElementById('preview').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const k=b.dataset.key;
+  if(b.dataset.act==='edit'){ editingKey=k; renderPreview();
+    const ta=document.querySelector('[data-edit]'); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); }
+  if(b.dataset.act==='done'){
+    const ta=document.querySelector(`[data-edit="${k}"]`);
+    setSecText(k,ta.value); editingKey=null; renderPreview();
+  }
+  if(b.dataset.act==='reset'){ setSecText(k,null); editingKey=null; renderPreview(); toast('기본 멘트로 되돌렸습니다.'); }
+  if(b.dataset.act==='cue'){ jumpTo(k); }
+  if(b.dataset.act==='copy1'){ copyText(textOf(k)); }
+});
+function setSecText(k,v){ const w=cur(); w.sections[k].text=v; save(); }
+
+/* 상단 버튼 */
+document.getElementById('fileSel').onchange=e=>{ DB.cur=e.target.value; editingKey=null; save(); renderAll(); };
+document.getElementById('btnNew').onclick=()=>{ const w=blank(); DB.list.push(w); DB.cur=w.id; save(); renderAll(); toast('새 예식을 만들었습니다.'); };
+document.getElementById('btnDup').onclick=()=>{
+  const w=JSON.parse(JSON.stringify(cur())); w.id='w'+Date.now().toString(36);
+  DB.list.push(w); DB.cur=w.id; save(); renderAll(); toast('복제했습니다. 이름과 날짜를 바꿔 주세요.');
+};
+document.getElementById('btnDel').onclick=()=>{
+  if(DB.list.length===1){ toast('마지막 하나는 삭제할 수 없습니다.'); return; }
+  if(!confirm(`"${titleOf(cur())}" 대본을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+  DB.list=DB.list.filter(x=>x.id!==DB.cur); DB.cur=DB.list[0].id; save(); renderAll(); toast('삭제했습니다.');
+};
+/* ---------- 공용 모달 ---------- */
+const $m=document.getElementById('modal');
+function openModal(title,bodyHTML,footHTML){
+  document.getElementById('mTitle').textContent=title;
+  document.getElementById('mBody').innerHTML=bodyHTML;
+  document.getElementById('mFoot').innerHTML=footHTML;
+  $m.classList.add('on');
+}
+function closeModal(){ $m.classList.remove('on'); }
+document.getElementById('mClose').onclick=closeModal;
+$m.addEventListener('click',e=>{ if(e.target===$m) closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+/* =========================================================
+   7. 사전 질문지
+   ========================================================= */
+function buildQuestions(mode){
+  const w=cur();
+  const side=(w.relation==='신부'?w.bride:w.groom)?((w.relation==='신부'?w.bride:w.groom)+'님'):(w.relation+'님');
+  const need=[], confirm=[];
+  const ask=(cond,q,filled)=>{ (cond?need:confirm).push(cond?q:`${q}  → ${filled}`); };
+
+  ask(!w.date||!w.time,'예식 일시(날짜 / 시작 시간)',`${dateShort(w)} ${timeKo(w)}`);
+  ask(!w.venue,'예식장 이름과 홀 이름',w.venue);
+  ask(!w.floor,'피로연 연회장 위치(몇 층인지)',w.floor);
+  ask(!w.groom||!w.bride,'신랑·신부 성함 한자 없이 정확한 표기',`${w.groom} / ${w.bride}`);
+  ask(!w.relationText,'저를 소개할 때 쓸 관계 표현 (예: 대학 동기, 24년지기 친구)',w.relationText);
+  ask(!w.story,'개식사에서 제가 두 분과의 인연을 짧게 소개하려 합니다. 넣었으면 하는 에피소드나 표현이 있을까요?','작성 완료');
+  ask(!w.farGuests,'멀리서 오시는 하객 지역이 있다면 알려주세요 (없으면 "없음")',w.farGuests);
+
+  need.push(`화촉 점화는 어머님 두 분인가요, 아버님 두 분인가요? (현재 대본: ${w.candleParent})`);
+  need.push('화촉 점화 때 입장곡은 웨딩홀 보유곡으로 진행할까요, 따로 원하시는 곡이 있을까요?');
+
+  const mus=k=>w.sections[k].music;
+  ask(!mus('groom'),'신랑 입장곡 (곡명 / 원하는 재생 타이밍이 있다면 함께)',mus('groom'));
+  need.push('신랑 입장 때 특별히 넣고 싶은 이벤트나 멘트가 있을까요? (밸런스 게임, 팔씨름 등)');
+  ask(!mus('bride'),'신부 입장곡 (곡명 / 원하는 재생 타이밍)',mus('bride'));
+  need.push(`신부 입장은 문 뒤에서 "등장" 후 다시 "입장"하는 2단 구성인가요, 한 번에 입장인가요? (현재 대본: ${w.brideTwoStep?'2단 구성':'한 번에 입장'})`);
+  need.push(`신부님과 함께 걸어 들어오시는 분이 계신가요? (현재 대본: ${w.brideEscort})`);
+
+  need.push(`반지 교환 순서는 넣을까요? (현재 대본: ${w.sections.ring.on?'포함':'없음'})`);
+  need.push(`혼인 서약은 두 분이 직접 낭독하시나요, 주례가 계신가요? (현재 대본: ${w.vowBy})`);
+  need.push(`성혼 선언문은 제가 낭독하면 될까요? (현재 대본: ${w.declareBy} 낭독)`);
+
+  ask(!w.speechNames,`축사해 주실 분의 이름과 관계를 알려주세요 (여러 명이면 모두)`,`${w.speechRel} ${w.speechNames}`);
+  ask(!w.songName||!w.songTitle,'축가해 주실 분의 이름·관계, 그리고 곡명을 알려주세요',`${w.songRel} ${w.songName} – ${w.songTitle}`);
+
+  need.push(`부모님께 인사드릴 때 포옹으로 마무리할까요, 다 같이 "화이팅"을 외치는 연출을 넣을까요? (현재 대본: ${w.parentsStyle})`);
+  ask(!w.marchYears,'두 분이 함께한 시간을 행진 멘트에 넣으려 합니다. 몇 년으로 표현할까요?',w.marchYears);
+  ask(!mus('march'),'행진곡 (곡명 / 원하는 재생 타이밍)',mus('march'));
+  need.push('예식 후 기념 촬영 순서가 있나요? 폐식사에서 안내드리겠습니다.');
+  need.push('그 외에 꼭 넣어 달라거나, 반대로 빼 달라고 하실 멘트가 있을까요?');
+
+  const num=a=>a.map((q,i)=>`${i+1}. ${q}`).join('\n');
+  const head=`안녕하세요 ${side}! 사회 대본 준비 중입니다 :)\n아래 항목만 답 주시면 대본에 그대로 반영해 둘게요.\n편하게 번호로 답 주셔도 됩니다.\n\n`;
+  const tail=`\n\n답변 주시면 초안 정리해서 다시 보내드리겠습니다. 감사합니다!`;
+  if(mode==='all'){
+    return head+num(need)+(confirm.length?`\n\n[ 이미 받은 내용 · 맞는지만 확인 부탁드려요 ]\n${confirm.map(c=>'· '+c).join('\n')}`:'')+tail;
+  }
+  return head+num(need)+tail;
+}
+document.getElementById('btnAsk').onclick=()=>{
+  const render=mode=>{
+    openModal('사전 질문지',
+      `<div class="opt"><span class="lbl">이미 채워진 항목도 확인용으로 포함
+        <span class="sub">신랑·신부에게 최종 확인받을 때 쓰기 좋습니다.</span></span>
+        <input type="checkbox" id="qAll" ${mode==='all'?'checked':''}></div>
+       <textarea class="q-out" id="qOut">${esc(buildQuestions(mode))}</textarea>
+       <div class="pv-note">필요 없는 질문은 지우고 보내세요. 받은 답변은 왼쪽 입력창에 넣으면 대본에 바로 반영됩니다.</div>`,
+      `<button class="btn" id="qCopy">카톡용으로 복사</button>
+       <button class="btn primary" id="qClose">닫기</button>`);
+    document.getElementById('qAll').onchange=e=>render(e.target.checked?'all':'need');
+    document.getElementById('qCopy').onclick=()=>copyText(document.getElementById('qOut').value);
+    document.getElementById('qClose').onclick=closeModal;
+  };
+  render('need');
+};
+
+/* =========================================================
+   8. PDF 만들기
+   ========================================================= */
+function applyPrintClass(){
+  const p=DB.print, b=document.body;
+  b.classList.toggle('pm-read',p.mode==='read');
+  b.classList.toggle('pm-cue',p.mode==='cue');
+  b.classList.toggle('pb-on',!!p.pageBreak);
+  b.classList.toggle('hide-pgm',!p.program);
+  b.classList.toggle('hide-head',!p.cover);
+  b.classList.toggle('pm-land',p.orient!=='portrait');
+  b.classList.toggle('cols-on',p.orient==='landscape'&&p.cols&&p.mode==='read');
+  b.style.setProperty('--readpt',p.pt+'pt');
+  let st=document.getElementById('pageStyle');
+  if(!st){ st=document.createElement('style'); st.id='pageStyle'; document.head.appendChild(st); }
+  st.textContent='@page{size:A4 '+(p.orient||'landscape')+';margin:'+(p.orient==='landscape'?'12mm 14mm':'14mm 15mm')+'}';
+}
+document.getElementById('btnPrint').onclick=()=>{
+  const p=DB.print;
+  const draw=()=>{
+    openModal('PDF 만들기',
+      `<div class="opt"><span class="lbl">용도
+         <span class="sub">리딩용은 1단·큰 글씨, 큐시트는 화면과 같은 2단 요약본입니다.</span></span>
+         <div class="seg" style="width:210px">
+           <button data-pm="read" aria-pressed="${p.mode==='read'}">리딩용(아이패드)</button>
+           <button data-pm="cue" aria-pressed="${p.mode==='cue'}">큐시트</button>
+         </div></div>
+       <div class="opt"><span class="lbl">용지 방향
+         <span class="sub">아이패드로 볼 때는 가로가 편합니다.</span></span>
+         <div class="seg" style="width:150px">
+           <button data-or="landscape" aria-pressed="${p.orient!=='portrait'}">가로</button>
+           <button data-or="portrait" aria-pressed="${p.orient==='portrait'}">세로</button>
+         </div></div>
+       ${p.orient!=='portrait'&&p.mode==='read'?`<div class="opt"><span class="lbl">본문을 2단으로 나누기
+         <span class="sub">끄면 위에서 아래로 한 줄기로 이어집니다.</span></span>
+         <input type="checkbox" id="cols" ${p.cols?'checked':''}></div>`:''}
+       <div class="opt"><span class="lbl">글자 크기 <b id="ptv">${p.pt}pt</b>
+         <span class="sub">아이패드 세로로 볼 때 15~17pt가 읽기 편합니다.</span></span>
+         <input type="range" id="pt" min="11" max="22" step="1" value="${p.pt}"></div>
+       <div class="opt"><span class="lbl">순서마다 새 페이지에서 시작
+         <span class="sub">한 화면에 한 순서만 보여서 넘기기 좋습니다.</span></span>
+         <input type="checkbox" id="pb" ${p.pageBreak?'checked':''}></div>
+       <div class="opt"><span class="lbl">표지 포함</span><input type="checkbox" id="cv" ${p.cover?'checked':''}></div>
+       <div class="opt"><span class="lbl">식순표 포함</span><input type="checkbox" id="pg" ${p.program?'checked':''}></div>
+       <div class="pv-note"><b>아이패드로 옮기는 방법</b><br>
+         ① 아래 <b>인쇄 창 열기</b> → 대상을 <b>PDF로 저장</b>, 용지 방향 확인<br>
+         ② 인쇄 창의 <b>옵션 더보기 → 머리글 및 바닥글</b> 체크를 <b>해제</b>하세요. 날짜·파일경로·쪽번호가 사라집니다<br>
+         ③ 저장한 PDF를 아이클라우드 드라이브나 카톡 나에게 보내기로 옮긴 뒤, 북 앱 또는 굿노트에서 열기<br>
+         ④ 굿노트에 넣으면 당일 현장에서 형광펜·메모를 바로 얹을 수 있습니다.</div>`,
+      `<button class="btn" id="pClose">닫기</button>
+       <button class="btn primary" id="pGo">인쇄 창 열기</button>`);
+    document.querySelectorAll('[data-pm]').forEach(b=>b.onclick=()=>{p.mode=b.dataset.pm;save();applyPrintClass();draw();});
+    document.querySelectorAll('[data-or]').forEach(b=>b.onclick=()=>{p.orient=b.dataset.or;save();applyPrintClass();draw();});
+    const cb=document.getElementById('cols');
+    if(cb) cb.onchange=e=>{p.cols=e.target.checked;applyPrintClass();save();};
+    const pt=document.getElementById('pt');
+    pt.oninput=()=>{p.pt=+pt.value;document.getElementById('ptv').textContent=p.pt+'pt';applyPrintClass();save();};
+    document.getElementById('pb').onchange=e=>{p.pageBreak=e.target.checked;applyPrintClass();save();};
+    document.getElementById('cv').onchange=e=>{p.cover=e.target.checked;applyPrintClass();save();};
+    document.getElementById('pg').onchange=e=>{p.program=e.target.checked;applyPrintClass();save();};
+    document.getElementById('pClose').onclick=closeModal;
+    document.getElementById('pGo').onclick=()=>{ closeModal(); setTimeout(()=>window.print(),120); };
+  };
+  applyPrintClass(); draw();
+};
+document.getElementById('btnCopy').onclick=()=>{
+  const w=cur();
+  const out=SEC_DEFS.filter(d=>w.sections[d.key].on).map((d,i)=>{
+    const s=w.sections[d.key];
+    const note=[s.music&&('♪ '+s.music),s.cue].filter(Boolean).join(' | ');
+    return `[${String(i+1).padStart(2,'0')}] ${d.title}${note?`  (${note})`:''}\n\n${textOf(d.key)}`;
+  }).join('\n\n──────────────────\n\n');
+  copyText(`${titleOf(w)} 사회자 대본\n\n${out}`);
+};
+function copyText(t){
+  navigator.clipboard.writeText(t).then(()=>toast('복사했습니다.'),
+    ()=>{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); ta.remove(); toast('복사했습니다.'); });
+}
+function exportJson(){
+  const b=new Blob([JSON.stringify(cur(),null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`${titleOf(cur()).replace(/[\/\\:*?"<>|]/g,'')}.json`; a.click();
+}
+function importJson(f){
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const w=JSON.parse(r.result); w.id='w'+Date.now().toString(36);
+      SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; });
+      DB.list.push(w); DB.cur=w.id; save(); renderAll(); toast('불러왔습니다.');
+    }catch(e){ toast('파일을 읽지 못했습니다. 이 앱에서 저장한 .json 파일인지 확인해 주세요.'); } };
+  r.readAsText(f);
+}
+
+/* =========================================================
+   7. 무대 모드
+   ========================================================= */
+let smIdx=0;
+function smList(){ const w=cur(); return SEC_DEFS.filter(d=>w.sections[d.key].on); }
+function smRender(){
+  const l=smList(); if(!l.length) return;
+  smIdx=Math.max(0,Math.min(smIdx,l.length-1));
+  const d=l[smIdx], s=cur().sections[d.key];
+  document.getElementById('smStep').textContent=`${smIdx+1} / ${l.length}`;
+  document.getElementById('smTitle').textContent=d.title;
+  document.getElementById('smCue').textContent=[s.music&&('♪ '+s.music),s.cue].filter(Boolean).join('\n');
+  document.getElementById('smBody').innerHTML=scriptHTML(textOf(d.key));
+  document.getElementById('smProg').style.width=((smIdx+1)/l.length*100)+'%';
+  document.querySelector('.sm-body').scrollTop=0;
+  document.getElementById('smNext').textContent = smIdx===l.length-1?'끝':'다음 →';
+}
+document.getElementById('btnStage').onclick=()=>{ smIdx=0; document.getElementById('stage').classList.add('on'); smRender(); };
+document.getElementById('smClose').onclick=()=>document.getElementById('stage').classList.remove('on');
+document.getElementById('smPrev').onclick=()=>{ smIdx--; smRender(); };
+document.getElementById('smNext').onclick=()=>{ if(smIdx===smList().length-1){ document.getElementById('stage').classList.remove('on'); return;} smIdx++; smRender(); };
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('stage').classList.contains('on')) return;
+  if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); smIdx++; smRender(); }
+  if(e.key==='ArrowLeft'){ smIdx--; smRender(); }
+  if(e.key==='Escape') document.getElementById('stage').classList.remove('on');
+});
+
+/* =========================================================
+   9. 응답 링크 · 응답 확인
+   ========================================================= */
+const b64=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_');
+const unb64=s=>decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
+
+function gsId(u){ const m=String(u||'').match(/\/macros\/s\/([^/?#]+)/); return m?m[1]:''; }
+
+function askConfig(){
+  const w=cur();
+  const on={}, music={};
+  SEC_DEFS.forEach(d=>{ on[d.key]=w.sections[d.key].on; if(w.sections[d.key].music) music[d.key]=w.sections[d.key].music; });
+  return {
+    id:w.id, bride:w.bride, groom:w.groom, mc:w.mcName, dateLabel:dateShort(w),
+    date:w.date, time:w.time, venue:w.venue, floor:w.floor,
+    def:{on,music,candleParent:w.candleParent,
+      brideTwoStep:w.brideTwoStep?'문 뒤에서 등장 후 입장':'한 번에 입장',
+      brideEscort:w.brideEscort,
+      vowBy:w.vowBy==='셀프'?'두 사람이 직접 낭독':'주례가 진행',
+      declareBy:w.declareBy, speechWho:w.speechWho, speechRel:w.speechRel, speechNames:w.speechNames,
+      songWho:w.songWho, songRel:w.songRel, songName:w.songName, songTitle:w.songTitle,
+      parentsFirst:w.parentsFirst+' 부모님', parentsStyle:w.parentsStyle==='포옹'?'따뜻하게 포옹':'다 같이 화이팅',
+      marchYears:w.marchYears, photoNotice:w.photoNotice?'있음':'없음', groomExtra:w.groomExtra},
+  };
+}
+function askLink(){
+  const c=DB.conn||{}, base=(c.ask||'https://주소를-먼저-설정하세요/ask.html').trim().replace(/#.*$/,'');
+  return base+'#'+cur().id+'~'+gsId(c.gs);
+}
+async function pushConfig(){
+  const c=DB.conn||{};
+  if(!c.gs) throw new Error('앱스 스크립트 주소가 아직 없습니다.');
+  const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({type:'config',id:cur().id,cfg:askConfig()})});
+  const j=await r.json();
+  if(!j.ok) throw new Error(j.error||'설정을 올리지 못했습니다.');
+}
+
+function connForm(){
+  const c=DB.conn||{};
+  return `<div class="f"><label>응답 폼 주소 (ask.html을 올린 주소)</label>
+      <input type="text" id="cAsk" value="${esc(c.ask||'')}" placeholder="https://내주소.netlify.app/ask.html"></div>
+    <div class="f"><label>구글 앱스 스크립트 웹앱 주소</label>
+      <input type="text" id="cGs" value="${esc(c.gs||'')}" placeholder="https://script.google.com/macros/s/…/exec"></div>`;
+}
+function saveConn(){
+  DB.conn=Object.assign(DB.conn||{},{
+    ask:(document.getElementById('cAsk')||{}).value||'',
+    gs:(((document.getElementById('cGs')||{}).value)||'').trim()});
+  save();
+}
+
+document.getElementById('btnLink').onclick=()=>{
+  const c=DB.conn||{};
+  const ready=c.ask&&c.gs;
+  openModal('응답 링크 보내기',
+    connForm()+
+    `<div class="f" style="margin-top:16px"><label>신랑신부에게 보낼 링크</label>
+      <textarea id="lnk" style="width:100%;min-height:60px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(askLink())}</textarea></div>
+     <div class="pv-note" id="lWarn" style="display:none;color:var(--wine);font-weight:500">
+       ⚠ 주소가 아직 완전하지 않습니다. 위 두 칸을 확인해 주세요.<br>
+       앱스 스크립트 주소는 <b>https://script.google.com/macros/s/…/exec</b> 형태로 <b>/exec</b>까지 들어가야 합니다.
+     </div>
+     <div class="pv-note" id="lNote">${ready
+       ? '복사를 누르면 지금 대본 설정이 구글 시트로 올라가고, 신랑신부는 링크를 열 때 그 설정을 받아 봅니다. 대본을 고쳤다면 다시 복사만 눌러 주세요. 링크 자체는 바뀌지 않습니다.'
+       : '위 두 주소를 먼저 채워야 링크가 완성됩니다. 함께 드린 <b>설치 안내</b> 문서의 순서대로 하시면 됩니다.'}</div>`,
+    `<button class="btn" id="lCopy">링크만 복사</button>
+     <button class="btn primary" id="lMsg">카톡 메시지까지 복사</button>`);
+  const warn=()=>{
+    const el=document.getElementById('lWarn'); if(!el) return;
+    const bad=!gsId((DB.conn||{}).gs)||!/^https?:\/\//.test(((DB.conn||{}).ask||'').trim());
+    el.style.display=bad?'block':'none';
+    document.getElementById('lCopy').disabled=bad;
+    document.getElementById('lMsg').disabled=bad;
+  };
+  const upd=()=>{ saveConn(); document.getElementById('lnk').value=askLink(); warn(); };
+  document.getElementById('cAsk').oninput=upd;
+  document.getElementById('cGs').oninput=upd;
+  const note=document.getElementById('lNote');
+  const go=async(withMsg)=>{
+    note.textContent='설정을 올리는 중입니다…';
+    try{
+      await pushConfig();
+      const link=document.getElementById('lnk').value;
+      const w=cur();
+      copyText(withMsg
+        ? `${w.bride||''} ${w.groom||''} 두 분 결혼식 사회 준비 중입니다 :)\n아래 링크 열어서 순서마다 넣을지 뺄지만 눌러주시고, 더 알려주실 내용 있으면 적어서 보내주세요. 5분이면 됩니다!\n\n${link}`
+        : link);
+      note.textContent='설정을 올렸습니다. 이제 링크를 보내시면 됩니다.';
+    }catch(e){
+      note.innerHTML=esc(e.message)+'<br>앱스 스크립트 주소가 <b>/exec</b>로 끝나는지, 배포 시 "모든 사용자"로 설정했는지 확인해 주세요.';
+    }
+  };
+  document.getElementById('lCopy').onclick=()=>go(false);
+  document.getElementById('lMsg').onclick=()=>go(true);
+  warn();
+};
+
+/* ---------- 구글 시트 자동 백업 ---------- */
+let bkTimer=null, lastBackup='';
+function scheduleBackup(){
+  if(!(DB.conn||{}).gs) return;
+  clearTimeout(bkTimer);
+  bkTimer=setTimeout(async()=>{
+    const w=cur(); if(!w) return;
+    const payload=JSON.stringify(w);
+    if(payload===lastBackup) return;
+    try{
+      const r=await fetch(DB.conn.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify({type:'backup',id:w.id,title:titleOf(w),data:w})});
+      const j=await r.json();
+      if(j.ok){ lastBackup=payload; setStatus('cloud'); }
+    }catch(e){ /* 다음 변경 때 다시 시도 */ }
+  },8000);
+}
+
+async function fetchBackups(){
+  const gs=(DB.conn||{}).gs;
+  if(!gs) throw new Error('앱스 스크립트 주소가 아직 없습니다. 응답 링크에서 먼저 설정해 주세요.');
+  const r=await fetch(gs+(gs.includes('?')?'&':'?')+'backups=1');
+  const j=await r.json();
+  if(!j.ok) throw new Error(j.error||'불러오지 못했습니다.');
+  return j.backups||[];
+}
+
+document.getElementById('btnCloud').onclick=async()=>{
+  openModal('구글 시트에서 불러오기','<div class="pv-note">불러오는 중입니다…</div>','');
+  let list;
+  try{ list=await fetchBackups(); }
+  catch(e){
+    openModal('구글 시트에서 불러오기',`<div class="pv-note">${esc(e.message)}</div>`,
+      `<button class="btn primary" id="bClose">닫기</button>`);
+    document.getElementById('bClose').onclick=closeModal; return;
+  }
+  if(!list.length){
+    openModal('구글 시트에서 불러오기',
+      '<div class="pv-note">시트에 저장된 대본이 아직 없습니다. 대본을 편집하면 몇 초 뒤 자동으로 저장됩니다.</div>',
+      `<button class="btn primary" id="bClose">닫기</button>`);
+    document.getElementById('bClose').onclick=closeModal; return;
+  }
+  openModal('구글 시트에서 불러오기',
+    `<div class="pv-note" style="margin-bottom:14px">브라우저 데이터가 지워져도 이 목록에서 되살릴 수 있습니다.
+      이미 있는 예식은 덮어쓰지 않고 새로 추가됩니다.</div>
+     ${list.map((b,i)=>`<div class="opt"><span class="lbl">${esc(b.title||'제목 없음')}
+       <span class="sub">저장 ${new Date(b.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></span>
+       <button class="btn" data-restore="${i}">불러오기</button></div>`).join('')}`,
+    `<button class="btn primary" id="bClose">닫기</button>`);
+  document.getElementById('bClose').onclick=closeModal;
+  document.querySelectorAll('[data-restore]').forEach(btn=>btn.onclick=()=>{
+    const w=JSON.parse(JSON.stringify(list[+btn.dataset.restore].data));
+    if(DB.list.some(x=>x.id===w.id)) w.id='w'+Date.now().toString(36);
+    SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; });
+    DB.list.push(w); DB.cur=w.id; save(); renderAll(); closeModal();
+    toast('불러왔습니다.');
+  });
+};
+
+/* ---------- 대본 보내기 ---------- */
+function reviewLink(){
+  const c=DB.conn||{}, base=(c.ask||'https://주소를-먼저-설정하세요/ask.html').trim().replace(/#.*$/,'');
+  return base.replace(/[^/]*$/,'review.html')+'#'+cur().id+'~'+gsId(c.gs);
+}
+async function pushScript(round){
+  const c=DB.conn||{}, w=cur();
+  if(!c.gs) throw new Error('앱스 스크립트 주소가 아직 없습니다.');
+  const doc={id:w.id,round:round,bride:w.bride,groom:w.groom,dateLabel:dateShort(w),
+    sections:SEC_DEFS.filter(d=>w.sections[d.key].on).map(d=>({
+      key:d.key,title:d.title,music:w.sections[d.key].music||'',text:textOf(d.key)}))};
+  const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({type:'script',id:w.id,script:doc})});
+  const j=await r.json();
+  if(!j.ok) throw new Error(j.error||'대본을 올리지 못했습니다.');
+}
+document.getElementById('btnSend').onclick=()=>{
+  const w=cur(), p=DB.print||{};
+  const rounds=['1차 검토본','2차 검토본','최종본'];
+  const draw=()=>{
+    openModal('대본 보내기',
+      `<div class="opt"><span class="lbl">회차
+         <span class="sub">신랑신부 화면 상단에 표시됩니다.</span></span>
+         <div class="seg" style="width:230px">
+           ${rounds.map(r=>`<button data-rd="${r}" aria-pressed="${(DB.round||rounds[0])===r}">${r.replace(' 검토본','차').replace('최종본','최종')}</button>`).join('')}
+         </div></div>
+       <div class="f" style="margin-top:16px"><label>보낼 링크</label>
+         <textarea id="rlnk" style="width:100%;min-height:56px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(reviewLink())}</textarea></div>
+       <div class="pv-note" id="rNote">보내기를 누르면 지금 대본이 구글 시트에 올라가고, 링크가 복사됩니다.
+         신랑신부는 순서마다 <b>이대로 좋아요 / 고치고 싶어요</b>를 누르고 의견을 적을 수 있습니다.
+         받은 의견은 <b>응답 확인</b>에서 순서별 메모로 반영됩니다.<br><br>
+         링크 주소는 회차가 바뀌어도 같습니다. 새 회차를 보낼 때 다시 누르시면 내용만 갱신됩니다.</div>`,
+      `<button class="btn" id="rClose">닫기</button>
+       <button class="btn primary" id="rGo">대본 올리고 링크 복사</button>`);
+    document.querySelectorAll('[data-rd]').forEach(b=>b.onclick=()=>{ DB.round=b.dataset.rd; save(); draw(); });
+    document.getElementById('rClose').onclick=closeModal;
+    document.getElementById('rGo').onclick=async()=>{
+      const note=document.getElementById('rNote');
+      note.textContent='대본을 올리는 중입니다…';
+      try{
+        await pushScript(DB.round||rounds[0]);
+        copyText(`${w.bride||''} ${w.groom||''} 두 분 결혼식 ${DB.round||rounds[0]}입니다.\n예식 당일 제가 읽을 대본이니 편하게 읽어보시고, 고치고 싶은 곳은 알려주세요!\n\n${reviewLink()}`);
+        note.textContent='올렸습니다. 메시지가 복사됐으니 그대로 보내시면 됩니다.';
+      }catch(e){ note.textContent=e.message; }
+    };
+  };
+  draw();
+};
+
+/* =========================================================
+   10. 응답 확인
+   ========================================================= */
+async function fetchResponses(){
+  const gs=(DB.conn||{}).gs;
+  if(!gs) throw new Error('앱스 스크립트 주소가 아직 없습니다.');
+  const get=async q=>{
+    const r=await fetch(gs+(gs.includes('?')?'&':'?')+q);
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'불러오지 못했습니다.');
+    return j.items||[];
+  };
+  const mine=await get('id='+encodeURIComponent(cur().id));
+  if(mine.length) return {items:mine,wide:false};
+  const all=(await get('all=1')).filter(x=>x&&(x.secs||x.notes));
+  return {items:all,wide:true};
+}
+
+const OPT_MAP={
+  candleParent:{f:'candleParent'},
+  brideTwoStep:{f:'brideTwoStep',to:v=>v.indexOf('등장')>-1,disp:v=>v?'등장 후 입장':'한 번에 입장'},
+  brideEscort:{f:'brideEscort'},
+  vowBy:{f:'vowBy',to:v=>v.indexOf('주례')>-1?'주례':'셀프'},
+  declareBy:{f:'declareBy'},
+  speechWho:{f:'speechWho'},speechRel:{f:'speechRel'},speechNames:{f:'speechNames'},
+  songWho:{f:'songWho'},songRel:{f:'songRel'},songName:{f:'songName'},songTitle:{f:'songTitle'},
+  parentsFirst:{f:'parentsFirst',to:v=>v.indexOf('신랑')>-1?'신랑':'신부'},
+  parentsStyle:{f:'parentsStyle',to:v=>v.indexOf('화이팅')>-1?'화이팅':'포옹'},
+  marchYears:{f:'marchYears'},
+  photoNotice:{f:'photoNotice',to:v=>v==='있음',disp:v=>v?'있음':'없음'},
+  groomExtra:{f:'groomExtra'},
+};
+const FIELD_LABEL={date:'예식일',time:'예식 시간',venue:'예식장',floor:'연회장 층',
+  candleParent:'화촉 점화 주체',brideTwoStep:'신부 입장 방식',brideEscort:'신부 동행자',
+  vowBy:'혼인 서약',declareBy:'성혼 선언문 낭독',speechWho:'축사 – 누구 측',speechRel:'축사자 관계',
+  speechNames:'축사자 이름',songWho:'축가 – 누구 측',songRel:'축가자 관계',songName:'축가자 이름',
+  songTitle:'축가 곡명',parentsFirst:'부모님 인사 순서',parentsStyle:'부모님 인사 연출',
+  marchYears:'함께한 시간',photoNotice:'기념 촬영 안내',groomExtra:'신랑 입장 연출'};
+const show=v=>v===true?'포함':v===false?'제외':(v===''||v==null?'(비어 있음)':String(v));
+
+function diffOf(res){
+  const w=cur(), out=[];
+  if(res.type==='review'){
+    SEC_DEFS.forEach(d=>{
+      const n=(res.notes||{})[d.key]; if(!n||!n.text) return;
+      const s=w.sections[d.key];
+      if((s.cue||'').indexOf(n.text)>-1) return;
+      out.push({t:d.title+' – 수정 요청',now:s.cue,val:n.text,
+        apply:()=>{ s.cue=(s.cue?s.cue+' / ':'')+'[요청] '+n.text; }});
+    });
+    return out;
+  }
+  Object.keys(res.basic||{}).forEach(k=>{
+    const nv=res.basic[k]; if(nv==null||nv==='') return;
+    if(String(w[k]||'')!==String(nv)) out.push({t:FIELD_LABEL[k]||k,now:w[k],val:nv,apply:()=>{w[k]=nv;}});
+  });
+  Object.keys(res.opts||{}).forEach(k=>{
+    const m=OPT_MAP[k]; if(!m) return;
+    let nv=res.opts[k]; if(nv==null||nv==='') return;
+    if(m.to) nv=m.to(nv);
+    if(String(w[m.f])!==String(nv)) out.push({t:FIELD_LABEL[k]||k,
+      now:m.disp?m.disp(w[m.f]):w[m.f], val:m.disp?res.opts[k]:nv, apply:()=>{w[m.f]=nv;}});
+  });
+  SEC_DEFS.forEach(d=>{
+    const r=(res.secs||{})[d.key]; if(!r) return;
+    const s=w.sections[d.key];
+    if(r.use==='on'&&!s.on) out.push({t:d.title+' – 순서',now:false,val:true,apply:()=>{s.on=true;}});
+    if(r.use==='off'&&s.on) out.push({t:d.title+' – 순서',now:true,val:false,apply:()=>{s.on=false;}});
+    if(r.music&&r.music!==s.music) out.push({t:d.title+' – 음악',now:s.music,val:r.music,apply:()=>{s.music=r.music;}});
+    if(r.note&&(s.cue||'').indexOf(r.note)<0)
+      out.push({t:d.title+' – 요청사항',now:s.cue,val:r.note,apply:()=>{s.cue=(s.cue?s.cue+' / ':'')+r.note;}});
+  });
+  return out;
+}
+
+let INBOX=[], DIFF=[], WIDE=false;
+function renderInbox(items,idx,wide){
+  INBOX=items; if(wide!==undefined) WIDE=wide;
+  if(!items.length){
+    openModal('받은 응답','<div class="pv-note">아직 도착한 응답이 없습니다. 링크를 보내신 뒤 신랑신부가 제출하면 여기에 표시됩니다.</div>',
+      `<button class="btn primary" id="iClose">닫기</button>`);
+    document.getElementById('iClose').onclick=closeModal; return;
+  }
+  const res=items[idx||0];
+  DIFF=diffOf(res);
+  const when=new Date(res.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  const rows=DIFF.length?DIFF.map((d,i)=>`
+    <div class="opt"><span class="lbl">${esc(d.t)}
+      <span class="sub">지금 ${esc(show(d.now))} → <b style="color:var(--wine)">${esc(show(d.val))}</b></span></span>
+      <input type="checkbox" data-d="${i}" checked></div>`).join('')
+    :'<div class="pv-note">이 응답과 지금 대본이 모두 일치합니다. 반영할 것이 없습니다.</div>';
+  openModal('받은 응답',
+    `${items.length>1?`<div class="f"><label>응답 ${items.length}건</label>
+      <select id="iSel" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px">
+      ${items.map((r,i)=>`<option value="${i}" ${i===(idx||0)?'selected':''}>${r.type==='review'?'[대본검토'+(r.round?' '+r.round:'')+'] ':'[사전응답] '}${esc(r.name||'이름 없음')} · ${new Date(r.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</option>`).join('')}
+      </select></div>`:''}
+     ${WIDE?`<div class="pv-note" style="margin-bottom:10px;color:var(--wine)">이 예식으로 온 응답이 없어 <b>시트에 있는 모든 응답</b>을 보여드립니다. 아래에서 맞는 응답을 고르세요.</div>`:''}
+     ${res.type==='review'?(()=>{
+        const ns=Object.values(res.notes||{});
+        const ok=ns.filter(x=>x.v==='ok').length, fx=ns.filter(x=>x.v==='fix').length;
+        return `<div class="pv-note" style="margin-bottom:10px">대본 검토 결과 · 그대로 좋다 <b>${ok}개</b> · 고쳐달라 <b style="color:var(--wine)">${fx}개</b></div>`;
+      })():''}
+     <div class="pv-note" style="margin-bottom:14px">${esc(res.name||'신랑신부')}님 · ${esc(when)} 도착
+       ${res.free?`<br><br><b>남기신 말</b><br>${esc(res.free)}`:''}</div>
+     ${rows}`,
+    `<button class="btn" id="iClose">닫기</button>
+     ${DIFF.length?`<button class="btn primary" id="iApply">선택한 항목 반영</button>`:''}`);
+  const sel=document.getElementById('iSel'); if(sel) sel.onchange=e=>renderInbox(items,+e.target.value);
+  document.getElementById('iClose').onclick=closeModal;
+  const ap=document.getElementById('iApply');
+  if(ap) ap.onclick=()=>{
+    let n=0;
+    document.querySelectorAll('[data-d]').forEach(c=>{ if(c.checked){ DIFF[+c.dataset.d].apply(); n++; } });
+    save(); renderAll(); closeModal(); toast(`${n}개 항목을 대본에 반영했습니다.`);
+  };
+}
+
+document.getElementById('btnInbox').onclick=async()=>{
+  openModal('받은 응답','<div class="pv-note">불러오는 중입니다…</div>','');
+  try{ const r=await fetchResponses(); renderInbox(r.items,0,r.wide); }
+  catch(e){
+    openModal('받은 응답',
+      connForm()+
+      `<div class="pv-note" style="margin-top:14px">${esc(e.message)}<br><br>
+        신랑신부가 코드를 보내온 경우에는 아래에 붙여넣으세요.</div>
+       <div class="f"><label>응답 코드 붙여넣기</label>
+         <textarea id="pasteCode" style="width:100%;min-height:80px;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:11px"></textarea></div>`,
+      `<button class="btn" id="iClose">닫기</button>
+       <button class="btn primary" id="iPaste">코드 읽기</button>`);
+    document.getElementById('cAsk').oninput=saveConn;
+    document.getElementById('cGs').oninput=saveConn;
+    document.getElementById('iClose').onclick=closeModal;
+    document.getElementById('iPaste').onclick=()=>{
+      try{ renderInbox([JSON.parse(unb64(document.getElementById('pasteCode').value.trim()))],0,false); }
+      catch(err){ toast('코드를 읽지 못했습니다. 전체가 복사됐는지 확인해 주세요.'); }
+    };
+  }
+};
+
+load();
+</script>

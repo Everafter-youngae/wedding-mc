@@ -1,0 +1,294 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>결혼식 사회 사전 확인</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDEFF2;--card:#fff;--ink:#15171C;--ink2:#5C636D;--ink3:#8A919B;
+  --line:#DCE0E6;--line2:#EDF0F3;--wine:#8A2540;--wine-soft:#F6E9ED;--gold:#A9863A;
+  --sans:"Noto Sans KR","Noto Sans",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65;-webkit-text-size-adjust:100%}
+button,input,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.wrap{max-width:620px;margin:0 auto;padding:0 16px 160px}
+header{padding:36px 4px 24px}
+header .dt{font-size:12px;letter-spacing:.12em;color:var(--ink2)}
+header h1{font-size:30px;font-weight:900;letter-spacing:-.04em;margin:8px 0 0}
+header h1 .h{color:var(--wine);font-size:19px;margin:0 7px}
+header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+.card h2{font-size:18px;font-weight:700;margin:0 0 4px;display:flex;align-items:baseline;gap:10px;letter-spacing:-.02em}
+.card h2 .n{font-size:12px;color:var(--ink3);font-weight:400}
+.card .desc{font-size:14px;color:var(--ink2);margin:0 0 16px;word-break:keep-all;line-height:1.6}
+.sect-label{font-size:12px;letter-spacing:.1em;color:var(--ink2);font-weight:700;padding:28px 4px 12px}
+.f{margin-top:16px}
+.f label{display:block;font-size:13px;color:var(--ink2);margin-bottom:8px;font-weight:500}
+.f input,.f textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:14px 12px;background:#fff;font-size:16px}
+.f textarea{min-height:70px;resize:vertical}
+.f input:focus,.f textarea:focus{border-color:var(--wine);outline:none}
+.pick{display:flex;gap:8px;flex-wrap:wrap}
+.pick button{
+  flex:1;min-width:84px;border:1px solid var(--line);background:#fff;border-radius:10px;
+  padding:14px 8px;font-size:15px;color:var(--ink2);line-height:1.35;word-break:keep-all;min-height:52px;
+}
+.pick button[aria-pressed=true]{background:var(--wine-soft);border-color:var(--wine);color:var(--wine);font-weight:700}
+.use .pick button[aria-pressed=true][data-v=off]{background:#F1F2F4;border-color:var(--ink3);color:var(--ink2)}
+.detail{margin-top:16px;padding-top:4px;border-top:1px dashed var(--line)}
+.detail.hide{display:none}
+.prog{position:fixed;top:0;left:0;right:0;height:3px;background:var(--line2);z-index:5}
+.prog i{display:block;height:100%;background:var(--wine);width:0;transition:width .25s}
+.bar{
+  position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);
+  border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  backdrop-filter:blur(6px);
+}
+.bar .in{max-width:620px;margin:0 auto;display:flex;gap:12px;align-items:center}
+.bar .cnt{font-size:13px;color:var(--ink2);flex:1;line-height:1.4}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:15px 20px;font-weight:500;font-size:16px;min-height:52px}
+.btn.primary{background:var(--wine);border-color:var(--wine);color:#fff;font-weight:700}
+.btn:disabled{opacity:.5}
+.done{text-align:center;padding:60px 20px}
+.done .ic{font-size:38px}
+.done h2{font-size:24px;margin:16px 0 8px;font-weight:700;letter-spacing:-.02em}
+.done p{color:var(--ink2);font-size:15px;margin:0 0 20px;line-height:1.7}
+.fallback{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:left;margin-top:20px}
+.fallback textarea{width:100%;height:110px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11px;word-break:break-all;margin:10px 0}
+.err{color:var(--wine);font-size:14px;line-height:1.6}
+</style>
+
+<div class="prog"><i id="progBar"></i></div>
+<div class="wrap" id="app"></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+let CFG=null, A={basic:{},opts:{},secs:{},free:'',name:''};
+
+function decode(h){
+  try{ return JSON.parse(decodeURIComponent(escape(atob(h.replace(/-/g,'+').replace(/_/g,'/'))))); }
+  catch(e){ return null; }
+}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function screen(icon,title,body){
+  $('#app').innerHTML=`<div class="done"><div class="ic">${icon}</div><h2>${title}</h2><p>${body}</p></div>`;
+}
+function badLink(){
+  screen('🔗','링크가 올바르지 않습니다',
+    '사회자분께 받은 주소를 처음부터 끝까지 복사해서 다시 열어 주세요.<br>주소 뒷부분이 잘리면 열리지 않습니다.');
+}
+
+const SECS=[
+ {k:'preshow',t:'식전 안내',d:'예식 15분 전, 5분 전에 착석 안내 방송을 합니다.'},
+ {k:'opening',t:'개식사',d:'사회자가 인사드리고 예식 시작을 알립니다.'},
+ {k:'candle',t:'화촉점화',d:'양가 부모님께서 입장해 촛불을 밝히는 순서입니다.',
+   opts:[{k:'candleParent',t:'점화하실 분',v:['어머님','아버님']}],music:1},
+ {k:'groom',t:'신랑 입장',d:'',opts:[{k:'groomExtra',t:'입장 때 넣고 싶은 이벤트가 있다면',type:'text',ph:'밸런스 게임, 팔씨름 등'}],music:1},
+ {k:'bride',t:'신부 입장',d:'',
+   opts:[{k:'brideTwoStep',t:'입장 방식',v:['문 뒤에서 등장 후 입장','한 번에 입장']},
+         {k:'brideEscort',t:'함께 걸어오시는 분',v:['없음','아버님','어머님','부모님']}],music:1},
+ {k:'bow',t:'신랑·신부 맞절',d:'두 분이 마주 보고 첫인사를 나눕니다.'},
+ {k:'ring',t:'반지 교환',d:'예식 중에 반지를 교환하실 경우 넣습니다.'},
+ {k:'vow',t:'혼인 서약',d:'',opts:[{k:'vowBy',t:'진행 방식',v:['두 사람이 직접 낭독','주례가 진행']}]},
+ {k:'declare',t:'성혼 선언문',d:'두 분이 부부가 되었음을 선언합니다.',
+   opts:[{k:'declareBy',t:'낭독하실 분',v:['사회자','주례']}]},
+ {k:'speech',t:'축사',d:'',opts:[
+   {k:'speechWho',t:'누구 측 축사인가요',v:['신부','신랑']},
+   {k:'speechRel',t:'축사자와의 관계',type:'text',ph:'신부의 15년지기 대학 동기'},
+   {k:'speechNames',t:'축사자 이름 (여러 명이면 쉼표로)',type:'text',ph:'이소연, 김다슬'}]},
+ {k:'song',t:'축가',d:'',opts:[
+   {k:'songWho',t:'누구 측 축가인가요',v:['신랑','신부']},
+   {k:'songRel',t:'축가자와의 관계',type:'text',ph:'신랑의 고등학교 친구'},
+   {k:'songName',t:'축가자 이름',type:'text',ph:'이원주'},
+   {k:'songTitle',t:'곡명',type:'text',ph:'이클립스 - 소나기'}]},
+ {k:'parents',t:'양가 부모님께 인사',d:'',opts:[
+   {k:'parentsFirst',t:'먼저 인사드릴 쪽',v:['신부 부모님','신랑 부모님']},
+   {k:'parentsStyle',t:'마무리 연출',v:['따뜻하게 포옹','다 같이 화이팅']}]},
+ {k:'guests',t:'내빈께 인사',d:'하객분들을 향해 감사 인사를 드립니다.'},
+ {k:'march',t:'행진',d:'',opts:[{k:'marchYears',t:'두 분이 함께한 시간 (멘트에 넣습니다)',type:'text',ph:'7년 / 열 번의 사계절'}],music:1},
+ {k:'closing',t:'폐식사',d:'',opts:[{k:'photoNotice',t:'예식 후 기념 촬영',v:['있음','없음']}]},
+];
+
+function draftKey(){ return 'mc-ask-'+(CFG?CFG.id:'x'); }
+function saveDraft(){ try{ localStorage.setItem(draftKey(),JSON.stringify(A)); }catch(e){} }
+function loadDraft(){ try{ const v=localStorage.getItem(draftKey()); if(v) A=Object.assign(A,JSON.parse(v)); }catch(e){} }
+
+async function init(){
+  let h=location.hash.slice(1);
+  try{ h=decodeURIComponent(h); }catch(e){}
+  h=h.replace(/%7E/gi,'~');
+  if(!h){ badLink(); return; }
+
+  if(h.indexOf('~')>-1){
+    const [id,dep]=h.split('~');
+    if(!id||!dep){ badLink(); return; }
+    const gs='https://script.google.com/macros/s/'+dep+'/exec';
+    screen('','불러오는 중입니다','잠시만 기다려 주세요.');
+    try{
+      const r=await fetch(gs+'?cfg='+encodeURIComponent(id));
+      const j=await r.json();
+      if(!j.ok||!j.cfg) throw new Error('no config');
+      CFG=j.cfg; CFG.gs=gs; CFG.id=id;
+    }catch(e){
+      screen('⏳','내용을 불러오지 못했습니다',
+        '인터넷 연결을 확인하고 새로고침해 주세요.<br>계속 같은 화면이면 사회자분께 알려 주세요.');
+      return;
+    }
+  }else{
+    CFG=decode(h);
+    if(!CFG){ badLink(); return; }
+  }
+
+  A.basic=Object.assign({date:CFG.date||'',time:CFG.time||'',venue:CFG.venue||'',floor:CFG.floor||''},A.basic);
+  const d=CFG.def||{};
+  SECS.forEach(s=>{
+    A.secs[s.k]=A.secs[s.k]||{use:(d.on&&d.on[s.k]===false)?'off':'on',music:(d.music&&d.music[s.k])||'',note:''};
+    (s.opts||[]).forEach(o=>{ if(A.opts[o.k]===undefined) A.opts[o.k]=d[o.k]!==undefined?d[o.k]:(o.v?o.v[0]:''); });
+  });
+  loadDraft();
+  render();
+}
+
+function render(){
+  const c=CFG;
+  $('#app').innerHTML=`
+  <header>
+    <div class="dt">${esc(c.dateLabel||'')}</div>
+    <h1>${esc(c.bride||'신부')}<span class="h">♡</span>${esc(c.groom||'신랑')}</h1>
+    <p>${esc(c.mc||'사회자')}입니다. 대본을 준비하고 있어요.<br>
+    순서마다 <b>넣을지 뺄지</b>만 눌러 주시고, 더 알려주실 게 있으면 적어 주세요. 중간에 닫으셔도 작성 내용은 남아 있습니다.</p>
+  </header>
+
+  <div class="sect-label">기본 확인</div>
+  <div class="card">
+    <p class="desc">아래 내용이 맞는지 확인해 주세요.</p>
+    ${bf('date','예식일','date')}${bf('time','예식 시작 시간','time')}
+    ${bf('venue','예식장 · 홀 이름')}${bf('floor','피로연 연회장 위치','text','지하 1층')}
+  </div>
+
+  <div class="sect-label">식순 확인</div>
+  ${SECS.map((s,i)=>card(s,i)).join('')}
+
+  <div class="sect-label">마지막으로</div>
+  <div class="card">
+    <div class="f"><label>꼭 넣어 달라거나, 빼 달라고 하실 내용이 있다면 자유롭게 적어 주세요</label>
+      <textarea id="free" placeholder="예: 아버지가 몸이 불편하셔서 이동을 줄여 주세요">${esc(A.free)}</textarea></div>
+    <div class="f"><label>작성자 (누가 답해 주셨는지)</label>
+      <input type="text" id="who" value="${esc(A.name)}" placeholder="김민주"></div>
+  </div>
+
+  <div class="bar"><div class="in">
+    <span class="cnt" id="cnt"></span>
+    <button class="btn primary" id="send">사회자에게 보내기</button>
+  </div></div>`;
+  bind(); count();
+}
+
+function bf(k,label,type='text',ph=''){
+  return `<div class="f"><label>${label}</label>
+    <input type="${type}" data-b="${k}" value="${esc(A.basic[k]||'')}" placeholder="${esc(ph)}"></div>`;
+}
+function card(s,i){
+  const a=A.secs[s.k], off=a.use==='off';
+  return `<div class="card" data-card="${s.k}">
+    <h2><span class="n">${String(i+1).padStart(2,'0')}</span>${s.t}</h2>
+    ${s.d?`<p class="desc">${s.d}</p>`:''}
+    <div class="pick use">
+      ${[['on','넣을게요'],['off','뺄게요'],['?','잘 모르겠어요']].map(([v,t])=>
+        `<button data-use="${s.k}" data-v="${v}" aria-pressed="${a.use===v}">${t}</button>`).join('')}
+    </div>
+    <div class="detail ${off?'hide':''}" data-detail="${s.k}">
+      ${(s.opts||[]).map(o=>o.type==='text'
+        ? `<div class="f"><label>${o.t}</label><input type="text" data-opt="${o.k}" value="${esc(A.opts[o.k]||'')}" placeholder="${esc(o.ph||'')}"></div>`
+        : `<div class="f"><label>${o.t}</label><div class="pick">
+            ${o.v.map(v=>`<button data-optv="${o.k}" data-v="${esc(v)}" aria-pressed="${A.opts[o.k]===v}">${v}</button>`).join('')}
+          </div></div>`).join('')}
+      ${s.music?`<div class="f"><label>음악 (정해진 곡이 있다면)</label>
+        <input type="text" data-mus="${s.k}" value="${esc(a.music)}" placeholder="이소라 - 청혼 / 웨딩홀 보유곡"></div>`:''}
+      <div class="f"><label>이 순서에 요청하실 내용</label>
+        <input type="text" data-note="${s.k}" value="${esc(a.note)}" placeholder="비워두셔도 됩니다"></div>
+    </div>
+  </div>`;
+}
+
+function bind(){
+  document.addEventListener('input',e=>{
+    const t=e.target;
+    if(t.dataset.b) A.basic[t.dataset.b]=t.value;
+    if(t.dataset.opt) A.opts[t.dataset.opt]=t.value;
+    if(t.dataset.mus) A.secs[t.dataset.mus].music=t.value;
+    if(t.dataset.note) A.secs[t.dataset.note].note=t.value;
+    if(t.id==='free') A.free=t.value;
+    if(t.id==='who') A.name=t.value;
+    saveDraft();
+  });
+  document.addEventListener('click',e=>{
+    const u=e.target.closest('[data-use]');
+    if(u){
+      A.secs[u.dataset.use].use=u.dataset.v;
+      [...u.parentNode.children].forEach(b=>b.setAttribute('aria-pressed',b===u));
+      const d=document.querySelector(`[data-detail="${u.dataset.use}"]`);
+      if(d) d.classList.toggle('hide',u.dataset.v==='off');
+      saveDraft(); count();
+    }
+    const o=e.target.closest('[data-optv]');
+    if(o){
+      A.opts[o.dataset.optv]=o.dataset.v;
+      [...o.parentNode.children].forEach(b=>b.setAttribute('aria-pressed',b===o));
+      saveDraft();
+    }
+    if(e.target.id==='send') send();
+  });
+}
+function count(){
+  const left=SECS.filter(s=>A.secs[s.k].use==='?').length;
+  const el=$('#cnt');
+  const done=SECS.length-left;
+  const bar=$('#progBar'); if(bar) bar.style.width=(done/SECS.length*100)+'%';
+  if(!el) return;
+  el.textContent=left?`${SECS.length}개 중 ${done}개 확인 · 나머지는 그대로 보내셔도 됩니다`:'모든 순서를 확인하셨습니다';
+}
+
+async function send(){
+  const btn=$('#send'); btn.disabled=true; btn.textContent='보내는 중…';
+  const payload={id:CFG.id,ts:new Date().toISOString(),name:A.name,basic:A.basic,opts:A.opts,secs:A.secs,free:A.free};
+  try{
+    if(!CFG.gs) throw new Error('no endpoint');
+    const r=await fetch(CFG.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'fail');
+    try{ localStorage.removeItem(draftKey()); }catch(e){}
+    done();
+  }catch(err){
+    btn.disabled=false; btn.textContent='다시 보내기';
+    fallback(payload);
+  }
+}
+function done(){
+  $('#app').innerHTML=`<div class="done"><div class="ic">✓</div>
+    <h2>전달했습니다</h2>
+    <p>답변이 사회자에게 잘 전달됐습니다.<br>수정할 내용이 생기면 이 링크로 다시 들어와 보내주시면 됩니다.</p></div>`;
+  window.scrollTo(0,0);
+}
+function fallback(payload){
+  const code=btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_');
+  let box=$('#fb');
+  if(!box){
+    box=document.createElement('div'); box.id='fb'; box.className='fallback';
+    $('.wrap').appendChild(box);
+  }
+  box.innerHTML=`<p class="err">지금 전송이 되지 않았습니다. 아래 코드를 복사해서 사회자에게 보내주세요.</p>
+    <textarea readonly id="fbc">${code}</textarea>
+    <button class="btn primary" style="width:100%" id="fbcopy">코드 복사하기</button>`;
+  $('#fbcopy').onclick=()=>{
+    const t=$('#fbc'); t.select();
+    navigator.clipboard.writeText(t.value).catch(()=>document.execCommand('copy'));
+    $('#fbcopy').textContent='복사했습니다';
+  };
+  box.scrollIntoView({behavior:'smooth'});
+}
+
+init();
+</script>
