@@ -65,6 +65,18 @@ select.sel{border:1px solid var(--line);background:var(--card);border-radius:8px
 .pane-r{padding:26px 26px 90px;min-width:0}
 
 /* ---------- form ---------- */
+.flow{padding:14px 16px;border-bottom:1px solid var(--line);background:#FAFBFC}
+.flow h4{font-size:12px;letter-spacing:.1em;color:var(--ink2);font-weight:600;margin:0 0 12px}
+.fstep{display:flex;align-items:flex-start;gap:10px;padding:7px 0;cursor:pointer}
+.fstep .mark{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;margin-top:2px}
+.fstep.done .mark{background:var(--wine);border-color:var(--wine);color:#fff}
+.fstep.now .mark{border-color:var(--wine);box-shadow:0 0 0 3px var(--wine-soft)}
+.fstep .t{flex:1;font-size:13.5px;color:var(--ink2);line-height:1.4}
+.fstep.done .t{color:var(--ink)}
+.fstep.now .t{color:var(--wine);font-weight:700}
+.fstep .when{font-size:11px;color:var(--ink3);margin-top:2px;display:block}
+.flow .next{margin-top:12px;font-size:12px;color:var(--wine);background:var(--wine-soft);border-radius:6px;padding:9px 11px;line-height:1.5}
 .group{border-bottom:1px solid var(--line2)}
 .group>summary{
   list-style:none;cursor:pointer;padding:16px;display:flex;align-items:center;gap:8px;
@@ -356,7 +368,7 @@ function blank(){
     speechWho:'신부', speechRel:'', speechNames:'',
     songWho:'신랑', songRel:'', songName:'', songTitle:'',
     parentsStyle:'포옹', parentsFirst:'신부',
-    marchYears:'', humble:true, photoNotice:true,
+    marchYears:'', humble:true, photoNotice:true, memo:'',
     sections:secs,
   };
 }
@@ -757,6 +769,42 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('on'),1900);
 }
 
+
+/* ---------- 진행 단계 ---------- */
+const FLOW=[
+  {k:'s1',t:'사전 질문지 발송',   hint:'상단 <b>응답 링크</b>에서 보내세요.'},
+  {k:'s2',t:'1차 대본 발송',      hint:'<b>대본 보내기</b>에서 1차 검토본으로 보내세요.'},
+  {k:'s3',t:'1차 피드백 수신',    hint:'<b>응답 확인</b>에서 받은 의견을 반영하세요.'},
+  {k:'s4',t:'2차 대본 발송',      hint:'<b>대본 보내기</b>에서 2차 검토본으로 보내세요.'},
+  {k:'s5',t:'2차 피드백 수신',    hint:'<b>응답 확인</b>에서 받은 의견을 반영하세요.'},
+  {k:'s6',t:'최종 대본 발송',     hint:'<b>대본 보내기</b>에서 최종본으로 보내세요.'},
+  {k:'s7',t:'최종 컨펌',          hint:'컨펌 받으면 눌러 두세요. PDF로 뽑아 두시면 끝입니다.'},
+];
+function stepDone(k,on){
+  const w=cur(); w.steps=w.steps||{};
+  if(on){ if(!w.steps[k]) w.steps[k]=new Date().toISOString(); }
+  else delete w.steps[k];
+  save(); renderForm();
+}
+function markStep(k){ const w=cur(); w.steps=w.steps||{}; if(!w.steps[k]){ w.steps[k]=new Date().toISOString(); save(); renderForm(); } }
+function flowHTML(){
+  const w=cur(), st=w.steps||{};
+  const firstOpen=FLOW.findIndex(f=>!st[f.k]);
+  return `<div class="flow">
+    <h4>진행 단계</h4>
+    ${FLOW.map((f,i)=>{
+      const done=!!st[f.k], now=(i===firstOpen);
+      const when=done?new Date(st[f.k]).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'}):'';
+      return `<div class="fstep ${done?'done':''} ${now?'now':''}" data-step="${f.k}">
+        <span class="mark">✓</span>
+        <span class="t">${i+1}. ${f.t}${done?`<span class="when">${when} 완료</span>`:''}</span>
+      </div>`;
+    }).join('')}
+    ${firstOpen>-1?`<div class="next">다음 할 일 · ${FLOW[firstOpen].hint}</div>`
+      :`<div class="next">모든 단계를 마쳤습니다. 예식 준비 완료!</div>`}
+  </div>`;
+}
+
 /* =========================================================
    4. 렌더 – 입력 폼
    ========================================================= */
@@ -846,6 +894,7 @@ function renderForm(){
   }).join('');
 
   pane.innerHTML=`
+${flowHTML()}
 <details class="group" id="g-basic" ${op('g-basic')}><summary>기본 정보</summary><div class="gbody">
   <div class="row">
     <div class="f"><label>신부</label><input type="text" data-k="bride" value="${esc(w.bride)}" placeholder="김민주"></div>
@@ -859,6 +908,7 @@ function renderForm(){
     ${txt('예식장','venue','○○컨벤션 3층 그랜드홀')}
     ${txt('연회장 층','floor','지하 1층')}
   </div>
+  ${area('예식 메모','memo','신랑신부가 들려준 이야기, 주의할 점 등','사전 질문지 답변을 여기에 모아둘 수 있습니다. 대본에는 나가지 않습니다.')}
 </div></details>
 
 <details class="group" id="g-order" ${op('g-order')}><summary>식순 구성</summary><div class="gbody">
@@ -990,6 +1040,8 @@ document.getElementById('form').addEventListener('change',e=>{
 document.getElementById('form').addEventListener('click',e=>{
   const b=e.target.closest('[data-seg]');
   if(b){ set(b.dataset.seg,b.dataset.v); }
+  const fs=e.target.closest('[data-step]');
+  if(fs){ const k=fs.dataset.step; stepDone(k, !((cur().steps||{})[k])); return; }
   const j=e.target.closest('[data-jump]');
   if(j){ jumpTo(j.dataset.jump); }
   if(e.target.id==='btnJson') exportJson();
@@ -1320,6 +1372,7 @@ document.getElementById('btnLink').onclick=()=>{
       copyText(withMsg
         ? `${w.bride||''} ${w.groom||''} 두 분 결혼식 사회 준비 중입니다 :)\n아래 링크 열어서 순서마다 넣을지 뺄지만 눌러주시고, 더 알려주실 내용 있으면 적어서 보내주세요. 5분이면 됩니다!\n\n${link}`
         : link);
+      markStep('s1');
       note.textContent='설정을 올렸습니다. 이제 링크를 보내시면 됩니다.';
     }catch(e){
       note.innerHTML=esc(e.message)+'<br>앱스 스크립트 주소가 <b>/exec</b>로 끝나는지, 배포 시 "모든 사용자"로 설정했는지 확인해 주세요.';
@@ -1439,6 +1492,7 @@ document.getElementById('btnSend').onclick=()=>{
           ? '예식 당일, 이 이야기로 두 분을 소개하겠습니다.'
           : '두 분의 이야기를 함께 완성해가겠습니다.';
         copyText(`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분의 이야기를 다듬고 있습니다. 🌷\n\n${line}\n\n아래 링크에서 편하게 둘러보시고,\n더하고 싶은 이야기나 덜어내고 싶은 부분이 있다면 알려주세요.\n\n${tail}\n\n${reviewLink()}`);
+        markStep(rd.indexOf('최종')>-1?'s6':(rd.indexOf('2차')>-1?'s4':'s2'));
         note.textContent='올렸습니다. 메시지가 복사됐으니 그대로 보내시면 됩니다.';
       }catch(e){ note.textContent=e.message; }
     };
@@ -1462,6 +1516,32 @@ async function fetchResponses(){
   if(mine.length) return {items:mine,wide:false};
   const all=(await get('all=1')).filter(x=>x&&(x.secs||x.notes));
   return {items:all,wide:true};
+}
+
+
+const STORY_Q={q1:'한 문장 소개',q2:'꼭 알았으면 하는 이야기',q3:'기억되고 싶은 결혼식',
+  q4:'부모님 인사 톤',q5:'친구 관련 이야기',q6:'피했으면 하는 것',q7:'꼭 담겼으면 하는 것'};
+function storyText(st){
+  if(!st) return '';
+  return Object.keys(STORY_Q).map(k=>{
+    let v=st[k]; if(!v) return '';
+    if(typeof v==='object') v=[...(v.sel||[]),v.etc].filter(Boolean).join(', ');
+    if(!String(v).trim()) return '';
+    return `[${STORY_Q[k]}]\n${v}`;
+  }).filter(Boolean).join('\n\n');
+}
+function storyHTML(st){
+  if(!st) return '';
+  const rows=Object.keys(STORY_Q).map(k=>{
+    let v=st[k]; if(!v) return '';
+    if(typeof v==='object') v=[...(v.sel||[]),v.etc].filter(Boolean).join(', ');
+    if(!String(v).trim()) return '';
+    const warn=(k==='q6');
+    return `<div class="opt" style="align-items:flex-start">
+      <span class="lbl" style="${warn?'color:var(--wine)':''}">${warn?'⚠ ':''}${STORY_Q[k]}
+        <span class="sub" style="white-space:pre-wrap;color:${warn?'var(--wine)':'var(--ink2)'}">${esc(v)}</span></span></div>`;
+  }).filter(Boolean).join('');
+  return rows?`<div class="pv-note" style="margin-bottom:6px">두 분이 들려주신 이야기</div>${rows}`:'';
 }
 
 const OPT_MAP={
@@ -1498,6 +1578,12 @@ function diffOf(res){
     });
     return out;
   }
+  if(res.story){
+    const t=storyText(res.story);
+    if(t && (w.memo||'').indexOf(t)<0)
+      out.push({t:'두 분의 이야기 → 예식 메모',now:w.memo?'메모 있음':'',val:'메모에 저장',
+        apply:()=>{ w.memo=(w.memo?w.memo+'\n\n':'')+t; }});
+  }
   Object.keys(res.basic||{}).forEach(k=>{
     const nv=res.basic[k]; if(nv==null||nv==='') return;
     if(String(w[k]||'')!==String(nv)) out.push({t:FIELD_LABEL[k]||k,now:w[k],val:nv,apply:()=>{w[k]=nv;}});
@@ -1532,6 +1618,7 @@ function renderInbox(items,idx,wide){
   const res=items[idx||0];
   DIFF=diffOf(res);
   const when=new Date(res.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  const story=res.story?storyHTML(res.story):'';
   const rows=DIFF.length?DIFF.map((d,i)=>`
     <div class="opt"><span class="lbl">${esc(d.t)}
       <span class="sub">지금 ${esc(show(d.now))} → <b style="color:var(--wine)">${esc(show(d.val))}</b></span></span>
@@ -1550,6 +1637,8 @@ function renderInbox(items,idx,wide){
       })():''}
      <div class="pv-note" style="margin-bottom:14px">${esc(res.name||'신랑신부')}님 · ${esc(when)} 도착
        ${res.free?`<br><br><b>남기신 말</b><br>${esc(res.free)}`:''}</div>
+     ${story}
+     ${story?'<div class="pv-note" style="margin:14px 0 6px">대본에 반영할 항목</div>':''}
      ${rows}`,
     `<button class="btn" id="iClose">닫기</button>
      ${DIFF.length?`<button class="btn primary" id="iApply">선택한 항목 반영</button>`:''}`);
@@ -1559,6 +1648,8 @@ function renderInbox(items,idx,wide){
   if(ap) ap.onclick=()=>{
     let n=0;
     document.querySelectorAll('[data-d]').forEach(c=>{ if(c.checked){ DIFF[+c.dataset.d].apply(); n++; } });
+    const rr=String(res.round||'');
+    if(res.type==='review') markStep(rr.indexOf('최종')>-1?'s7':(rr.indexOf('2차')>-1?'s5':'s3'));
     save(); renderAll(); closeModal(); toast(`${n}개 항목을 대본에 반영했습니다.`);
   };
 }
