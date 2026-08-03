@@ -94,6 +94,8 @@ header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
 .qbody textarea:focus{border-color:var(--wine);outline:none}
 .pick.col{flex-direction:column}
 .pick.col button{min-height:52px}
+.pick.col button .fs{display:block;font-size:12.5px;color:var(--ink3);font-weight:400;margin-top:4px}
+.pick.col button{padding:16px 12px;min-height:66px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chips button{border:1px solid var(--line);background:#fff;border-radius:100px;padding:11px 16px;font-size:15px;color:var(--ink2);min-height:46px}
 .chips button[aria-pressed=true]{background:var(--wine-soft);border-color:var(--wine);color:var(--wine);font-weight:700}
@@ -132,7 +134,7 @@ header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
 const GS_URL = 'https://script.google.com/macros/s/AKfycbyULnOlwGCrwEjeqgocZhZjh8pMazeaEvl8H78vd7RV61aX9HKq0a6tS_0KWZcf7Ufjhg/exec';
 
 const $=(s,r=document)=>r.querySelector(s);
-let CFG=null, A={basic:{},opts:{},secs:{},story:{},free:'',name:''};
+let CFG=null, A={basic:{},opts:{},secs:{},story:{},skipSecs:null,free:'',name:''};
 let VIEW='card', IDX=0, BOUND=false;
 
 function decode(h){
@@ -276,10 +278,9 @@ function intro(){
 }
 
 function screens(){
-  return [{type:'basic'}]
-    .concat(STORY.map(q=>({type:'story',q})))
-    .concat(SECS.map((s,i)=>({type:'sec',s,i})))
-    .concat([{type:'last'}]);
+  let a=[{type:'basic'}].concat(STORY.map(q=>({type:'story',q}))).concat([{type:'fork'}]);
+  if(A.skipSecs!==true) a=a.concat(SECS.map((s,i)=>({type:'sec',s,i})));
+  return a.concat([{type:'last'}]);
 }
 function paint(){
   if(!BOUND){ bind(); BOUND=true; }
@@ -338,6 +339,7 @@ function renderCard(){
   IDX=Math.max(0,Math.min(IDX,n-1));
   const cur=S[IDX];
   if(cur.type==='last') return renderLast();
+  if(cur.type==='fork') return renderFork();
   let inner='';
   if(cur.type==='basic'){
     inner=`<div class="ribbon">기본 확인</div>
@@ -368,12 +370,35 @@ function renderCard(){
   window.scrollTo(0,0);
 }
 
+function renderFork(){
+  $('#app').innerHTML=`${topbar()}
+  <div class="deck"><div class="peek b"></div><div class="peek"></div>
+    <div class="card one">
+      <div class="ribbon">여기까지 감사합니다</div>
+      <h2>이야기를 잘 받았습니다</h2>
+      <p class="desc">이어서 결혼식 <b>순서</b>도 함께 확인하실 수 있습니다.
+        예식장과 아직 상의 중이시라면 지금 안 하셔도 괜찮습니다.
+        나중에 같은 링크로 들어오시면 이어서 하실 수 있어요.</p>
+      <div class="pick col" style="margin-top:18px">
+        <button id="fYes">식순도 지금 준비할게요<br><span class="fs">15개 순서 · 약 3분</span></button>
+        <button id="fNo">여기까지 보낼게요<br><span class="fs">순서는 나중에 알려드릴게요</span></button>
+      </div>
+    </div></div>
+  ${dotsBar()}
+  <div class="cardnav"><div class="in">
+    <button class="prev" id="cPrev">이전</button>
+  </div></div>`;
+  $('#fYes').onclick=()=>{ A.skipSecs=false; saveDraft(); IDX++; paint(); };
+  $('#fNo').onclick=()=>{ A.skipSecs=true; saveDraft(); IDX++; paint(); };
+  window.scrollTo(0,0);
+}
+
 function renderLast(){
   $('#app').innerHTML=`${topbar()}
   <div class="deck"><div class="card one">
     <div class="ribbon">마지막 장</div>
     <h2>다 확인해주셔서 감사합니다</h2>
-    <p class="desc">보내주신 내용은 그대로 대본에 반영됩니다.</p>
+    <p class="desc">보내주신 내용은 그대로 대본에 반영됩니다.${A.skipSecs===true?'<br>식순은 나중에 같은 링크로 들어오셔서 알려주셔도 됩니다.':''}</p>
     <div class="f"><label>꼭 넣어 달라거나, 빼 달라고 하실 내용이 있다면 자유롭게 적어 주세요</label>
       <textarea id="free" placeholder="예: 아버지가 몸이 불편하셔서 이동을 줄여 주세요">${esc(A.free)}</textarea></div>
     <div class="f"><label>작성자 (누가 답해 주셨는지)</label>
@@ -413,8 +438,8 @@ function renderList(){
   <div class="sect-label">두 분의 이야기</div>
   ${STORY.map(q=>`<div class="card">${storyCard(q)}</div>`).join('')}
 
-  <div class="sect-label">식순 확인</div>
-  ${SECS.map((s,i)=>card(s,i)).join('')}
+  ${A.skipSecs===true?'':`<div class="sect-label">식순 확인</div>
+  ${SECS.map((s,i)=>card(s,i)).join('')}`}
 
   <div class="sect-label">마지막으로</div>
   <div class="card">
@@ -511,7 +536,7 @@ function count(){
 
 async function send(){
   const btn=$('#send'); btn.disabled=true; btn.textContent='보내는 중…';
-  const payload={id:CFG.id,ts:new Date().toISOString(),name:A.name,basic:A.basic,opts:A.opts,secs:A.secs,story:A.story,free:A.free};
+  const payload={id:CFG.id,ts:new Date().toISOString(),name:A.name,basic:A.basic,opts:A.opts,secs:A.secs,story:A.story,skipSecs:A.skipSecs===true,free:A.free};
   try{
     if(!CFG.gs) throw new Error('no endpoint');
     const r=await fetch(CFG.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
