@@ -65,6 +65,12 @@ header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
 <div class="wrap" id="app"></div>
 
 <script>
+/* ===== 앱스 스크립트 주소 =====================================
+   앱스 스크립트를 "새 배포"로 다시 만들어 주소가 바뀌면
+   아래 따옴표 안의 주소만 새 것으로 바꿔 저장하세요.
+   ============================================================ */
+const GS_URL = 'https://script.google.com/macros/s/AKfycbyULnOlwGCrwEjeqgocZhZjh8pMazeaEvl8H78vd7RV61aX9HKq0a6tS_0KWZcf7Ufjhg/exec';
+
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let DOC=null, GS='', ID='', A={notes:{},free:'',name:''};
@@ -85,9 +91,9 @@ async function init(){
   let h=location.hash.slice(1);
   try{ h=decodeURIComponent(h); }catch(e){}
   h=h.replace(/%7E/gi,'~');
-  if(h.indexOf('~')<0){ screen('🔗','링크가 올바르지 않습니다','받으신 주소를 처음부터 끝까지 복사해서 다시 열어 주세요.'); return; }
+  if(!/^[A-Za-z0-9_-]+(~[A-Za-z0-9_-]+)?$/.test(h)){ screen('🔗','링크가 올바르지 않습니다','받으신 주소를 처음부터 끝까지 복사해서 다시 열어 주세요.'); return; }
   const [id,dep]=h.split('~');
-  ID=id; GS='https://script.google.com/macros/s/'+dep+'/exec';
+  ID=id; GS=dep?('https://script.google.com/macros/s/'+dep+'/exec'):GS_URL;
   screen('','불러오는 중입니다','잠시만 기다려 주세요.');
   try{
     const r=await fetch(GS+'?script='+encodeURIComponent(id));

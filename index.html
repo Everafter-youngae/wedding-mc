@@ -1252,7 +1252,7 @@ function askConfig(){
 }
 function askLink(){
   const c=DB.conn||{}, base=(c.ask||'https://주소를-먼저-설정하세요/ask.html').trim().replace(/#.*$/,'');
-  return base+'#'+cur().id+'~'+gsId(c.gs);
+  return base+'#'+cur().id+(c.longLink?('~'+gsId(c.gs)):'');
 }
 async function pushConfig(){
   const c=DB.conn||{};
@@ -1268,12 +1268,17 @@ function connForm(){
   return `<div class="f"><label>응답 폼 주소 (ask.html을 올린 주소)</label>
       <input type="text" id="cAsk" value="${esc(c.ask||'')}" placeholder="https://내주소.netlify.app/ask.html"></div>
     <div class="f"><label>구글 앱스 스크립트 웹앱 주소</label>
-      <input type="text" id="cGs" value="${esc(c.gs||'')}" placeholder="https://script.google.com/macros/s/…/exec"></div>`;
+      <input type="text" id="cGs" value="${esc(c.gs||'')}" placeholder="https://script.google.com/macros/s/…/exec"></div>
+    <label class="check" style="margin-top:4px"><input type="checkbox" id="cLong" ${c.longLink?'checked':''}>
+      링크에 앱스 스크립트 주소 포함 (링크가 길어집니다)</label>
+    <div class="hint">평소에는 꺼두세요. ask.html·review.html 파일 안에 주소가 들어 있어 짧은 링크로도 열립니다.
+      파일을 새로 받아 올리지 않은 경우에만 켜세요.</div>`;
 }
 function saveConn(){
   DB.conn=Object.assign(DB.conn||{},{
     ask:(document.getElementById('cAsk')||{}).value||'',
-    gs:(((document.getElementById('cGs')||{}).value)||'').trim()});
+    gs:(((document.getElementById('cGs')||{}).value)||'').trim(),
+    longLink:!!(document.getElementById('cLong')||{}).checked});
   save();
 }
 
@@ -1295,7 +1300,8 @@ document.getElementById('btnLink').onclick=()=>{
      <button class="btn primary" id="lMsg">카톡 메시지까지 복사</button>`);
   const warn=()=>{
     const el=document.getElementById('lWarn'); if(!el) return;
-    const bad=!gsId((DB.conn||{}).gs)||!/^https?:\/\//.test(((DB.conn||{}).ask||'').trim());
+    const c2=DB.conn||{};
+    const bad=!gsId(c2.gs)||!/^https?:\/\//.test((c2.ask||'').trim());
     el.style.display=bad?'block':'none';
     document.getElementById('lCopy').disabled=bad;
     document.getElementById('lMsg').disabled=bad;
@@ -1303,6 +1309,7 @@ document.getElementById('btnLink').onclick=()=>{
   const upd=()=>{ saveConn(); document.getElementById('lnk').value=askLink(); warn(); };
   document.getElementById('cAsk').oninput=upd;
   document.getElementById('cGs').oninput=upd;
+  document.getElementById('cLong').onchange=upd;
   const note=document.getElementById('lNote');
   const go=async(withMsg)=>{
     note.textContent='설정을 올리는 중입니다…';
@@ -1385,7 +1392,7 @@ document.getElementById('btnCloud').onclick=async()=>{
 /* ---------- 대본 보내기 ---------- */
 function reviewLink(){
   const c=DB.conn||{}, base=(c.ask||'https://주소를-먼저-설정하세요/ask.html').trim().replace(/#.*$/,'');
-  return base.replace(/[^/]*$/,'review.html')+'#'+cur().id+'~'+gsId(c.gs);
+  return base.replace(/[^/]*$/,'review.html')+'#'+cur().id+((DB.conn||{}).longLink?('~'+gsId(c.gs)):'');
 }
 async function pushScript(round){
   const c=DB.conn||{}, w=cur();
