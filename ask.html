@@ -9,12 +9,12 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#EDEFF2">
 <style>
 :root{
   --paper:#EDEFF2;--card:#fff;--ink:#15171C;--ink2:#5C636D;--ink3:#8A919B;
   --line:#DCE0E6;--line2:#EDF0F3;--wine:#8A2540;--wine-soft:#F6E9ED;--gold:#A9863A;
-  --sans:"Noto Sans KR","Noto Sans",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65;-webkit-text-size-adjust:100%}
@@ -141,16 +141,27 @@ async function init(){
     if(!id){ badLink(); return; }
     const gs=dep?('https://script.google.com/macros/s/'+dep+'/exec'):GS_URL;
     if(!gs){ badLink(); return; }
-    screen('','불러오는 중입니다','잠시만 기다려 주세요.');
-    try{
+    let cached=null;
+    try{ const v=localStorage.getItem('mc-cfg-'+id); if(v) cached=JSON.parse(v); }catch(e){}
+    const pull=async()=>{
       const r=await fetch(gs+'?cfg='+encodeURIComponent(id));
       const j=await r.json();
       if(!j.ok||!j.cfg) throw new Error('no config');
-      CFG=j.cfg; CFG.gs=gs; CFG.id=id;
-    }catch(e){
-      screen('⏳','내용을 불러오지 못했습니다',
-        '인터넷 연결을 확인하고 새로고침해 주세요.<br>계속 같은 화면이면 사회자분께 알려 주세요.');
-      return;
+      try{ localStorage.setItem('mc-cfg-'+id,JSON.stringify(j.cfg)); }catch(e){}
+      return j.cfg;
+    };
+    if(cached){
+      CFG=cached; CFG.gs=gs; CFG.id=id;
+      pull().then(()=>{}).catch(()=>{});
+    }else{
+      screen('','불러오는 중입니다','잠시만 기다려 주세요.');
+      try{
+        CFG=await pull(); CFG.gs=gs; CFG.id=id;
+      }catch(e){
+        screen('⏳','내용을 불러오지 못했습니다',
+          '인터넷 연결을 확인하고 새로고침해 주세요.<br>계속 같은 화면이면 사회자분께 알려 주세요.');
+        return;
+      }
     }
   }else{
     CFG=decode(h);

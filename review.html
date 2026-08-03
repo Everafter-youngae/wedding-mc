@@ -9,12 +9,12 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#EDEFF2">
 <style>
 :root{
   --paper:#EDEFF2;--card:#fff;--ink:#15171C;--ink2:#5C636D;--ink3:#8A919B;
   --line:#DCE0E6;--line2:#EDF0F3;--wine:#8A2540;--wine-soft:#F6E9ED;
-  --sans:"Noto Sans KR","Noto Sans",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65;-webkit-text-size-adjust:100%}
@@ -86,7 +86,7 @@ header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
 .intro h1 .h{color:var(--wine);font-size:21px;margin:0 8px}
 .intro .rule{width:36px;height:1px;background:var(--wine);opacity:.5;margin:28px 0}
 .intro p{font-size:16px;color:var(--ink2);line-height:2;margin:0;word-break:keep-all}
-.intro p b{color:var(--ink);font-weight:700}
+.intro .lead{color:var(--ink);font-size:18px;margin:0 0 26px}
 .intro .go{margin-top:40px;background:var(--wine);border:0;color:#fff;border-radius:100px;
   padding:16px 44px;font-size:16px;font-weight:700;letter-spacing:.02em;min-height:54px}
 .intro .go:active{background:#711e35}
@@ -133,13 +133,34 @@ async function init(){
   if(!/^[A-Za-z0-9_-]+(~[A-Za-z0-9_-]+)?$/.test(h)){ screen('🔗','링크가 올바르지 않습니다','받으신 주소를 처음부터 끝까지 복사해서 다시 열어 주세요.'); return; }
   const [id,dep]=h.split('~');
   ID=id; GS=dep?('https://script.google.com/macros/s/'+dep+'/exec'):GS_URL;
-  screen('','불러오는 중입니다','잠시만 기다려 주세요.');
-  try{
+  // 이전에 받아둔 대본이 있으면 먼저 보여주고, 뒤에서 조용히 최신본을 받아옵니다.
+  let cached=null;
+  try{ const v=localStorage.getItem('mc-doc-'+id); if(v) cached=JSON.parse(v); }catch(e){}
+
+  const pull=async()=>{
     const r=await fetch(GS+'?script='+encodeURIComponent(id));
     const j=await r.json();
     if(!j.ok||!j.script) throw new Error('none');
-    DOC=j.script;
-  }catch(e){
+    try{ localStorage.setItem('mc-doc-'+id,JSON.stringify(j.script)); }catch(e){}
+    return j.script;
+  };
+
+  if(cached){
+    DOC=cached;
+    cached.sections.forEach(s=>{ A.notes[s.key]=A.notes[s.key]||{v:'',text:''}; });
+    loadDraft(); intro();
+    pull().then(fresh=>{
+      if(JSON.stringify(fresh)===JSON.stringify(cached)) return;
+      DOC=fresh;
+      fresh.sections.forEach(s=>{ A.notes[s.key]=A.notes[s.key]||{v:'',text:''}; });
+      if(document.querySelector('.intro')) intro();
+    }).catch(()=>{});
+    return;
+  }
+
+  screen('','불러오는 중입니다','잠시만 기다려 주세요.');
+  try{ DOC=await pull(); }
+  catch(e){
     screen('⏳','대본을 불러오지 못했습니다','인터넷 연결을 확인하고 새로고침해 주세요.<br>계속 같은 화면이면 사회자분께 알려 주세요.');
     return;
   }
@@ -159,11 +180,11 @@ function intro(){
     <h1>${esc(d.bride||'신부')}<span class="h">♡</span>${esc(d.groom||'신랑')}</h1>
     <div class="rule"></div>
     ${fin
-      ? `<p>두 사람의 이야기가 <b>모두 담겼습니다.</b><br><br>
-          예식 당일 이 대본으로 진행됩니다.<br>
+      ? `<p class="lead">두 사람의 이야기가 모두 담겼습니다.</p>
+         <p>예식 당일 이 대본으로 진행됩니다.<br>
           마지막으로 천천히 확인해 주세요.</p>`
-      : `<p>두 사람의 ${nth}이야기가 <b>준비되었습니다.</b><br><br>
-          이 대본은 아직 완성되지 않았습니다.<br>
+      : `<p class="lead">두 사람의 ${nth}이야기가 준비되었습니다.</p>
+         <p>이 대본은 아직 완성되지 않았습니다.<br>
           두 분의 이야기를 조금 더 담기 위해<br>
           함께 다듬어가겠습니다.</p>`}
     <button class="go" id="goRead">시작</button>
