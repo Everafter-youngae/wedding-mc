@@ -1326,7 +1326,18 @@ document.getElementById('btnLink').onclick=()=>{
       const link=document.getElementById('lnk').value;
       const w=cur();
       copyText(withMsg
-        ? `${w.bride||''} ${w.groom||''} 두 분 결혼식 사회 준비 중입니다 :)\n아래 링크 열어서 순서마다 넣을지 뺄지만 눌러주시고, 더 알려주실 내용 있으면 적어서 보내주세요. 5분이면 됩니다!\n\n${link}`
+        ? `${w.bride||''} · ${w.groom||''} 두 분의 이야기가 듣고 싶어요. 🌷
+
+오래 기억될 하루는,
+작은 이야기에서부터 시작된다고 믿습니다.
+
+아래 링크에서
+편한 마음으로 두 분의 이야기를 들려주세요.
+
+식순은 천천히 함께 준비해도 괜찮습니다.
+먼저 두 분의 이야기를 들려주시면 됩니다.
+
+${link}`
         : link);
       markStep('s1');
       note.textContent='설정을 올렸습니다. 이제 링크를 보내시면 됩니다.';
@@ -1552,7 +1563,7 @@ async function fetchResponses(){
 }
 
 
-const STORY_Q={q1:'한 문장 소개',q2:'꼭 알았으면 하는 이야기',q3:'기억되고 싶은 결혼식',
+const STORY_Q={q1:'한 문장 소개',q2:'꼭 알았으면 하는 이야기',q8:'평생을 함께하고 싶었던 순간',q3:'기억되고 싶은 결혼식',
   q4:'부모님 인사 톤',q5:'친구 관련 이야기',q6:'피했으면 하는 것',q7:'꼭 담겼으면 하는 것'};
 function storyText(st){
   if(!st) return '';
