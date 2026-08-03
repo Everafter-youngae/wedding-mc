@@ -1271,8 +1271,8 @@ function connForm(){
   const c=DB.conn||{};
   return `<div class="f"><label>응답 폼 주소 (ask.html을 올린 주소)</label>
       <input type="text" id="cAsk" value="${esc(c.ask||'')}" placeholder="https://내주소.netlify.app/ask.html"></div>
-    <div class="f"><label>고객 여정 주소 (journey.html을 올린 주소)</label>
-      <input type="text" id="cJourney" value="${esc(c.journey||'')}" placeholder="https://내주소.netlify.app/journey.html"></div>
+    <div class="f"><label>고객 이야기 주소 (story.html을 올린 주소)</label>
+      <input type="text" id="cJourney" value="${esc(c.journey||'')}" placeholder="https://everafter-youngae.github.io/wedding-mc/story.html"></div>
     <div class="f"><label>구글 앱스 스크립트 웹앱 주소</label>
       <input type="text" id="cGs" value="${esc(c.gs||'')}" placeholder="https://script.google.com/macros/s/…/exec"></div>
     <label class="check" style="margin-top:4px"><input type="checkbox" id="cLong" ${c.longLink?'checked':''}>
@@ -1368,8 +1368,11 @@ function ensureYoungaeCode(w){
 }
 function journeyLink(){
   const c=DB.conn||{}, ask=(c.ask||'').trim().replace(/#.*$/,'');
-  const base=(c.journey||ask.replace(/[^/]*$/,'journey.html')||'https://주소를-먼저-설정하세요/journey.html').replace(/#.*$/,'');
-  return base+'#'+cur().id+(c.longLink?('~'+gsId(c.gs)):'');
+  const w=cur();
+  const code=ensureYoungaeCode(w);
+  const base=(c.journey||ask.replace(/[^/]*$/,'story.html')||'https://주소를-먼저-설정하세요/story.html').replace(/#.*$/,'');
+  const hash='영애'+code;
+  return base+'#'+hash+(c.longLink?('~'+gsId(c.gs)):'');
 }
 function publicJourneyState(w){
   const st=w.steps||{};
@@ -1412,7 +1415,7 @@ document.getElementById('btnJourney').onclick=()=>{
   const code=w.youngaeCode||'예식일을 입력해 주세요';
   openModal('두 분의 이야기',
     `<div class="pv-note"><b>${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')}</b><br>영애 ${esc(code)}<br><br>현재 장면 · <b>${esc(state[1])}</b></div>
-     <div class="f" style="margin-top:16px"><label>고객 여정 링크</label><textarea id="jlnk" style="width:100%;min-height:64px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(journeyLink())}</textarea></div>
+     <div class="f" style="margin-top:16px"><label>고객 이야기 링크</label><textarea id="jlnk" style="width:100%;min-height:64px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(journeyLink())}</textarea></div>
      <div class="pv-note">예식 후에는 같은 링크에서 Everafter 편지를 읽고, <b>편지에 답하기</b>로 후기를 남길 수 있습니다.</div>
      <div class="opt"><span class="lbl">예식 마침<span class="sub">고객 화면에 편지와 답장 영역을 엽니다.</span></span><button class="btn" id="jDone">${(w.steps||{}).s8?'완료됨':'예식 마침 표시'}</button></div>
      <div class="f" style="margin-top:18px"><label for="jEmail">받는 이메일</label><input id="jEmail" type="email" value="${esc(w.email||'')}" placeholder="couple@example.com"><div class="hint">Everafter 편지와 두 분의 Archive 링크가 이 주소로 발송됩니다.</div></div>
