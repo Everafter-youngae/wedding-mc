@@ -1404,13 +1404,16 @@ document.getElementById('btnJourney').onclick=()=>{
      <div class="f" style="margin-top:16px"><label>고객 여정 링크</label><textarea id="jlnk" style="width:100%;min-height:64px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(journeyLink())}</textarea></div>
      <div class="pv-note">예식 후에는 같은 링크에서 Everafter 편지를 읽고, <b>편지에 답하기</b>로 후기를 남길 수 있습니다.</div>
      <div class="opt"><span class="lbl">예식 마침<span class="sub">고객 화면에 편지와 답장 영역을 엽니다.</span></span><button class="btn" id="jDone">${(w.steps||{}).s8?'완료됨':'예식 마침 표시'}</button></div>
+     <div class="f" style="margin-top:18px"><label for="jEmail">받는 이메일</label><input id="jEmail" type="email" value="${esc(w.email||'')}" placeholder="couple@example.com"><div class="hint">Everafter 편지와 두 분의 Archive 링크가 이 주소로 발송됩니다.</div></div>
      <div class="opt"><span class="lbl">Everafter 편지<span class="sub">영애, 오래 사랑한다는 마음을 담아 메일로 보냅니다.</span></span><button class="btn primary" id="jMail">메일 보내기</button></div>`,
     `<button class="btn" id="jOpen">고객 화면 열기</button><button class="btn" id="jCopy">링크 복사</button><button class="btn primary" id="jSync">화면 정보 올리기</button>`);
+  const syncJourneyEmail=()=>{ const el=document.getElementById('jEmail'); if(el){ w.email=el.value.trim(); save(); } };
+  document.getElementById('jEmail').addEventListener('input',syncJourneyEmail);
   document.getElementById('jOpen').onclick=()=>window.open(journeyLink(),'_blank');
   document.getElementById('jCopy').onclick=()=>copyText(journeyLink());
-  document.getElementById('jSync').onclick=async()=>{ try{ await pushJourney(); toast('고객 화면 정보를 올렸습니다.'); }catch(e){ toast(e.message); } };
-  document.getElementById('jDone').onclick=async()=>{ markStep('s8'); try{ await pushJourney(); toast('예식 마침을 고객 화면에 반영했습니다.'); }catch(e){ toast(e.message); } closeModal(); document.getElementById('btnJourney').click(); };
-  document.getElementById('jMail').onclick=async()=>{ try{ await sendEverafterLetter(); toast('Everafter 편지를 보냈습니다.'); closeModal(); }catch(e){ toast(e.message); } };
+  document.getElementById('jSync').onclick=async()=>{ syncJourneyEmail(); try{ await pushJourney(); toast('고객 화면 정보를 올렸습니다.'); }catch(e){ toast(e.message); } };
+  document.getElementById('jDone').onclick=async()=>{ syncJourneyEmail(); markStep('s8'); try{ await pushJourney(); toast('예식 마침을 고객 화면에 반영했습니다.'); }catch(e){ toast(e.message); } closeModal(); document.getElementById('btnJourney').click(); };
+  document.getElementById('jMail').onclick=async()=>{ syncJourneyEmail(); if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(w.email||'')){ toast('받는 이메일 주소를 확인해 주세요.'); document.getElementById('jEmail').focus(); return; } if(!confirm(`Everafter 편지를 보내시겠어요?\n\n받는 주소: ${w.email}\n발송 후에는 취소할 수 없습니다.`)) return; try{ await sendEverafterLetter(); toast('Everafter 편지를 보냈습니다.'); closeModal(); }catch(e){ toast(e.message); } };
 };
 
 /* ---------- 구글 시트 자동 백업 ---------- */
