@@ -1409,7 +1409,7 @@ document.getElementById('btnJourney').onclick=()=>{
   document.getElementById('jOpen').onclick=()=>window.open(journeyLink(),'_blank');
   document.getElementById('jCopy').onclick=()=>copyText(journeyLink());
   document.getElementById('jSync').onclick=async()=>{ try{ await pushJourney(); toast('고객 화면 정보를 올렸습니다.'); }catch(e){ toast(e.message); } };
-  document.getElementById('jDone').onclick=()=>{ markStep('s8'); closeModal(); document.getElementById('btnJourney').click(); };
+  document.getElementById('jDone').onclick=async()=>{ markStep('s8'); try{ await pushJourney(); toast('예식 마침을 고객 화면에 반영했습니다.'); }catch(e){ toast(e.message); } closeModal(); document.getElementById('btnJourney').click(); };
   document.getElementById('jMail').onclick=async()=>{ try{ await sendEverafterLetter(); toast('Everafter 편지를 보냈습니다.'); closeModal(); }catch(e){ toast(e.message); } };
 };
 
