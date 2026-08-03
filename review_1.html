@@ -1,0 +1,359 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>두 분의 이야기</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="두 분의 이야기가 준비되었습니다">
+<meta property="og:description" content="대본을 함께 다듬어가요. 편하게 둘러봐 주세요.">
+<meta property="og:image" content="https://everafter-youngae.github.io/wedding-mc/og-review.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDEFF2;--card:#fff;--ink:#15171C;--ink2:#5C636D;--ink3:#8A919B;
+  --line:#DCE0E6;--line2:#EDF0F3;--wine:#8A2540;--wine-soft:#F6E9ED;
+  --sans:"Noto Sans KR","Noto Sans",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65;-webkit-text-size-adjust:100%}
+button,input,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.prog{position:fixed;top:0;left:0;right:0;height:3px;background:var(--line2);z-index:5}
+.prog i{display:block;height:100%;background:var(--wine);width:0;transition:width .25s}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 170px}
+header{padding:36px 4px 24px}
+header .dt{font-size:12px;letter-spacing:.12em;color:var(--ink2)}
+header h1{font-size:30px;font-weight:900;letter-spacing:-.04em;margin:8px 0 0}
+header h1 .h{color:var(--wine);font-size:22px;margin:0 8px}
+header .round{display:inline-block;margin-top:16px;font-size:13px;font-weight:700;color:var(--wine);background:var(--wine-soft);border-radius:6px;padding:5px 12px}
+header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+.card h2{font-size:18px;font-weight:700;margin:0 0 4px;display:flex;align-items:baseline;gap:10px;letter-spacing:-.02em}
+.card h2 .n{font-size:12px;color:var(--ink3);font-weight:400}
+.tag{display:inline-block;font-size:12px;color:var(--wine);background:var(--wine-soft);border-radius:4px;padding:3px 8px;margin-bottom:12px}
+.script{font-size:16px;line-height:1.95;white-space:pre-wrap;word-break:keep-all;margin:12px 0 0}
+.script .brk{display:inline-block;width:1px;height:.9em;background:var(--ink3);opacity:.5;vertical-align:-.12em;margin:0 .34em}
+.script .stage{color:var(--wine);font-size:14px;background:var(--wine-soft);border-radius:3px;padding:1px 6px}
+.fb{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line)}
+.pick{display:flex;gap:8px}
+.pick button{
+  flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;
+  padding:14px 8px;font-size:15px;color:var(--ink2);line-height:1.35;min-height:52px;word-break:keep-all;
+}
+.pick button[aria-pressed=true]{background:var(--wine-soft);border-color:var(--wine);color:var(--wine);font-weight:700}
+.note{margin-top:12px}
+.note.hide{display:none}
+.note label{display:block;font-size:13px;color:var(--ink2);margin-bottom:8px;font-weight:500}
+.note textarea{width:100%;min-height:80px;border:1px solid var(--line);border-radius:10px;padding:14px 12px;font-size:16px;resize:vertical}
+.note textarea:focus{border-color:var(--wine);outline:none}
+.sect-label{font-size:12px;letter-spacing:.1em;color:var(--ink2);font-weight:700;padding:28px 4px 12px}
+.f{margin-top:16px}
+.f label{display:block;font-size:13px;color:var(--ink2);margin-bottom:8px;font-weight:500}
+.f input,.f textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:14px 12px;font-size:16px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));backdrop-filter:blur(6px)}
+.bar .in{max-width:640px;margin:0 auto;display:flex;gap:12px;align-items:center}
+.bar .cnt{font-size:13px;color:var(--ink2);flex:1;line-height:1.4}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:15px 20px;font-weight:500;font-size:16px;min-height:52px}
+.btn.primary{background:var(--wine);border-color:var(--wine);color:#fff;font-weight:700}
+.btn:disabled{opacity:.5}
+.topbar{position:sticky;top:0;z-index:4;background:var(--paper);padding:14px 0 10px;display:flex;align-items:center;gap:10px}
+.topbar .step{font-size:12px;color:var(--ink3);letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.topbar .names{font-size:13px;font-weight:700;letter-spacing:-.02em}
+.topbar .toggle{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:100px;padding:7px 14px;font-size:12px;color:var(--ink2)}
+.deck{position:relative;padding:6px 0 10px}
+.deck .peek{position:absolute;left:8px;right:8px;top:0;height:26px;background:#fff;border:1px solid var(--line);border-radius:12px;opacity:.55}
+.deck .peek.b{left:16px;right:16px;top:-7px;opacity:.3}
+.card.one{position:relative;animation:slidein .34s cubic-bezier(.2,.8,.3,1) both}
+@keyframes slidein{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+.card.one .ribbon{font-size:12px;color:var(--wine);letter-spacing:.1em;font-weight:700;margin-bottom:10px}
+.cardnav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));backdrop-filter:blur(6px)}
+.cardnav .in{max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.cardnav .prev{border:1px solid var(--line);background:#fff;border-radius:10px;padding:15px 18px;min-height:52px;color:var(--ink2)}
+.cardnav .next{flex:1;background:var(--wine);border:0;color:#fff;border-radius:10px;padding:15px;font-size:16px;font-weight:700;min-height:52px}
+.cardnav .next:disabled{opacity:.45}
+.dots{display:flex;gap:5px;justify-content:center;padding:14px 0 0;flex-wrap:wrap}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--line);display:block}
+.dots i.on{background:var(--wine)}
+.dots i.now{width:18px;border-radius:3px;background:var(--wine)}
+.intro{min-height:88vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 8px}
+.intro .dt{font-size:12px;letter-spacing:.12em;color:var(--ink3)}
+.intro h1{font-size:28px;font-weight:900;letter-spacing:-.04em;margin:14px 0 0;line-height:1.4;word-break:keep-all}
+.intro h1 .h{color:var(--wine);font-size:21px;margin:0 8px}
+.intro .rule{width:36px;height:1px;background:var(--wine);opacity:.5;margin:28px 0}
+.intro p{font-size:16px;color:var(--ink2);line-height:2;margin:0;word-break:keep-all}
+.intro .lead{color:var(--ink);font-size:18px;margin:0 0 26px}
+.intro .go{margin-top:40px;background:var(--wine);border:0;color:#fff;border-radius:100px;
+  padding:16px 44px;font-size:16px;font-weight:700;letter-spacing:.02em;min-height:54px}
+.intro .go:active{background:#711e35}
+.done{text-align:center;padding:60px 20px}
+.done .ic{font-size:38px}
+.done h2{font-size:24px;margin:16px 0 8px;font-weight:700;letter-spacing:-.02em}
+.done p{color:var(--ink2);font-size:15px;margin:0;line-height:1.7}
+.fallback{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:left;margin-top:20px}
+.fallback textarea{width:100%;height:110px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11px;word-break:break-all;margin:10px 0}
+.err{color:var(--wine);font-size:14px;line-height:1.6}
+</style>
+
+<div class="prog"><i id="progBar"></i></div>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ===== 앱스 스크립트 주소 =====================================
+   앱스 스크립트를 "새 배포"로 다시 만들어 주소가 바뀌면
+   아래 따옴표 안의 주소만 새 것으로 바꿔 저장하세요.
+   ============================================================ */
+const GS_URL = 'https://script.google.com/macros/s/AKfycbyULnOlwGCrwEjeqgocZhZjh8pMazeaEvl8H78vd7RV61aX9HKq0a6tS_0KWZcf7Ufjhg/exec';
+
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let DOC=null, GS='', ID='', A={notes:{},free:'',name:''};
+let VIEW='card', IDX=0, BOUND=false;
+
+function screen(icon,title,body){
+  $('#app').innerHTML=`<div class="done"><div class="ic">${icon}</div><h2>${title}</h2><p>${body}</p></div>`;
+}
+function scriptHTML(t){
+  return esc(t).replace(/\(([^)]*)\)/g,'<span class="stage">($1)</span>')
+    .replace(/\s\/\s/g,'<span class="brk"></span>')
+    .replace(/『([^』]*)』/g,'<b>$1</b>');
+}
+const dk=()=>'mc-review-'+ID;
+function saveDraft(){ try{ localStorage.setItem(dk(),JSON.stringify(A)); }catch(e){} }
+function loadDraft(){ try{ const v=localStorage.getItem(dk()); if(v) A=Object.assign(A,JSON.parse(v)); }catch(e){} }
+
+async function init(){
+  let h=location.hash.slice(1);
+  try{ h=decodeURIComponent(h); }catch(e){}
+  h=h.replace(/%7E/gi,'~');
+  if(!/^[A-Za-z0-9_-]+(~[A-Za-z0-9_-]+)?$/.test(h)){ screen('🔗','링크가 올바르지 않습니다','받으신 주소를 처음부터 끝까지 복사해서 다시 열어 주세요.'); return; }
+  const [id,dep]=h.split('~');
+  ID=id; GS=dep?('https://script.google.com/macros/s/'+dep+'/exec'):GS_URL;
+  screen('','불러오는 중입니다','잠시만 기다려 주세요.');
+  try{
+    const r=await fetch(GS+'?script='+encodeURIComponent(id));
+    const j=await r.json();
+    if(!j.ok||!j.script) throw new Error('none');
+    DOC=j.script;
+  }catch(e){
+    screen('⏳','대본을 불러오지 못했습니다','인터넷 연결을 확인하고 새로고침해 주세요.<br>계속 같은 화면이면 사회자분께 알려 주세요.');
+    return;
+  }
+  DOC.sections.forEach(s=>{ A.notes[s.key]=A.notes[s.key]||{v:'',text:''}; });
+  loadDraft();
+  intro();
+}
+
+function intro(){
+  const d=DOC, rd=String(d.round||'');
+  const fin=rd.indexOf('최종')>-1;
+  const nth=fin?'':(rd.indexOf('2차')>-1?'두 번째 ':'첫 번째 ');
+  const bar=$('#progBar'); if(bar) bar.style.width='0';
+  $('#app').innerHTML=`
+  <div class="intro">
+    <div class="dt">${esc(d.dateLabel||'')}</div>
+    <h1>${esc(d.bride||'신부')}<span class="h">♡</span>${esc(d.groom||'신랑')}</h1>
+    <div class="rule"></div>
+    ${fin
+      ? `<p class="lead">두 사람의 이야기가 모두 담겼습니다.</p>
+         <p>예식 당일 이 대본으로 진행됩니다.<br>
+          마지막으로 천천히 확인해 주세요.</p>`
+      : `<p class="lead">두 사람의 ${nth}이야기가 준비되었습니다.</p>
+         <p>이 대본은 아직 완성되지 않았습니다.<br>
+          두 분의 이야기를 조금 더 담기 위해<br>
+          함께 다듬어가겠습니다.</p>`}
+    <button class="go" id="goRead">시작</button>
+  </div>`;
+  $('#goRead').onclick=()=>{ VIEW='card'; IDX=0; paint(); window.scrollTo(0,0); };
+}
+
+function paint(){
+  if(!BOUND){ bind(); BOUND=true; }
+  VIEW==='card'?renderCard():renderList();
+  count();
+}
+
+function topbar(){
+  const n=DOC.sections.length;
+  return `<div class="topbar">
+    <span class="names">${esc(DOC.bride||'신부')} ♡ ${esc(DOC.groom||'신랑')}</span>
+    ${VIEW==='card'?`<span class="step">${Math.min(IDX+1,n)} / ${n}</span>`:''}
+    <button class="toggle" id="vToggle">${VIEW==='card'?'전체 보기':'한 장씩 보기'}</button>
+  </div>`;
+}
+
+function renderCard(){
+  const d=DOC, n=d.sections.length;
+  if(IDX>=n) return renderLast();
+  const s=d.sections[IDX], a=A.notes[s.key], open=a.v==='fix';
+  const rd=String(d.round||'');
+  const label=rd.indexOf('최종')>-1?'최종본':(rd.indexOf('2차')>-1?'두 번째 이야기':'첫 번째 이야기');
+  $('#app').innerHTML=`
+  ${topbar()}
+  <div class="deck">
+    <div class="peek b"></div><div class="peek"></div>
+    <div class="card one">
+      <div class="ribbon">${esc(label)}</div>
+      <h2><span class="n">${String(IDX+1).padStart(2,'0')}</span>${esc(s.title)}</h2>
+      ${s.music?`<span class="tag">♪ ${esc(s.music)}</span>`:''}
+      <div class="script">${scriptHTML(s.text)}</div>
+      <div class="fb">
+        <div class="pick">
+          <button data-v="ok" data-k="${s.key}" aria-pressed="${a.v==='ok'}">이대로 좋아요</button>
+          <button data-v="fix" data-k="${s.key}" aria-pressed="${a.v==='fix'}">고치고 싶어요</button>
+        </div>
+        <div class="note ${open?'':'hide'}" data-note="${s.key}">
+          <label>어떻게 고치면 좋을까요?</label>
+          <textarea data-t="${s.key}" placeholder="예: 저희 강아지 이름도 넣어주세요">${esc(a.text)}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="dots">${d.sections.map((x,i)=>`<i class="${i===IDX?'now':(A.notes[x.key].v?'on':'')}"></i>`).join('')}</div>
+  <div class="cardnav"><div class="in">
+    ${IDX>0?`<button class="prev" id="cPrev">이전</button>`:''}
+    <button class="next" id="cNext">${IDX===n-1?'마무리하기':'다음 장 열기'}</button>
+  </div></div>`;
+  window.scrollTo(0,0);
+}
+
+function renderLast(){
+  $('#app').innerHTML=`
+  ${topbar()}
+  <div class="deck"><div class="card one">
+    <div class="ribbon">마지막 장</div>
+    <h2>다 읽어주셔서 감사합니다</h2>
+    <p class="desc">보내주신 의견은 그대로 대본에 반영됩니다.</p>
+    <div class="f"><label>전체적으로 더 하고 싶은 말씀</label>
+      <textarea id="free" placeholder="예: 전체적으로 조금만 더 짧았으면 좋겠어요">${esc(A.free)}</textarea></div>
+    <div class="f"><label>작성자</label>
+      <input type="text" id="who" value="${esc(A.name)}" placeholder="김민주"></div>
+  </div></div>
+  <div class="cardnav"><div class="in">
+    <button class="prev" id="cPrev">이전</button>
+    <button class="next" id="send">검토 결과 보내기</button>
+  </div></div>`;
+  window.scrollTo(0,0);
+}
+
+function renderList(){
+  const d=DOC;
+  $('#app').innerHTML=`
+  ${topbar()}
+  <header>
+    <div class="dt">${esc(d.dateLabel||'')}</div>
+    <h1>${esc(d.bride||'신부')}<span class="h">♡</span>${esc(d.groom||'신랑')}</h1>
+    <div class="round">${esc(d.round||'검토본')}</div>
+    <p>예식 당일 제가 읽을 대본입니다. 쭉 읽어보시고 순서마다 <b>괜찮은지</b>만 눌러 주세요.
+    고치고 싶은 부분은 편하게 적어 주시면 그대로 반영합니다.<br>
+    회색 세로선은 제가 숨 쉬며 끊어 읽는 지점이고, 분홍 글씨는 읽지 않는 진행 안내입니다.</p>
+  </header>
+
+  <div class="sect-label">대본</div>
+  ${d.sections.map((s,i)=>card(s,i)).join('')}
+
+  <div class="sect-label">마지막으로</div>
+  <div class="card">
+    <div class="f"><label>전체적으로 더 하고 싶은 말씀</label>
+      <textarea id="free" placeholder="예: 전체적으로 조금만 더 짧았으면 좋겠어요">${esc(A.free)}</textarea></div>
+    <div class="f"><label>작성자</label>
+      <input type="text" id="who" value="${esc(A.name)}" placeholder="김민주"></div>
+  </div>
+
+  <div class="bar"><div class="in">
+    <span class="cnt" id="cnt"></span>
+    <button class="btn primary" id="send">검토 결과 보내기</button>
+  </div></div>`;
+  bind(); count();
+}
+
+function card(s,i){
+  const a=A.notes[s.key], open=a.v==='fix';
+  return `<div class="card">
+    <h2><span class="n">${String(i+1).padStart(2,'0')}</span>${esc(s.title)}</h2>
+    ${s.music?`<span class="tag">♪ ${esc(s.music)}</span>`:''}
+    <div class="script">${scriptHTML(s.text)}</div>
+    <div class="fb">
+      <div class="pick">
+        <button data-v="ok" data-k="${s.key}" aria-pressed="${a.v==='ok'}">이대로 좋아요</button>
+        <button data-v="fix" data-k="${s.key}" aria-pressed="${a.v==='fix'}">고치고 싶어요</button>
+      </div>
+      <div class="note ${open?'':'hide'}" data-note="${s.key}">
+        <label>어떻게 고치면 좋을까요?</label>
+        <textarea data-t="${s.key}" placeholder="예: 저희 강아지 이름도 넣어주세요">${esc(a.text)}</textarea>
+      </div>
+    </div>
+  </div>`;
+}
+
+function bind(){
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('[data-v]');
+    if(b){
+      const k=b.dataset.k;
+      A.notes[k].v=b.dataset.v;
+      [...b.parentNode.children].forEach(x=>x.setAttribute('aria-pressed',x===b));
+      const n=document.querySelector(`[data-note="${k}"]`);
+      if(n) n.classList.toggle('hide',b.dataset.v!=='fix');
+      saveDraft(); count();
+      if(VIEW==='card'){
+        const dots=document.querySelector('.dots');
+        if(dots) dots.innerHTML=DOC.sections.map((x,i)=>`<i class="${i===IDX?'now':(A.notes[x.key].v?'on':'')}"></i>`).join('');
+      }
+    }
+    if(e.target.id==='send') send();
+    if(e.target.id==='vToggle'){ VIEW=VIEW==='card'?'list':'card'; IDX=Math.min(IDX,DOC.sections.length); paint(); }
+    if(e.target.id==='cNext'){ IDX++; paint(); }
+    if(e.target.id==='cPrev'){ IDX--; paint(); }
+  });
+  document.addEventListener('input',e=>{
+    const t=e.target;
+    if(t.dataset.t) A.notes[t.dataset.t].text=t.value;
+    if(t.id==='free') A.free=t.value;
+    if(t.id==='who') A.name=t.value;
+    saveDraft();
+  });
+}
+function count(){
+  const n=DOC.sections.length;
+  const done=DOC.sections.filter(s=>A.notes[s.key].v).length;
+  const bar=$('#progBar');
+  if(bar) bar.style.width=(VIEW==='card'?Math.min(IDX+1,n+1)/(n+1)*100:done/n*100)+'%';
+  const el=$('#cnt'); if(!el) return;
+  el.textContent=done<n?`${n}개 중 ${done}개 확인 · 나머지는 그대로 보내셔도 됩니다`:'모두 확인하셨습니다';
+}
+
+async function send(){
+  const btn=$('#send'); btn.disabled=true; btn.textContent='보내는 중…';
+  const payload={type:'review',id:ID,round:DOC.round||'',ts:new Date().toISOString(),
+    name:A.name,notes:A.notes,free:A.free};
+  try{
+    const r=await fetch(GS,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+    const j=await r.json();
+    if(!j.ok) throw new Error('fail');
+    try{ localStorage.removeItem(dk()); }catch(e){}
+    screen('✓','전달했습니다','검토 의견이 사회자에게 잘 전달됐습니다.<br>더 생각나는 게 있으면 이 링크로 다시 들어와 보내주세요.');
+    window.scrollTo(0,0);
+  }catch(err){
+    btn.disabled=false; btn.textContent='다시 보내기';
+    const code=btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_');
+    let box=$('#fb');
+    if(!box){ box=document.createElement('div'); box.id='fb'; box.className='fallback'; $('.wrap').appendChild(box); }
+    box.innerHTML=`<p class="err">지금 전송이 되지 않았습니다. 아래 코드를 복사해서 사회자에게 보내주세요.</p>
+      <textarea readonly id="fbc">${code}</textarea>
+      <button class="btn primary" style="width:100%" id="fbcopy">코드 복사하기</button>`;
+    $('#fbcopy').onclick=()=>{
+      const t=$('#fbc'); t.select();
+      navigator.clipboard.writeText(t.value).catch(()=>document.execCommand('copy'));
+      $('#fbcopy').textContent='복사했습니다';
+    };
+    box.scrollIntoView({behavior:'smooth'});
+  }
+}
+
+init();
+</script>
