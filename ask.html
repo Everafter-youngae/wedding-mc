@@ -27,6 +27,34 @@ header .dt{font-size:12px;letter-spacing:.12em;color:var(--ink2)}
 header h1{font-size:30px;font-weight:900;letter-spacing:-.04em;margin:8px 0 0}
 header h1 .h{color:var(--wine);font-size:19px;margin:0 7px}
 header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
+/* 봉투 로딩 */
+.load{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px}
+.env{width:104px;height:84px;overflow:visible}
+.env .body{fill:#fff;stroke:var(--line);stroke-width:2}
+.env .ltr{fill:#fff;stroke:var(--line);stroke-width:2;transform-box:fill-box;transform-origin:center bottom;
+  animation:ltrup 2.6s ease-in-out infinite}
+.env .front{fill:#FBFCFD;stroke:var(--line);stroke-width:2}
+.env .flap{fill:#fff;stroke:var(--wine);stroke-width:2;stroke-linejoin:round;
+  transform-box:fill-box;transform-origin:center top;animation:flap 2.6s ease-in-out infinite}
+.env .seal{fill:var(--wine);opacity:.85;transform-box:fill-box;transform-origin:center;
+  animation:seal 2.6s ease-in-out infinite}
+@keyframes flap{
+  0%,10%{transform:scaleY(1)}
+  35%,65%{transform:scaleY(-0.92)}
+  90%,100%{transform:scaleY(1)}
+}
+@keyframes ltrup{
+  0%,18%{transform:translateY(0);opacity:0}
+  40%,62%{transform:translateY(-15px);opacity:1}
+  85%,100%{transform:translateY(0);opacity:0}
+}
+@keyframes seal{
+  0%,10%{opacity:.85;transform:scale(1)}
+  30%,70%{opacity:0;transform:scale(.6)}
+  92%,100%{opacity:.85;transform:scale(1)}
+}
+.load .msg{font-size:15px;color:var(--ink2);text-align:center;line-height:1.7}
+.load .sub{font-size:13px;color:var(--ink3);margin-top:6px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
 .card h2{font-size:18px;font-weight:700;margin:0 0 4px;display:flex;align-items:baseline;gap:10px;letter-spacing:-.02em}
 .card h2 .n{font-size:12px;color:var(--ink3);font-weight:400}
@@ -154,7 +182,19 @@ async function init(){
       CFG=cached; CFG.gs=gs; CFG.id=id;
       pull().then(()=>{}).catch(()=>{});
     }else{
-      screen('','불러오는 중입니다','잠시만 기다려 주세요.');
+      $('#app').innerHTML=`<div class="load">
+    <svg class="env" viewBox="0 0 104 84" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect class="body" x="4" y="22" width="96" height="58" rx="5"/>
+      <rect class="ltr" x="22" y="18" width="60" height="42" rx="3"/>
+      <path class="front" d="M4 26 L52 60 L100 26 V75 a5 5 0 0 1 -5 5 H9 a5 5 0 0 1 -5 -5 Z"/>
+      <path class="flap" d="M4 26 L52 -2 L100 26 L52 54 Z"/>
+      <circle class="seal" cx="52" cy="26" r="5"/>
+    </svg>
+    <div>
+      <div class="msg">예식 준비 내용을 여는 중입니다</div>
+      <div class="sub">잠시만 기다려 주세요</div>
+    </div>
+  </div>`;
       try{
         CFG=await pull(); CFG.gs=gs; CFG.id=id;
       }catch(e){
