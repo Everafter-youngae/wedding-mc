@@ -1431,10 +1431,14 @@ document.getElementById('btnSend').onclick=()=>{
       try{
         await pushScript(DB.round||rounds[0]);
         const rd=DB.round||rounds[0];
-        const line=rd.indexOf('최종')>-1 ? '마지막으로 다듬은 대본입니다.'
-          : rd.indexOf('2차')>-1 ? '두 번째 대본을 준비해보았습니다.'
-          : '첫 번째 대본을 준비해보았습니다.';
-        copyText(`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분의 이야기를 다듬고 있습니다. 🌷\n\n${line}\n\n아래 링크에서 편하게 둘러보시고,\n더하고 싶은 이야기나 덜어내고 싶은 부분이 있다면 알려주세요.\n\n${reviewLink()}`);
+        const fin=rd.indexOf('최종')>-1;
+        const line=fin ? '마지막 대본이 준비되었습니다.'
+          : rd.indexOf('2차')>-1 ? '두 번째 대본이 준비되었습니다.'
+          : '첫 번째 대본이 준비되었습니다.';
+        const tail=fin
+          ? '예식 당일, 이 이야기로 두 분을 소개하겠습니다.'
+          : '두 분의 이야기를 함께 완성해가겠습니다.';
+        copyText(`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분의 이야기를 다듬고 있습니다. 🌷\n\n${line}\n\n아래 링크에서 편하게 둘러보시고,\n더하고 싶은 이야기나 덜어내고 싶은 부분이 있다면 알려주세요.\n\n${tail}\n\n${reviewLink()}`);
         note.textContent='올렸습니다. 메시지가 복사됐으니 그대로 보내시면 됩니다.';
       }catch(e){ note.textContent=e.message; }
     };
