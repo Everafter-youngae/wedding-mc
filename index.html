@@ -289,6 +289,7 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
     <button class="btn" id="btnLink">응답 링크</button>
     <button class="btn" id="btnSend">대본 보내기</button>
     <button class="btn" id="btnInbox">응답 확인<span id="inboxDot" style="display:none;margin-left:5px;color:var(--wine)">●</span></button>
+    <button class="btn" id="btnJourney">두 분의 이야기</button>
   </div>
   <div class="tb-div"></div>
   <div class="tb-group">
@@ -357,6 +358,8 @@ function blank(){
   return {
     id:'w'+Date.now().toString(36),
     groom:'', bride:'', date:'', time:'',
+    youngaeCode:'', email:'', journeyNameCheck:'',
+    archiveSentence:'', archiveScene:'', archiveClosing:'', archiveSentAt:'',
     venue:'', floor:'', mcName:'',
     relation:'신부', relationText:'대학 동기', story:'',
     farGuests:'',
@@ -754,7 +757,7 @@ async function load(){
   if(!cur()) DB.cur=DB.list[0].id;
   DB.print=Object.assign({mode:'read',pt:15,pageBreak:true,program:true,cover:true,orient:'landscape',cols:false},DB.print||{});
   // 새로 추가된 섹션 보정
-  DB.list.forEach(w=>{ SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+  DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
 }
@@ -777,7 +780,10 @@ const FLOW=[
   {k:'s4',t:'2차 대본 발송',      hint:'<b>대본 보내기</b>에서 2차 검토본으로 보내세요.'},
   {k:'s5',t:'2차 피드백 수신',    hint:'<b>응답 확인</b>에서 받은 의견을 반영하세요.'},
   {k:'s6',t:'최종 대본 발송',     hint:'<b>대본 보내기</b>에서 최종본으로 보내세요.'},
-  {k:'s7',t:'최종 컨펌',          hint:'컨펌 받으면 눌러 두세요. PDF로 뽑아 두시면 끝입니다.'},
+  {k:'s7',t:'최종 컨펌',          hint:'컨펌을 받으면 눌러 두세요.'},
+  {k:'s8',t:'예식 마침',          hint:'예식이 끝난 뒤 눌러 주세요. 고객 화면에 편지와 답장 영역이 열립니다.'},
+  {k:'s9',t:'편지에 답장 수신',   hint:'고객이 후기를 남기면 자동으로 표시됩니다.'},
+  {k:'s10',t:'Everafter 편지 발송',hint:'<b>두 분의 이야기</b>에서 편지를 확인하고 메일로 보내세요.'},
 ];
 function stepDone(k,on){
   const w=cur(); w.steps=w.steps||{};
@@ -904,6 +910,10 @@ ${flowHTML()}
     <div class="f"><label>예식 시간</label><input type="time" data-k="time" value="${esc(w.time)}"></div>
   </div>
   <div class="row">
+    <div class="f"><label>영애 코드</label><input type="text" data-k="youngaeCode" value="${esc(w.youngaeCode||'')}" placeholder="2608_01"><div class="hint">처음 만든 뒤에는 고정됩니다.</div></div>
+    <div class="f"><label>받는 이메일</label><input type="text" data-k="email" value="${esc(w.email||'')}" placeholder="couple@example.com"><div class="hint">Everafter 편지를 보낼 주소입니다.</div></div>
+  </div>
+  <div class="row">
     ${txt('예식장','venue','○○컨벤션 3층 그랜드홀')}
     ${txt('연회장 층','floor','지하 1층')}
   </div>
@@ -918,6 +928,13 @@ ${flowHTML()}
 
 <div class="sec-head">순서별 세부 설정</div>
 ${secGroups}
+
+<details class="group" id="g-after" ${op('g-after')}><summary>예식 이후 · Everafter 편지</summary><div class="gbody">
+  ${txt('그날의 대표 문장','archiveSentence','서로를 향한 마음은 이제 평생의 약속이 됩니다.')}
+  ${area('사회자가 기억하는 한 장면','archiveScene','행진을 앞두고 서로를 바라보며 웃던 두 분의 표정이 오래 남았습니다.')}
+  ${txt('마지막 문장','archiveClosing','두 분이 함께할 시간마다 오늘의 마음이 오래 이어지기를 바랍니다.')}
+  <div class="hint">고객 화면과 Everafter 편지에 사용됩니다. 비워두면 기본 문장이 들어갑니다.</div>
+</div></details>
 
 <details class="group" id="g-export" ${op('g-export')}><summary>내보내기</summary><div class="gbody">
   <button class="btn" id="btnJson" style="width:100%;margin-bottom:8px">이 대본 백업 파일 저장 (.json)</button>
@@ -1254,6 +1271,8 @@ function connForm(){
   const c=DB.conn||{};
   return `<div class="f"><label>응답 폼 주소 (ask.html을 올린 주소)</label>
       <input type="text" id="cAsk" value="${esc(c.ask||'')}" placeholder="https://내주소.netlify.app/ask.html"></div>
+    <div class="f"><label>고객 여정 주소 (journey.html을 올린 주소)</label>
+      <input type="text" id="cJourney" value="${esc(c.journey||'')}" placeholder="https://내주소.netlify.app/journey.html"></div>
     <div class="f"><label>구글 앱스 스크립트 웹앱 주소</label>
       <input type="text" id="cGs" value="${esc(c.gs||'')}" placeholder="https://script.google.com/macros/s/…/exec"></div>
     <label class="check" style="margin-top:4px"><input type="checkbox" id="cLong" ${c.longLink?'checked':''}>
@@ -1264,6 +1283,7 @@ function connForm(){
 function saveConn(){
   DB.conn=Object.assign(DB.conn||{},{
     ask:(document.getElementById('cAsk')||{}).value||'',
+    journey:(document.getElementById('cJourney')||{}).value||'',
     gs:(((document.getElementById('cGs')||{}).value)||'').trim(),
     longLink:!!(document.getElementById('cLong')||{}).checked});
   save();
@@ -1295,6 +1315,7 @@ document.getElementById('btnLink').onclick=()=>{
   };
   const upd=()=>{ saveConn(); document.getElementById('lnk').value=askLink(); warn(); };
   document.getElementById('cAsk').oninput=upd;
+  if(document.getElementById('cJourney')) document.getElementById('cJourney').oninput=upd;
   document.getElementById('cGs').oninput=upd;
   document.getElementById('cLong').onchange=upd;
   const note=document.getElementById('lNote');
@@ -1316,6 +1337,80 @@ document.getElementById('btnLink').onclick=()=>{
   document.getElementById('lCopy').onclick=()=>go(false);
   document.getElementById('lMsg').onclick=()=>go(true);
   warn();
+};
+
+
+/* ---------- Everafter Journey · 편지 ---------- */
+function normalizeYoungae(v){
+  const n=String(v||'').replace(/영애/gi,'').replace(/[^0-9]/g,'');
+  return n.length===6 ? `${n.slice(0,4)}_${n.slice(4)}` : '';
+}
+function ensureYoungaeCode(w){
+  if(w.youngaeCode){ w.youngaeCode=normalizeYoungae(w.youngaeCode)||w.youngaeCode; return w.youngaeCode; }
+  const d=(w.date||'').replace(/-/g,'');
+  if(d.length<6) return '';
+  const ym=d.slice(2,6);
+  const nums=DB.list.filter(x=>x.id!==w.id && normalizeYoungae(x.youngaeCode||'').startsWith(ym+'_'))
+    .map(x=>Number((normalizeYoungae(x.youngaeCode||'').split('_')[1]||0))).filter(Boolean);
+  w.youngaeCode=`${ym}_${String((nums.length?Math.max(...nums):0)+1).padStart(2,'0')}`;
+  save(); return w.youngaeCode;
+}
+function journeyLink(){
+  const c=DB.conn||{}, ask=(c.ask||'').trim().replace(/#.*$/,'');
+  const base=(c.journey||ask.replace(/[^/]*$/,'journey.html')||'https://주소를-먼저-설정하세요/journey.html').replace(/#.*$/,'');
+  return base+'#'+cur().id+(c.longLink?('~'+gsId(c.gs)):'');
+}
+function publicJourneyState(w){
+  const st=w.steps||{};
+  if(st.s10) return ['archive','오늘의 기억을 남겼어요'];
+  if(st.s8) return ['after','Everafter 편지를 준비하고 있어요'];
+  if(st.s7) return ['wedding','그날을 기다리고 있어요'];
+  if(st.s6) return ['final','마지막 대본이 준비되었어요'];
+  if(st.s5) return ['together','마지막 문장을 다듬고 있어요'];
+  if(st.s4) return ['second','두 번째 대본이 준비되었어요'];
+  if(st.s3) return ['together','함께 다듬고 있어요'];
+  if(st.s2) return ['first','첫 번째 대본이 준비되었어요'];
+  if(st.s1) return ['story','두 분의 이야기를 기다리고 있어요'];
+  return ['welcome','처음 인사를 나누었어요'];
+}
+async function pushJourney(){
+  const c=DB.conn||{}, w=cur();
+  if(!c.gs) throw new Error('앱스 스크립트 주소가 아직 없습니다.');
+  ensureYoungaeCode(w);
+  const payload={
+    id:w.id, code:w.youngaeCode, bride:w.bride, groom:w.groom, date:w.date, time:w.time,
+    email:w.email||'', steps:w.steps||{}, archiveSentence:w.archiveSentence||'',
+    archiveScene:w.archiveScene||'', archiveClosing:w.archiveClosing||'', reviewLink:reviewLink()
+  };
+  const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({type:'journey',id:w.id,data:payload})});
+  const j=await r.json(); if(!j.ok) throw new Error(j.error||'고객 화면 정보를 올리지 못했습니다.');
+}
+async function sendEverafterLetter(){
+  const c=DB.conn||{}, w=cur();
+  if(!c.gs) throw new Error('앱스 스크립트 주소가 아직 없습니다.');
+  if(!w.email) throw new Error('받는 이메일을 먼저 입력해 주세요.');
+  await pushJourney();
+  const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({type:'sendArchive',id:w.id,email:w.email,journeyUrl:journeyLink()})});
+  const j=await r.json(); if(!j.ok) throw new Error(j.error||'메일을 보내지 못했습니다.');
+  w.archiveSentAt=new Date().toISOString(); markStep('s10'); save();
+}
+document.getElementById('btnJourney').onclick=()=>{
+  const w=cur(); ensureYoungaeCode(w); const state=publicJourneyState(w);
+  const code=w.youngaeCode||'예식일을 입력해 주세요';
+  openModal('두 분의 이야기',
+    `<div class="pv-note"><b>${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')}</b><br>영애 ${esc(code)}<br><br>현재 장면 · <b>${esc(state[1])}</b></div>
+     <div class="f" style="margin-top:16px"><label>고객 여정 링크</label><textarea id="jlnk" style="width:100%;min-height:64px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(journeyLink())}</textarea></div>
+     <div class="pv-note">예식 후에는 같은 링크에서 Everafter 편지를 읽고, <b>편지에 답하기</b>로 후기를 남길 수 있습니다.</div>
+     <div class="opt"><span class="lbl">예식 마침<span class="sub">고객 화면에 편지와 답장 영역을 엽니다.</span></span><button class="btn" id="jDone">${(w.steps||{}).s8?'완료됨':'예식 마침 표시'}</button></div>
+     <div class="opt"><span class="lbl">Everafter 편지<span class="sub">영애, 오래 사랑한다는 마음을 담아 메일로 보냅니다.</span></span><button class="btn primary" id="jMail">메일 보내기</button></div>`,
+    `<button class="btn" id="jOpen">고객 화면 열기</button><button class="btn" id="jCopy">링크 복사</button><button class="btn primary" id="jSync">화면 정보 올리기</button>`);
+  document.getElementById('jOpen').onclick=()=>window.open(journeyLink(),'_blank');
+  document.getElementById('jCopy').onclick=()=>copyText(journeyLink());
+  document.getElementById('jSync').onclick=async()=>{ try{ await pushJourney(); toast('고객 화면 정보를 올렸습니다.'); }catch(e){ toast(e.message); } };
+  document.getElementById('jDone').onclick=()=>{ markStep('s8'); closeModal(); document.getElementById('btnJourney').click(); };
+  document.getElementById('jMail').onclick=async()=>{ try{ await sendEverafterLetter(); toast('Everafter 편지를 보냈습니다.'); closeModal(); }catch(e){ toast(e.message); } };
 };
 
 /* ---------- 구글 시트 자동 백업 ---------- */
@@ -1605,6 +1700,7 @@ document.getElementById('btnInbox').onclick=async()=>{
       `<button class="btn" id="iClose">닫기</button>
        <button class="btn primary" id="iPaste">코드 읽기</button>`);
     document.getElementById('cAsk').oninput=saveConn;
+    if(document.getElementById('cJourney')) document.getElementById('cJourney').oninput=saveConn;
     document.getElementById('cGs').oninput=saveConn;
     document.getElementById('iClose').onclick=closeModal;
     document.getElementById('iPaste').onclick=()=>{
