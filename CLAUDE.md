@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A static site ("Everafter") that a wedding MC (사회자) uses to build a wedding-ceremony script/run-of-show together with the bride and groom, then archive the day afterward as a keepsake. There is no build step, no package manager, and no server code in this repo — every page is a single self-contained `.html` file (inline `<style>` + inline `<script>`, no bundler, no framework) deployed directly to GitHub Pages. Committing to `main` ships to production.
+A static site ("Everafter") that a wedding MC (사회자) uses to build a wedding-ceremony script/run-of-show together with the bride and groom, then archive the day afterward as a keepsake. There is no build step, no package manager, and no server code in this repo — every page is a single self-contained `.html` file (inline `<style>` + inline `<script>`, no bundler, no framework) deployed directly to GitHub Pages. Committing to `main` ships to production. The one shared file is `shared.js` (just the `GS_URL` backend-endpoint constant, loaded via `<script src="shared.js">` by `ask.html`/`review.html`/`story.html`) — kept separate so a redeployed Apps Script only needs one file updated instead of three; see "Routing convention" below for how already-issued links stay working even without editing that file.
 
 Persistence and mail/notification logic live outside this repo, in a **Google Apps Script** web app (`.../macros/s/<deployment-id>/exec`) referenced from each page as `GS_URL`. There is no source for that script here — treat it as an external JSON API (`fetch` with `GET ?query=` for reads, `POST` of a JSON envelope for writes, both returning `{ok, ...}`).
 
@@ -35,7 +35,7 @@ Each of `ask.html`/`review.html` caches the fetched config/script in `localStora
 
 ## Editing conventions actually in use
 
-- Everything is minified-by-hand inline CSS/JS in the `<head>`/`<body>` — match the existing terse style (no semicolons-as-style-choice debates, no reformatting passes) rather than introducing a build step or splitting into separate files.
+- Everything is minified-by-hand inline CSS/JS in the `<head>`/`<body>` — match the existing terse style (no semicolons-as-style-choice debates, no reformatting passes) rather than introducing a build step or splitting into separate files. `shared.js` is the sole deliberate exception (see above); don't extract further shared code without a similar concrete justification.
 - Korean-language, guest-facing copy is the product; when changing copy, preserve tone (formal-polite, warm, minimal) and the existing `word-break:keep-all` line-break handling for Korean text.
 - All dynamic HTML is built via template literals through a local `esc()` helper (`&<>"'` escaping) — always run user-supplied or backend-supplied strings through `esc()` before interpolating into `innerHTML`, matching the existing pattern in every page.
 - `og:image` / Open Graph tags are hand-maintained per page for KakaoTalk link previews (see `README.txt` for the KakaoTalk cache-busting caveat: it ignores everything after `#` in previews, so preview copy must stay generic/shared rather than personalized).

@@ -55,8 +55,8 @@
 </style>
 </head>
 <body><div class="prog"><i id="progBar"></i></div><main class="wrap" id="app"></main><div class="bottom" id="bottom" hidden><div class="in"><div class="count" id="count"></div><button class="send" id="send">의견 보내기</button></div></div>
+<script src="shared.js"></script>
 <script>
-const GS_URL='https://script.google.com/macros/s/AKfycbyULnOlwGCrwEjeqgocZhZjh8pMazeaEvl8H78vd7RV61aX9HKq0a6tS_0KWZcf7Ufjhg/exec';
 const $=(s,r=document)=>r.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function scriptHTML(t){return esc(t).replace(/\(([^)]*)\)/g,'<span class="stage">($1)</span>').replace(/\s\/\s/g,'<span class="brk"></span>').replace(/『([^』]*)』/g,'<b>$1</b>');}
 let DOC=null,ANS={name:'',free:'',notes:{}};let VIEW='card',IDX=0;

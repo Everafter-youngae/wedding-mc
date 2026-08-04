@@ -37,8 +37,8 @@ button,.btn{display:block;width:100%;border:1px solid var(--wine);background:var
 </style>
 </head>
 <body><main class="wrap" id="app"></main>
+<script src="shared.js"></script>
 <script>
-const GS_URL='https://script.google.com/macros/s/AKfycbyULnOlwGCrwEjeqgocZhZjh8pMazeaEvl8H78vd7RV61aX9HKq0a6tS_0KWZcf7Ufjhg/exec';
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LABELS=['처음 인사를 나누었어요','두 분의 이야기를 들었어요','첫 번째 대본을 보내드렸어요','이야기를 함께 다듬어요','마지막 문장을 준비해요','오래 기억될 그날을 기다려요','오늘의 기억을 남겨요'];
