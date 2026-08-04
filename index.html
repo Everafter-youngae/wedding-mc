@@ -284,7 +284,22 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   body.hide-pgm .pgm{display:none}
   body.hide-head .sheet-head{display:none}
 }
+.lockscreen{position:fixed;inset:0;z-index:200;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:20px}
+.lockscreen .box{width:100%;max-width:340px;text-align:center}
+.lockscreen .brand{justify-content:center;margin-bottom:26px}
+.lockscreen input{width:100%;border:1px solid var(--line);border-radius:8px;padding:13px 14px;font-size:16px;background:#fff;text-align:center;letter-spacing:.1em}
+.lockscreen input:focus{border-color:var(--wine);outline:none}
+.lockscreen .btn{width:100%;margin-top:10px}
+.lockscreen .err{color:var(--wine);font-size:13px;margin-top:10px;min-height:16px}
+.lockscreen .hint{color:var(--ink3);font-size:12px;margin-top:18px;line-height:1.6}
 </style>
+
+<div class="lockscreen" id="lockScreen" hidden>
+  <div class="box">
+    <div class="brand"><b>사회자 대본 빌더</b><span>WEDDING MC</span></div>
+    <div id="lockBody"></div>
+  </div>
+</div>
 
 <div class="topbar">
   <div class="brand"><b>사회자 대본 빌더</b><span>WEDDING MC</span></div>
@@ -309,6 +324,7 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
     <button class="btn ghost" id="btnCopy">텍스트 복사</button>
     <button class="btn" id="btnPrint">PDF 만들기</button>
     <button class="btn primary" id="btnStage">무대 모드</button>
+    <button class="btn quiet" id="btnLock" title="자리를 비울 때 눌러 잠그세요">잠금</button>
   </div>
   <span id="saveStat" style="font-size:12px;color:var(--ink3);margin-left:auto;line-height:1.35;text-align:right"></span>
 </div>
@@ -1351,6 +1367,11 @@ function smRender(){
   document.getElementById('smNext').textContent = smIdx===l.length-1?'끝':'다음 →';
 }
 document.getElementById('btnStage').onclick=()=>{ smIdx=0; document.getElementById('stage').classList.add('on'); smRender(); };
+document.getElementById('btnLock').onclick=()=>{
+  localStorage.removeItem(AUTH_UNTIL_KEY);
+  document.getElementById('lockScreen').hidden=false;
+  lockBody('login');
+};
 document.getElementById('smClose').onclick=()=>document.getElementById('stage').classList.remove('on');
 document.getElementById('smPrev').onclick=()=>{ smIdx--; smRender(); };
 document.getElementById('smNext').onclick=()=>{ if(smIdx===smList().length-1){ document.getElementById('stage').classList.remove('on'); return;} smIdx++; smRender(); };
@@ -1859,5 +1880,64 @@ document.getElementById('btnInbox').onclick=async()=>{
   }
 };
 
-load();
+/* =========================================================
+   11. 운영자 인증 (이 브라우저 안에서만 유효)
+   ---------------------------------------------------------
+   정적 사이트라 완전한 보안은 아닙니다 — 소스를 볼 수 있는 사람은
+   우회할 수 있지만, 링크만 아는 사람이나 같은 컴퓨터를 쓰는 다른
+   사람이 예식 정보를 무심코 열어보는 것은 막아줍니다.
+   ========================================================= */
+const AUTH_KEY='mc-auth-hash', AUTH_UNTIL_KEY='mc-auth-until', AUTH_TTL=12*3600*1000;
+async function sha256Hex(s){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function authValid(){ return Date.now()<Number(localStorage.getItem(AUTH_UNTIL_KEY)||0); }
+function unlock(){ document.getElementById('lockScreen').hidden=true; load(); }
+function lockBody(mode,msg){
+  const el=document.getElementById('lockBody');
+  const setup=mode==='setup';
+  el.innerHTML=`
+    <p style="color:var(--ink2);font-size:14px;margin:0 0 16px">${setup?'처음 사용하시는군요. 이 브라우저에서 쓸 번호를 정해 주세요.':'번호를 입력해 주세요.'}</p>
+    <input type="password" id="lockPw" inputmode="numeric" placeholder="${setup?'새 번호 (4자리 이상)':'번호'}" autocomplete="off">
+    ${setup?'<input type="password" id="lockPw2" placeholder="번호 확인" autocomplete="off" style="margin-top:8px">':''}
+    <button class="btn primary" id="lockGo">${setup?'설정하고 시작하기':'확인'}</button>
+    <div class="err" id="lockErr">${msg?esc(msg):''}</div>
+    ${setup?'':'<a href="#" id="lockForgot" style="font-size:12px;color:var(--ink3)">번호를 잊으셨나요? 번호만 초기화</a>'}
+    <div class="hint">같은 컴퓨터를 쓰는 다른 사람이 예식 정보를 함부로 열어보지 못하도록 막는 화면입니다.<br>번호는 이 브라우저에만 저장되며, 저장된 예식 자료와는 별개입니다.</div>`;
+  const go=async()=>{
+    const pw=document.getElementById('lockPw').value;
+    if(setup){
+      const pw2=document.getElementById('lockPw2').value;
+      if(!pw||pw.length<4){ lockBody('setup','4자리 이상으로 정해 주세요.'); return; }
+      if(pw!==pw2){ lockBody('setup','두 번 입력한 번호가 서로 다릅니다.'); return; }
+      localStorage.setItem(AUTH_KEY,await sha256Hex(pw));
+      localStorage.setItem(AUTH_UNTIL_KEY,String(Date.now()+AUTH_TTL));
+      unlock();
+    }else{
+      const hash=await sha256Hex(pw);
+      if(hash===localStorage.getItem(AUTH_KEY)){
+        localStorage.setItem(AUTH_UNTIL_KEY,String(Date.now()+AUTH_TTL));
+        unlock();
+      }else{ lockBody('login','번호가 맞지 않습니다.'); }
+    }
+  };
+  document.getElementById('lockGo').onclick=go;
+  el.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+  const forgot=document.getElementById('lockForgot');
+  if(forgot) forgot.onclick=e=>{
+    e.preventDefault();
+    if(!confirm('번호를 초기화할까요?\n저장된 예식 자료는 그대로 남고, 번호만 새로 설정하게 됩니다.')) return;
+    localStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_UNTIL_KEY);
+    lockBody('setup');
+  };
+  const first=document.getElementById('lockPw'); if(first) first.focus();
+}
+function initAuth(){
+  if(authValid()){ load(); return; }
+  document.getElementById('lockScreen').hidden=false;
+  lockBody(localStorage.getItem(AUTH_KEY)?'login':'setup');
+}
+
+initAuth();
 </script>
