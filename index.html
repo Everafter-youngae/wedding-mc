@@ -1735,6 +1735,7 @@ async function fetchResponses(){
   const mine=await get('id='+encodeURIComponent(cur().id));
   if(mine.length) return {items:mine,wide:false};
   const all=(await get('all=1')).filter(x=>x&&(x.secs||x.notes));
+  all.sort((a,b)=>new Date(b.ts||0)-new Date(a.ts||0));
   return {items:all,wide:true};
 }
 
@@ -1848,10 +1849,11 @@ function renderInbox(items,idx,wide){
     :'<div class="pv-note">이 응답과 지금 대본이 모두 일치합니다. 반영할 것이 없습니다.</div>';
   openModal('받은 응답',
     `${items.length>1?`<div class="f"><label>응답 ${items.length}건</label>
+      ${WIDE?`<input type="text" id="iSearch" placeholder="이름으로 찾기" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;margin-bottom:8px">`:''}
       <select id="iSel" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px">
       ${items.map((r,i)=>`<option value="${i}" ${i===(idx||0)?'selected':''}>${r.type==='review'?'[대본검토'+(r.round?' '+r.round:'')+'] ':'[사전응답] '}${esc(r.name||'이름 없음')} · ${new Date(r.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</option>`).join('')}
       </select></div>`:''}
-     ${WIDE?`<div class="pv-note" style="margin-bottom:10px;color:var(--wine)">이 예식으로 온 응답이 없어 <b>시트에 있는 모든 응답</b>을 보여드립니다. 아래에서 맞는 응답을 고르세요.</div>`:''}
+     ${WIDE?`<div class="pv-note" style="margin-bottom:10px;color:var(--wine)">이 예식으로 표시된 응답이 없어 <b>시트에 있는 모든 예식의 응답</b>을 최신순으로 보여드립니다.<br>대부분 방금 받은 응답이 맨 위에 있으니 이름으로 찾아 맞는 것을 골라주세요.<br>이 화면이 자주 뜬다면 예식을 <b>복제</b>했거나 응답 링크를 다시 만들며 예식 ID가 바뀌었을 수 있습니다.</div>`:''}
      ${res.type==='review'?(()=>{
         const ns=Object.values(res.notes||{});
         const ok=ns.filter(x=>x.v==='ok').length, fx=ns.filter(x=>x.v==='fix').length;
@@ -1866,6 +1868,11 @@ function renderInbox(items,idx,wide){
     `<button class="btn" id="iClose">닫기</button>
      ${DIFF.length?`<button class="btn primary" id="iApply">선택한 항목 반영</button>`:''}`);
   const sel=document.getElementById('iSel'); if(sel) sel.onchange=e=>renderInbox(items,+e.target.value);
+  const srch=document.getElementById('iSearch');
+  if(srch) srch.oninput=()=>{
+    const q=srch.value.trim();
+    document.querySelectorAll('#iSel option').forEach(o=>{ o.style.display=(!q||o.textContent.indexOf(q)>-1)?'':'none'; });
+  };
   document.getElementById('iClose').onclick=closeModal;
   const ap=document.getElementById('iApply');
   if(ap) ap.onclick=()=>{
