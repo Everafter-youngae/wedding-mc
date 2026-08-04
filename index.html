@@ -31,6 +31,18 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--wine);outline-offset:2px}
 
+/* ---------- 저장 실패 배너 ---------- */
+.savebar{
+  background:var(--wine);color:#fff;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 16px;font-size:14px;line-height:1.5;
+}
+.savebar b{font-weight:700}
+.savebar button{
+  border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.14);color:#fff;
+  border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;min-height:36px;margin-left:auto;white-space:nowrap;
+}
+.savebar button:hover{background:rgba(255,255,255,.24)}
+
 /* ---------- top bar ---------- */
 .topbar{
   position:sticky;top:0;z-index:40;background:var(--card);
@@ -300,6 +312,7 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   </div>
   <span id="saveStat" style="font-size:12px;color:var(--ink3);margin-left:auto;line-height:1.35;text-align:right"></span>
 </div>
+<div class="savebar" id="saveBar" hidden></div>
 
 <div class="modal" id="modal">
   <div class="box">
@@ -709,6 +722,14 @@ function setStatus(s){
   el.style.padding=bad?'6px 10px':'0';
   el.style.borderRadius='6px';
   el.style.fontWeight=bad?'500':'400';
+  const bar=document.getElementById('saveBar');
+  if(!bar) return;
+  bar.hidden=!bad;
+  if(bad){
+    bar.innerHTML=`<span>⚠ <b>${s==='off'?'이 브라우저에서는 자동 저장이 되지 않습니다.':'방금 바뀐 내용이 저장되지 않고 있습니다.'}</b> 지금 바로 백업 파일로 내려받아 두세요.</span><button id="saveBarBackup">지금 백업 파일 저장</button>`;
+    const b=document.getElementById('saveBarBackup');
+    if(b) b.onclick=exportAllJson;
+  }
 }
 
 function save(){
