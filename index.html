@@ -760,15 +760,16 @@ async function load(){
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
+  maybeNudgeBackup();
 }
 
 function set(k,v){ const w=cur(); w[k]=v; save(); renderAll(); }
 function setSec(key,k,v){ const w=cur(); w.sections[key][k]=v; save(); renderAll(); }
 
-function toast(msg){
+function toast(msg,ms){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('on');
-  setTimeout(()=>t.classList.remove('on'),1900);
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),ms||1900);
 }
 
 
@@ -936,9 +937,14 @@ ${secGroups}
   <div class="hint">고객 화면과 Everafter 편지에 사용됩니다. 비워두면 기본 문장이 들어갑니다.</div>
 </div></details>
 
-<details class="group" id="g-export" ${op('g-export')}><summary>내보내기</summary><div class="gbody">
-  <button class="btn" id="btnJson" style="width:100%;margin-bottom:8px">이 대본 백업 파일 저장 (.json)</button>
-  <label class="btn" style="width:100%;display:block;text-align:center">백업 파일 불러오기
+<details class="group" id="g-export" ${op('g-export')}><summary>백업 · 내보내기</summary><div class="gbody">
+  <div class="hint" style="margin-bottom:10px">${lastFullBackupHint()}</div>
+  <button class="btn primary" id="btnJsonAll" style="width:100%;margin-bottom:8px">전체 예식 백업 파일 저장 (.json) · 지금 ${DB.list.length}건</button>
+  <label class="btn" style="width:100%;display:block;text-align:center">전체 백업 파일 불러오기 (복구)
+    <input type="file" id="fileJsonAll" accept="application/json" hidden></label>
+  <div class="hint" style="border-top:1px solid var(--line2);padding-top:14px;margin-top:16px">브라우저가 지워지거나 기기를 바꾸면 위 전체 백업 파일로 되살릴 수 있습니다. 이 예식 하나만 다른 곳으로 옮길 때는 아래를 쓰세요.</div>
+  <button class="btn" id="btnJson" style="width:100%;margin:10px 0 8px">이 대본만 백업 파일 저장 (.json)</button>
+  <label class="btn" style="width:100%;display:block;text-align:center">이 대본만 백업 파일 불러오기
     <input type="file" id="fileJson" accept="application/json" hidden></label>
 </div></details>`;
 
@@ -1061,9 +1067,11 @@ document.getElementById('form').addEventListener('click',e=>{
   const j=e.target.closest('[data-jump]');
   if(j){ jumpTo(j.dataset.jump); }
   if(e.target.id==='btnJson') exportJson();
+  if(e.target.id==='btnJsonAll') exportAllJson();
 });
 document.getElementById('form').addEventListener('change',e=>{
   if(e.target.id==='fileJson') importJson(e.target.files[0]);
+  if(e.target.id==='fileJsonAll') importAllJson(e.target.files[0]);
 });
 
 document.getElementById('preview').addEventListener('click',e=>{
@@ -1199,6 +1207,61 @@ function importJson(f){
       DB.list.push(w); DB.cur=w.id; save(); renderAll(); toast('불러왔습니다.');
     }catch(e){ toast('파일을 읽지 못했습니다. 이 앱에서 저장한 .json 파일인지 확인해 주세요.'); } };
   r.readAsText(f);
+}
+
+/* ---------- 전체 예식 백업 / 복구 ---------- */
+function isBlankWedding(w){
+  return !w.bride && !w.groom && !w.date && !(w.steps && Object.keys(w.steps).length);
+}
+function lastFullBackupHint(){
+  let iso=null; try{ iso=localStorage.getItem('mc-last-full-backup'); }catch(e){}
+  if(!iso) return '<span style="color:var(--wine)">⚠ 아직 전체 백업을 받은 적이 없습니다. 브라우저 데이터가 지워지면 모든 예식을 한 번에 잃을 수 있습니다.</span>';
+  const days=Math.floor((Date.now()-new Date(iso).getTime())/86400000);
+  const when=new Date(iso).toLocaleDateString('ko-KR',{month:'long',day:'numeric'});
+  return days>=7
+    ? `<span style="color:var(--wine)">⚠ 마지막 전체 백업 · ${when} (${days}일 전). 정기적으로 새로 받아두세요.</span>`
+    : `마지막 전체 백업 · ${when}`;
+}
+function exportAllJson(){
+  const payload={version:1,exportedAt:new Date().toISOString(),db:DB};
+  const b=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`everafter-전체백업-${new Date().toISOString().slice(0,10)}.json`; a.click();
+  try{ localStorage.setItem('mc-last-full-backup',new Date().toISOString()); }catch(e){}
+  toast(`전체 예식 ${DB.list.length}건을 백업했습니다.`);
+  renderForm();
+}
+function importAllJson(f){
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const parsed=JSON.parse(r.result);
+      const incoming=(parsed&&parsed.db&&Array.isArray(parsed.db.list))?parsed.db:parsed;
+      if(!incoming||!Array.isArray(incoming.list)||!incoming.list.length) throw new Error('empty');
+      if(DB.list.length===1&&isBlankWedding(DB.list[0])){ DB.list=[]; DB.cur=null; }
+      let added=0, skipped=0;
+      incoming.list.forEach(w=>{
+        if(!w||!w.id){ skipped++; return; }
+        if(DB.list.some(x=>x.id===w.id)){ skipped++; return; }
+        w.sections=w.sections||{};
+        SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; });
+        DB.list.push(w); added++;
+      });
+      if(incoming.conn && !DB.conn) DB.conn=incoming.conn;
+      if(!cur()) DB.cur=DB.list.length?DB.list[0].id:null;
+      if(!DB.list.length){ const w=blank(); DB.list=[w]; DB.cur=w.id; }
+      save(); renderAll();
+      toast(`${added}건을 불러왔습니다.${skipped?` (이미 있거나 형식이 다른 ${skipped}건은 건너뜀)`:''}`);
+    }catch(e){ toast('파일을 읽지 못했습니다. 전체 백업 파일(.json)인지 확인해 주세요.'); }
+  };
+  r.readAsText(f);
+}
+function maybeNudgeBackup(){
+  let iso=null; try{ iso=localStorage.getItem('mc-last-full-backup'); }catch(e){}
+  const days=iso?Math.floor((Date.now()-new Date(iso).getTime())/86400000):Infinity;
+  if(days<7) return;
+  setTimeout(()=>toast(iso?`전체 백업한 지 ${days}일 지났습니다 · "백업 · 내보내기"에서 새로 받아두세요.`:'전체 백업을 받은 적이 없습니다 · "백업 · 내보내기"에서 지금 받아두세요.',4200),1200);
 }
 
 /* =========================================================
