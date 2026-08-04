@@ -1,0 +1,42 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+A static site ("Everafter") that a wedding MC (사회자) uses to build a wedding-ceremony script/run-of-show together with the bride and groom, then archive the day afterward as a keepsake. There is no build step, no package manager, and no server code in this repo — every page is a single self-contained `.html` file (inline `<style>` + inline `<script>`, no bundler, no framework) deployed directly to GitHub Pages. Committing to `main` ships to production.
+
+Persistence and mail/notification logic live outside this repo, in a **Google Apps Script** web app (`.../macros/s/<deployment-id>/exec`) referenced from each page as `GS_URL`. There is no source for that script here — treat it as an external JSON API (`fetch` with `GET ?query=` for reads, `POST` of a JSON envelope for writes, both returning `{ok, ...}`).
+
+## Commands
+
+There is no build/lint/test tooling. To work on a page, open the `.html` file directly in a browser (or serve the directory with any static file server, e.g. `python3 -m http.server`) and drive it through `location.hash`/query params as described below — most pages render nothing without a valid hash.
+
+## Pages and how they fit together
+
+- **`index.html`** — "사회자 대본 빌더" (MC script builder). This is the admin tool the MC uses; it is the source of truth for a wedding's data (`DB.list`, one `w` object per wedding, keyed by `id`, autosaved to `localStorage` under `mc-weddings-v1` and mirrored to the Apps Script backend). It generates ceremony script text from `SEC_DEFS` templates, builds the shareable links below (encoding wedding id + optional Apps Script deployment id into a URL hash), and reads back guest/couple responses (inbox/diff view).
+- **`ask.html`** — sent to the couple early on. A step-by-step questionnaire (`STORY` questions about the couple + `SECS` run-of-show items to include/exclude/customize) that POSTs answers back to the Apps Script backend for the MC to pull into `index.html`.
+- **`review.html`** (and legacy prototype **`review_1.html`**, kept for reference/rollback, not linked from anywhere) — sent once a script draft exists. Shows the generated script section by section, lets the couple mark each "이대로 좋아요" (keep) or "고치고 싶어요" (fix, with a note), and submits back to the backend.
+- **`story.html`** — the long-lived "our story" / journey tracker the couple can revisit; shows a status timeline (`LABELS`/`state()`), and after the ceremony (`steps.s8`) unlocks a form for the couple to leave a memory/reply, archived as an "Everafter Letter". `journey.html` is only a redirect stub to `story.html` preserving old links (hash/query passthrough) — do not add new logic there.
+
+## Routing convention shared by all guest-facing pages
+
+Every guest-facing page (`ask`, `review`, `story`) is a single-page app driven entirely by `location.hash`, of the form:
+
+```
+#<record-id>[~<apps-script-deployment-id>]
+```
+
+- `<record-id>` selects the wedding/journey/script record via a query param to the Apps Script backend (e.g. `?cfg=`, `?script=`, `?story=`).
+- The optional `~<deployment-id>` suffix overrides the hardcoded `GS_URL` constant — used so old shared links keep working even after the Apps Script is redeployed under a new id (see `gsId()`/`hashInfo()`/`routeFromHash()` in each file). When absent, the page falls back to its own `GS_URL` constant.
+- `story.html` additionally supports a bare Korean name-lookup flow (`#영애xxxx_xx`, normalized via `normalize()`) when no direct id is known.
+
+Each of `ask.html`/`review.html` caches the fetched config/script in `localStorage` (keys like `mc-cfg-<id>`, draft answers under `mc-ask-<id>` / `ea-review-<id>`) so a guest can close the tab mid-way and resume, and so the page still renders (from cache) if the network fetch fails. Preserve this cache-first, resume-safe pattern when touching these flows — these are non-technical wedding guests filling this out on their phones, often in poor connectivity, and losing their draft is the main failure mode to avoid.
+
+## Editing conventions actually in use
+
+- Everything is minified-by-hand inline CSS/JS in the `<head>`/`<body>` — match the existing terse style (no semicolons-as-style-choice debates, no reformatting passes) rather than introducing a build step or splitting into separate files.
+- Korean-language, guest-facing copy is the product; when changing copy, preserve tone (formal-polite, warm, minimal) and the existing `word-break:keep-all` line-break handling for Korean text.
+- All dynamic HTML is built via template literals through a local `esc()` helper (`&<>"'` escaping) — always run user-supplied or backend-supplied strings through `esc()` before interpolating into `innerHTML`, matching the existing pattern in every page.
+- `og:image` / Open Graph tags are hand-maintained per page for KakaoTalk link previews (see `README.txt` for the KakaoTalk cache-busting caveat: it ignores everything after `#` in previews, so preview copy must stay generic/shared rather than personalized).
+- Section/question schemas (`SEC_DEFS` in `index.html`, `STORY`/`SECS` in `ask.html`, section rendering in `review.html`) are hand-kept in sync by key (e.g. `preshow`, `candle`, `groom`, `speech`, `song`, `march`...) across files — if you add/rename a section key in one file, check whether the same key is read or written in the others before assuming it's isolated.
