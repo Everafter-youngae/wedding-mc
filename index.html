@@ -282,7 +282,8 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
     <button class="btn" id="btnNew">새 예식</button>
     <button class="btn ghost" id="btnDup">복제</button>
     <button class="btn" id="btnCloud" title="구글 시트에 저장된 대본 불러오기">시트에서 불러오기</button>
-    <button class="btn quiet" id="btnDel" title="이 예식 삭제">삭제</button>
+    <button class="btn quiet" id="btnDel" title="휴지통으로 이동합니다 · 30일 안에 복구할 수 있어요">삭제</button>
+    <button class="btn quiet" id="btnTrash" title="삭제한 예식 보기">휴지통<span id="trashDot" style="margin-left:3px;color:var(--wine)"></span></button>
   </div>
   <div class="tb-div"></div>
   <div class="tb-group">
@@ -754,7 +755,9 @@ async function load(){
     catch(e2){ storageOK=false; }
   }
   if(!DB.list||!DB.list.length){ const w=blank(); DB={list:[w],cur:w.id}; }
-  if(!cur()) DB.cur=DB.list[0].id;
+  purgeOldTrash();
+  if(!DB.list.some(w=>!w.deletedAt)){ const w=blank(); DB.list.push(w); DB.cur=w.id; }
+  if(!cur()||cur().deletedAt) DB.cur=DB.list.find(w=>!w.deletedAt).id;
   DB.print=Object.assign({mode:'read',pt:15,pageBreak:true,program:true,cover:true,orient:'landscape',cols:false},DB.print||{});
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
@@ -1040,7 +1043,10 @@ function renderPreview(){
 
 function renderTop(){
   const sel=document.getElementById('fileSel');
-  sel.innerHTML=DB.list.map(w=>`<option value="${w.id}" ${w.id===DB.cur?'selected':''}>${esc(titleOf(w))}</option>`).join('');
+  const active=DB.list.filter(w=>!w.deletedAt);
+  sel.innerHTML=active.map(w=>`<option value="${w.id}" ${w.id===DB.cur?'selected':''}>${esc(titleOf(w))}</option>`).join('');
+  const dot=document.getElementById('trashDot');
+  if(dot){ const n=DB.list.length-active.length; dot.textContent=n?`(${n})`:''; }
 }
 function renderAll(){ renderTop(); renderForm(); renderPreview(); if(DB.print) applyPrintClass(); }
 
@@ -1097,9 +1103,51 @@ document.getElementById('btnDup').onclick=()=>{
   DB.list.push(w); DB.cur=w.id; save(); renderAll(); toast('복제했습니다. 이름과 날짜를 바꿔 주세요.');
 };
 document.getElementById('btnDel').onclick=()=>{
-  if(DB.list.length===1){ toast('마지막 하나는 삭제할 수 없습니다.'); return; }
-  if(!confirm(`"${titleOf(cur())}" 대본을 삭제할까요? 되돌릴 수 없습니다.`)) return;
-  DB.list=DB.list.filter(x=>x.id!==DB.cur); DB.cur=DB.list[0].id; save(); renderAll(); toast('삭제했습니다.');
+  const w=cur();
+  if(!confirm(`"${titleOf(w)}" 예식을 휴지통으로 옮길까요?\n30일 안에는 휴지통에서 복구할 수 있습니다.`)) return;
+  w.deletedAt=new Date().toISOString();
+  const remain=DB.list.filter(x=>!x.deletedAt);
+  if(remain.length) DB.cur=remain[0].id;
+  else { const nw=blank(); DB.list.push(nw); DB.cur=nw.id; }
+  save(); renderAll(); toast('휴지통으로 옮겼습니다.');
+};
+/* ---------- 휴지통 ---------- */
+function purgeOldTrash(){
+  const cutoff=Date.now()-30*86400000;
+  const before=DB.list.length;
+  DB.list=DB.list.filter(w=>!w.deletedAt||new Date(w.deletedAt).getTime()>cutoff);
+  return before-DB.list.length;
+}
+document.getElementById('btnTrash').onclick=()=>{
+  const draw=()=>{
+    const items=DB.list.filter(w=>w.deletedAt).sort((a,b)=>new Date(b.deletedAt)-new Date(a.deletedAt));
+    if(!items.length){
+      openModal('휴지통','<div class="pv-note">휴지통이 비어 있습니다.</div>',`<button class="btn primary" id="tClose">닫기</button>`);
+      document.getElementById('tClose').onclick=closeModal; return;
+    }
+    openModal('휴지통',
+      `<div class="pv-note" style="margin-bottom:14px">삭제한 지 30일이 지나면 자동으로 완전히 삭제됩니다.</div>
+       ${items.map(w=>{
+         const days=Math.floor((Date.now()-new Date(w.deletedAt).getTime())/86400000);
+         return `<div class="opt"><span class="lbl">${esc(titleOf(w))}
+           <span class="sub">${days<1?'오늘':days+'일 전'} 삭제 · ${Math.max(0,30-days)}일 후 자동 삭제</span></span>
+           <button class="btn" data-restore="${w.id}">복구</button>
+           <button class="btn quiet" data-purge="${w.id}">완전 삭제</button></div>`;
+       }).join('')}`,
+      `<button class="btn primary" id="tClose">닫기</button>`);
+    document.getElementById('tClose').onclick=closeModal;
+    document.querySelectorAll('[data-restore]').forEach(b=>b.onclick=()=>{
+      const w=DB.list.find(x=>x.id===b.dataset.restore);
+      if(w){ delete w.deletedAt; DB.cur=w.id; }
+      save(); renderAll(); closeModal(); toast('복구했습니다.');
+    });
+    document.querySelectorAll('[data-purge]').forEach(b=>b.onclick=()=>{
+      const w=DB.list.find(x=>x.id===b.dataset.purge); if(!w) return;
+      if(!confirm(`"${titleOf(w)}"를 완전히 삭제할까요? 되돌릴 수 없습니다.`)) return;
+      DB.list=DB.list.filter(x=>x.id!==w.id); save(); renderTop(); draw();
+    });
+  };
+  draw();
 };
 /* ---------- 공용 모달 ---------- */
 const $m=document.getElementById('modal');
