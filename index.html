@@ -284,7 +284,8 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   body.hide-pgm .pgm{display:none}
   body.hide-head .sheet-head{display:none}
 }
-.lockscreen{position:fixed;inset:0;z-index:200;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:20px}
+.lockscreen{position:fixed;inset:0;z-index:200;background:var(--paper);padding:20px}
+.lockscreen:not([hidden]){display:flex;align-items:center;justify-content:center}
 .lockscreen .box{width:100%;max-width:340px;text-align:center}
 .lockscreen .brand{justify-content:center;margin-bottom:26px}
 .lockscreen input{width:100%;border:1px solid var(--line);border-radius:8px;padding:13px 14px;font-size:16px;background:#fff;text-align:center;letter-spacing:.1em}
