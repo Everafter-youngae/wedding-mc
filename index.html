@@ -208,6 +208,8 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .sm-prog i{display:block;height:100%;background:var(--gold);transition:width .2s}
 
 /* ---------- responsive ---------- */
+.mob-more-btn{display:none}
+.mob-tabs{display:none}
 @media (max-width:960px){
   .wrap{grid-template-columns:1fr}
   .pane-l{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}
@@ -218,6 +220,23 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   .blk .cue .ttl{margin-top:0}
   .blk .body{padding:12px 20px 22px}
   .sm-body .inner{font-size:22px}
+
+  /* 상단바: 자주 쓰는 것만 노출, 나머지는 더보기(⋮)로 */
+  .topbar{padding:10px 12px;gap:6px}
+  .brand{display:none}
+  .tb-div{display:none}
+  .tb-group{flex-basis:100%;flex-wrap:wrap}
+  .mob-more{display:none}
+  .mob-more-btn{display:inline-flex;margin-left:auto}
+  #fileSel{flex:1;min-width:0}
+  .tb-group #btnLink,.tb-group #btnSend,.tb-group #btnInbox{flex:1;padding-left:8px;padding-right:8px}
+
+  /* 본문: 입력 폼 / 대본 미리보기 탭 전환 */
+  .mob-tabs{display:flex;gap:8px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+  .mob-tabs button{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:10px;font-size:14px;font-weight:700;color:var(--ink2);min-height:40px}
+  .mob-tabs button.on{background:var(--wine);border-color:var(--wine);color:#fff}
+  .wrap.tab-form .pane-r{display:none}
+  .wrap.tab-preview .pane-l{display:none}
 }
 
 /* ---------- 모달 ---------- */
@@ -307,29 +326,34 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   <div class="tb-div"></div>
   <div class="tb-group">
     <select class="sel" id="fileSel" title="저장된 예식"></select>
-    <button class="btn" id="btnNew">새 예식</button>
-    <button class="btn ghost" id="btnDup">복제</button>
-    <button class="btn" id="btnCloud" title="구글 시트에 저장된 대본 불러오기">시트에서 불러오기</button>
-    <button class="btn quiet" id="btnDel" title="휴지통으로 이동합니다 · 30일 안에 복구할 수 있어요">삭제</button>
-    <button class="btn quiet" id="btnTrash" title="삭제한 예식 보기">휴지통<span id="trashDot" style="margin-left:3px;color:var(--wine)"></span></button>
+    <button class="btn mob-more" id="btnNew">새 예식</button>
+    <button class="btn ghost mob-more" id="btnDup">복제</button>
+    <button class="btn mob-more" id="btnCloud" title="구글 시트에 저장된 대본 불러오기">시트에서 불러오기</button>
+    <button class="btn quiet mob-more" id="btnDel" title="휴지통으로 이동합니다 · 30일 안에 복구할 수 있어요">삭제</button>
+    <button class="btn quiet mob-more" id="btnTrash" title="삭제한 예식 보기">휴지통<span id="trashDot" style="margin-left:3px;color:var(--wine)"></span></button>
+    <button class="btn quiet mob-more-btn" id="btnMore" title="더보기">⋮</button>
   </div>
   <div class="tb-div"></div>
   <div class="tb-group">
     <button class="btn" id="btnLink">응답 링크</button>
     <button class="btn" id="btnSend">대본 보내기</button>
     <button class="btn" id="btnInbox">응답 확인<span id="inboxDot" style="display:none;margin-left:5px;color:var(--wine)">●</span></button>
-    <button class="btn" id="btnJourney">두 분의 이야기</button>
+    <button class="btn mob-more" id="btnJourney">두 분의 이야기</button>
   </div>
   <div class="tb-div"></div>
   <div class="tb-group">
-    <button class="btn ghost" id="btnCopy">텍스트 복사</button>
-    <button class="btn" id="btnPrint">PDF 만들기</button>
-    <button class="btn primary" id="btnStage">무대 모드</button>
-    <button class="btn quiet" id="btnLock" title="자리를 비울 때 눌러 잠그세요">잠금</button>
+    <button class="btn ghost mob-more" id="btnCopy">텍스트 복사</button>
+    <button class="btn mob-more" id="btnPrint">PDF 만들기</button>
+    <button class="btn primary mob-more" id="btnStage">무대 모드</button>
+    <button class="btn quiet mob-more" id="btnLock" title="자리를 비울 때 눌러 잠그세요">잠금</button>
   </div>
   <span id="saveStat" style="font-size:12px;color:var(--ink3);margin-left:auto;line-height:1.35;text-align:right"></span>
 </div>
 <div class="savebar" id="saveBar" hidden></div>
+<div class="mob-tabs" id="mobTabs">
+  <button class="on" data-mtab="form">입력</button>
+  <button data-mtab="preview">대본</button>
+</div>
 
 <div class="modal" id="modal">
   <div class="box">
@@ -339,7 +363,7 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   </div>
 </div>
 
-<div class="wrap">
+<div class="wrap tab-form">
   <aside class="pane-l" id="form"></aside>
   <main class="pane-r"><div id="preview"></div></main>
 </div>
@@ -1373,6 +1397,29 @@ document.getElementById('btnLock').onclick=()=>{
   document.getElementById('lockScreen').hidden=false;
   lockBody('login');
 };
+/* ---------- 모바일: 더보기 메뉴 · 입력/대본 탭 ---------- */
+document.getElementById('btnMore').onclick=()=>{
+  const items=[['btnNew','새 예식'],['btnDup','복제'],['btnCloud','시트에서 불러오기'],['btnDel','삭제'],
+    ['btnTrash','휴지통'],['btnJourney','두 분의 이야기'],['btnCopy','텍스트 복사'],['btnPrint','PDF 만들기'],
+    ['btnStage','무대 모드'],['btnLock','잠금']];
+  openModal('더보기',
+    `<div style="display:flex;flex-direction:column;gap:8px">${items.map(([id,label])=>
+      `<button class="btn" data-more="${id}" style="width:100%;text-align:left">${label}</button>`).join('')}</div>`,
+    `<button class="btn" id="moreClose">닫기</button>`);
+  document.getElementById('moreClose').onclick=closeModal;
+  document.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{
+    closeModal();
+    document.getElementById(b.dataset.more).click();
+  });
+};
+document.getElementById('mobTabs').addEventListener('click',e=>{
+  const b=e.target.closest('[data-mtab]'); if(!b) return;
+  document.querySelectorAll('#mobTabs button').forEach(x=>x.classList.toggle('on',x===b));
+  const wrap=document.querySelector('.wrap');
+  wrap.classList.toggle('tab-form',b.dataset.mtab==='form');
+  wrap.classList.toggle('tab-preview',b.dataset.mtab==='preview');
+  window.scrollTo(0,0);
+});
 document.getElementById('smClose').onclick=()=>document.getElementById('stage').classList.remove('on');
 document.getElementById('smPrev').onclick=()=>{ smIdx--; smRender(); };
 document.getElementById('smNext').onclick=()=>{ if(smIdx===smList().length-1){ document.getElementById('stage').classList.remove('on'); return;} smIdx++; smRender(); };
