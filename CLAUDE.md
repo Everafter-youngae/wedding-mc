@@ -33,6 +33,14 @@ Every guest-facing page (`ask`, `review`, `story`) is a single-page app driven e
 
 Each of `ask.html`/`review.html` caches the fetched config/script in `localStorage` (keys like `mc-cfg-<id>`, draft answers under `mc-ask-<id>` / `ea-review-<id>`) so a guest can close the tab mid-way and resume, and so the page still renders (from cache) if the network fetch fails. Preserve this cache-first, resume-safe pattern when touching these flows — these are non-technical wedding guests filling this out on their phones, often in poor connectivity, and losing their draft is the main failure mode to avoid.
 
+## Git workflow
+
+The user has authorized pushing to `main` without asking for confirmation each time — this repo deploys straight to GitHub Pages, and the user wants verified fixes to go live promptly rather than sitting in local commits. Once a change has been tested/verified (see below), `git add` the relevant file(s), commit with a message explaining *why*, and `git push origin main` immediately, without a "should I push?" check-in.
+
+This authorization covers only the normal edit → verify → commit → push loop. It does not extend to destructive or history-rewriting operations (`--force`, `reset --hard`, amending pushed commits, etc.) — those still need explicit confirmation per standard git safety practice.
+
+Before pushing, verify the change actually works — for anything touching `index.html`'s JS/CSS, that means loading it in a real browser (serve with `python3 -m http.server`, or hit the live GitHub Pages URL) and checking behavior via direct DOM/computed-style inspection (`getComputedStyle`, `getBoundingClientRect`, element attributes), not just a visual screenshot — screenshots have been observed to occasionally return stale/cached renders that don't reflect the live DOM in this environment, so treat a suspicious-looking screenshot as inconclusive and cross-check with a JS query before trusting it either way. Reproduce the actual failing scenario (not just a fresh happy-path load) when fixing a reported bug.
+
 ## Editing conventions actually in use
 
 - Everything is minified-by-hand inline CSS/JS in the `<head>`/`<body>` — match the existing terse style (no semicolons-as-style-choice debates, no reformatting passes) rather than introducing a build step or splitting into separate files. `shared.js` is the sole deliberate exception (see above); don't extract further shared code without a similar concrete justification.
