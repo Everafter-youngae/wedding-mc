@@ -1935,17 +1935,14 @@ function lockBody(mode,msg){
   el.innerHTML=`
     <p style="color:var(--ink2);font-size:14px;margin:0 0 16px">${setup?'처음 사용하시는군요. 이 브라우저에서 쓸 번호를 정해 주세요.':'번호를 입력해 주세요.'}</p>
     <input type="password" id="lockPw" inputmode="numeric" placeholder="${setup?'새 번호 (4자리 이상)':'번호'}" autocomplete="off">
-    ${setup?'<input type="password" id="lockPw2" placeholder="번호 확인" autocomplete="off" style="margin-top:8px">':''}
     <button class="btn primary" id="lockGo">${setup?'설정하고 시작하기':'확인'}</button>
     <div class="err" id="lockErr">${msg?esc(msg):''}</div>
     ${setup?'':'<a href="#" id="lockForgot" style="font-size:12px;color:var(--ink3)">번호를 잊으셨나요? 번호만 초기화</a>'}
     <div class="hint">같은 컴퓨터를 쓰는 다른 사람이 예식 정보를 함부로 열어보지 못하도록 막는 화면입니다.<br>번호는 이 브라우저에만 저장되며, 저장된 예식 자료와는 별개입니다.</div>`;
   const go=async()=>{
-    const pw=document.getElementById('lockPw').value;
+    const pw=document.getElementById('lockPw').value.trim();
     if(setup){
-      const pw2=document.getElementById('lockPw2').value;
-      if(!pw||pw.length<4){ lockBody('setup','4자리 이상으로 정해 주세요.'); return; }
-      if(pw!==pw2){ lockBody('setup','두 번 입력한 번호가 서로 다릅니다.'); return; }
+      if(pw.length<4){ lockBody('setup','4자리 이상으로 정해 주세요.'); return; }
       localStorage.setItem(AUTH_KEY,await sha256Hex(pw));
       localStorage.setItem(AUTH_UNTIL_KEY,String(Date.now()+AUTH_TTL));
       unlock();
