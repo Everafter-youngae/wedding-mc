@@ -331,6 +331,7 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
     <button class="btn mob-more" id="btnCloud" title="구글 시트에 저장된 대본 불러오기">시트에서 불러오기</button>
     <button class="btn quiet mob-more" id="btnDel" title="휴지통으로 이동합니다 · 30일 안에 복구할 수 있어요">삭제</button>
     <button class="btn quiet mob-more" id="btnTrash" title="삭제한 예식 보기">휴지통<span id="trashDot" style="margin-left:3px;color:var(--wine)"></span></button>
+    <button class="btn ghost mob-more" id="btnNotes" title="예식을 등록하기 전, 문의 답장·FAQ 등을 모아두는 곳">사전 준비</button>
     <button class="btn quiet mob-more-btn" id="btnMore" title="더보기">⋮</button>
   </div>
   <div class="tb-div"></div>
@@ -387,6 +388,21 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 <div class="toast" id="toast"></div>
 
 <script>
+/* =========================================================
+   0. 예식 등록 전 · 사전 준비 자료 (DB.notes, 예식과 무관하게 하나만 존재)
+   ========================================================= */
+const DEFAULT_DM_REPLY=`안녕하세요, 문의 주셔서 감사합니다 🌷
+결혼식 사회를 맡고 있는 ○○○입니다.
+
+날짜 확인부터 도와드릴게요, 아래 세 가지만 알려주시겠어요?
+
+1) 예식 날짜 · 시간
+2) 예식장 (홀 이름까지)
+3) 두 분 성함 (신랑/신부)
+
+확인되는 대로 진행 가능 여부와 함께
+자세한 안내 (진행 방식, 비용 등) 드리겠습니다 :)`;
+
 /* =========================================================
    1. 데이터 모델
    ========================================================= */
@@ -822,6 +838,7 @@ async function load(){
   if(!DB.list.some(w=>!w.deletedAt)){ const w=blank(); DB.list.push(w); DB.cur=w.id; }
   if(!cur()||cur().deletedAt) DB.cur=DB.list.find(w=>!w.deletedAt).id;
   DB.print=Object.assign({mode:'read',pt:15,pageBreak:true,program:true,cover:true,orient:'landscape',cols:false},DB.print||{});
+  DB.notes=DB.notes||{dmReply:DEFAULT_DM_REPLY,faq:[]};
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
@@ -1401,7 +1418,7 @@ document.getElementById('btnLock').onclick=()=>{
 /* ---------- 모바일: 더보기 메뉴 · 입력/대본 탭 ---------- */
 document.getElementById('btnMore').onclick=()=>{
   const items=[['btnNew','새 예식'],['btnDup','복제'],['btnCloud','시트에서 불러오기'],['btnDel','삭제'],
-    ['btnTrash','휴지통'],['btnJourney','두 분의 이야기'],['btnCopy','텍스트 복사'],['btnPrint','PDF 만들기'],
+    ['btnTrash','휴지통'],['btnNotes','사전 준비'],['btnJourney','두 분의 이야기'],['btnCopy','텍스트 복사'],['btnPrint','PDF 만들기'],
     ['btnStage','무대 모드'],['btnLock','잠금']];
   openModal('더보기',
     `<div style="display:flex;flex-direction:column;gap:8px">${items.map(([id,label])=>
@@ -1496,6 +1513,40 @@ function saveConn(){
     longLink:!!(document.getElementById('cLong')||{}).checked});
   save();
 }
+
+/* ---------- 사전 준비 (DM 답장 · FAQ) ---------- */
+function faqRow(f,i){
+  return `<div class="f" data-faq="${i}" style="border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px">
+    <input type="text" data-faqq="${i}" value="${esc(f.q)}" placeholder="질문" style="font-weight:600;margin-bottom:8px">
+    <textarea data-faqa="${i}" placeholder="답변">${esc(f.a)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn quiet" data-faqcopy="${i}" style="flex:1">답변 복사</button>
+      <button class="btn quiet" data-faqdel="${i}">삭제</button>
+    </div>
+  </div>`;
+}
+function notesBody(){
+  const n=DB.notes;
+  return `<div class="f"><label>인스타 DM 1차 답장</label>
+      <textarea id="nDm" style="min-height:160px">${esc(n.dmReply)}</textarea></div>
+    <button class="btn" id="nDmCopy" style="width:100%;margin-bottom:22px">답장 복사하기</button>
+    <div class="hint" style="margin-bottom:10px">자주 묻는 질문 · 답변을 미리 만들어두고 복사해서 쓰세요.</div>
+    <div id="faqList">${n.faq.map((f,i)=>faqRow(f,i)).join('')}</div>
+    <button class="btn ghost" id="nFaqAdd" style="width:100%">+ 질문 추가</button>`;
+}
+function drawNotes(){
+  openModal('사전 준비', notesBody(),
+    `<button class="btn primary" id="nClose">닫기</button>`);
+  document.getElementById('nClose').onclick=closeModal;
+  document.getElementById('nDm').oninput=e=>{ DB.notes.dmReply=e.target.value; save(); };
+  document.getElementById('nDmCopy').onclick=()=>copyText(DB.notes.dmReply);
+  document.getElementById('nFaqAdd').onclick=()=>{ DB.notes.faq.push({q:'',a:''}); save(); drawNotes(); };
+  document.querySelectorAll('[data-faqq]').forEach(el=>el.oninput=e=>{ DB.notes.faq[+e.target.dataset.faqq].q=e.target.value; save(); });
+  document.querySelectorAll('[data-faqa]').forEach(el=>el.oninput=e=>{ DB.notes.faq[+e.target.dataset.faqa].a=e.target.value; save(); });
+  document.querySelectorAll('[data-faqcopy]').forEach(el=>el.onclick=()=>copyText(DB.notes.faq[+el.dataset.faqcopy].a));
+  document.querySelectorAll('[data-faqdel]').forEach(el=>el.onclick=()=>{ DB.notes.faq.splice(+el.dataset.faqdel,1); save(); drawNotes(); });
+}
+document.getElementById('btnNotes').onclick=drawNotes;
 
 document.getElementById('btnLink').onclick=()=>{
   const c=DB.conn||{};
