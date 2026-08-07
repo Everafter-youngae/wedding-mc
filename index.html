@@ -210,31 +210,35 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 /* ---------- 대시보드 ---------- */
 /* 주의: display는 여기서 지정하지 않습니다 · 보이기/숨기기는 JS 인라인 style로만 제어
    (hidden 속성이 클래스 규칙에 밀리는 사고가 한 번 있었어서, 아예 겹치지 않게 함) */
-.dashboard{max-width:1120px;margin:0 auto;padding:30px 26px}
-.dash-title{font-family:var(--serif);font-size:22px;margin:0 0 20px;letter-spacing:-.02em}
-.dash-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:32px}
-.dash-quick .qbtn{display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);text-decoration:none;color:var(--ink);font-weight:700;font-size:14.5px;min-height:auto;text-align:left}
+.dashboard{max-width:1120px;margin:0 auto;padding:22px 26px}
+.dash-title{font-family:var(--serif);font-size:20px;margin:0 0 14px;letter-spacing:-.02em}
+.dash-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,200px));justify-content:start;gap:10px;margin-bottom:22px}
+.dash-quick .qbtn{display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);text-decoration:none;color:var(--ink);font-weight:700;font-size:14px;min-height:auto;text-align:left}
 .dash-quick .qbtn:hover{border-color:var(--ink3)}
-.dash-quick .qbtn .ic{font-size:22px;line-height:1}
+.dash-quick .qbtn .ic{font-size:19px;line-height:1}
 .dash-quick .qbtn.primary{background:var(--wine);border-color:var(--wine);color:#fff}
-.dash-body{display:grid;grid-template-columns:1.35fr 1fr;gap:30px;align-items:start}
-.dash-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
-.dash-cal-head h2{font-size:16px;margin:0;letter-spacing:-.02em;font-weight:700}
-.dash-cal-head .btn{padding:7px 12px;font-size:13px;min-height:34px}
+.dash-body{display:grid;grid-template-columns:1.35fr 1fr;gap:26px;align-items:start}
+.dash-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px}
+.dash-cal-head h2{font-size:15px;margin:0;letter-spacing:-.02em;font-weight:700}
+.dash-cal-head .btn{padding:6px 11px;font-size:12.5px;min-height:32px}
 .dash-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .dash-grid.dow{margin-bottom:6px;text-align:center;font-size:11px;color:var(--ink3);font-weight:600}
-.dcell{border:1px solid var(--line);border-radius:8px;background:var(--card);min-height:58px;padding:5px;display:flex;flex-direction:column;gap:2px}
+.dcell{border:1px solid var(--line);border-radius:8px;background:var(--card);min-height:52px;padding:5px;display:flex;flex-direction:column;gap:2px}
 .dcell.empty{border-color:transparent;background:transparent}
 .dcell.has{cursor:pointer;border-color:var(--wine);background:var(--wine-soft)}
 .dcell.has:hover{filter:brightness(.97)}
 .dcell.today .dnum{color:var(--wine);font-weight:700}
 .dnum{font-size:11px;color:var(--ink3)}
 .dwed{font-size:10px;color:var(--wine);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dash-list h3{font-size:14px;margin:0 0 12px;letter-spacing:-.01em}
-.dash-row{display:flex;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--card);margin-bottom:8px;font-size:13.5px}
+.dash-list h3,.dash-memo h3{font-size:13px;margin:0 0 10px;letter-spacing:-.01em;color:var(--ink2);font-weight:700}
+.dash-row{display:flex;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;padding:11px 14px;background:var(--card);margin-bottom:8px;font-size:13.5px}
 .dash-row b{color:var(--wine);font-weight:700;min-width:72px;flex:none}
+.dash-memo{margin-top:22px}
+.dash-memo textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:14px;line-height:1.65;resize:vertical;background:var(--card);font-family:inherit}
+.dash-memo textarea:focus{border-color:var(--wine);outline:none}
 @media (max-width:860px){
   .dash-body{grid-template-columns:1fr}
+  .dash-memo textarea{min-height:140px}
 }
 @media (max-width:640px){
   .dashboard{padding:18px 16px}
@@ -1647,12 +1651,16 @@ function renderDashboard(){
       <div class="dash-list"><h3>다가오는 예식</h3>
         ${upcoming.length?upcoming.map(w=>`<button class="dash-row" data-id="${esc(w.id)}"><b>${esc(dateShort(w)||'날짜 미정')}</b> ${esc(w.bride||'신부')} ♡ ${esc(w.groom||'신랑')}</button>`).join('')
           :'<p class="hint">예정된 예식이 없습니다. "+ 새 예식"으로 시작해 보세요.</p>'}
+        <div class="dash-memo"><h3>메모</h3>
+          <textarea id="dMemo" placeholder="생각나는 것들을 편하게 적어두세요.">${esc(DB.notes.memo||'')}</textarea>
+        </div>
       </div>
     </div>`;
   document.getElementById('dNew').onclick=()=>document.getElementById('btnNew').click();
   document.getElementById('dNotesBtn').onclick=drawNotes;
   document.getElementById('dPrev').onclick=()=>{ DASH_MONTH=new Date(y,m-1,1); renderDashboard(); };
   document.getElementById('dNext').onclick=()=>{ DASH_MONTH=new Date(y,m+1,1); renderDashboard(); };
+  document.getElementById('dMemo').oninput=e=>{ DB.notes.memo=e.target.value; save(); };
   document.querySelectorAll('.dcell.has').forEach(c=>c.onclick=()=>enterWedding(byDate[c.dataset.date][0].id));
   document.querySelectorAll('.dash-row').forEach(r=>r.onclick=()=>enterWedding(r.dataset.id));
 }
