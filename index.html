@@ -433,17 +433,14 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 /* =========================================================
    0. 예식 등록 전 · 사전 준비 자료 (DB.notes, 예식과 무관하게 하나만 존재)
    ========================================================= */
-const DEFAULT_DM_REPLY=`안녕하세요, 문의 주셔서 감사합니다 🌷
-결혼식 사회를 맡고 있는 ○○○입니다.
+const DEFAULT_DM_REPLY=`안녕하세요 🌷
+문의 감사합니다.
 
-날짜 확인부터 도와드릴게요, 아래 세 가지만 알려주시겠어요?
+아래 링크에서 예식 정보를 남겨주시면
+가능 여부를 확인한 뒤
+하루 안에 답변드리겠습니다.
 
-1) 예식 날짜 · 시간
-2) 예식장 (홀 이름까지)
-3) 두 분 성함 (신랑/신부)
-
-확인되는 대로 진행 가능 여부와 함께
-자세한 안내 (진행 방식, 비용 등) 드리겠습니다 :)`;
+https://everafter-youngae.github.io/studio/`;
 
 /* =========================================================
    1. 데이터 모델
@@ -1586,7 +1583,11 @@ function notesBody(){
   const n=DB.notes;
   return `<div class="f"><label>인스타 DM 1차 답장</label>
       <textarea id="nDm" style="min-height:160px">${esc(n.dmReply)}</textarea></div>
-    <button class="btn" id="nDmCopy" style="width:100%;margin-bottom:22px">답장 복사하기</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn primary" id="nDmSave" style="flex:1">저장</button>
+      <button class="btn" id="nDmCopy" style="flex:1">답장 복사하기</button>
+    </div>
+    <button class="btn ghost" id="nDmReset" style="width:100%;margin-bottom:22px">기본 멘트로 초기화</button>
     <div class="hint" style="margin-bottom:10px">자주 묻는 질문 · 답변을 미리 만들어두고 복사해서 쓰세요.</div>
     <div id="faqList">${n.faq.map((f,i)=>faqRow(f,i)).join('')}</div>
     <button class="btn ghost" id="nFaqAdd" style="width:100%">+ 질문 추가</button>`;
@@ -1596,6 +1597,11 @@ function drawNotes(){
     `<button class="btn primary" id="nClose">닫기</button>`);
   document.getElementById('nClose').onclick=closeModal;
   document.getElementById('nDm').oninput=e=>{ DB.notes.dmReply=e.target.value; save(); };
+  document.getElementById('nDmSave').onclick=()=>{ DB.notes.dmReply=document.getElementById('nDm').value; save(); toast('저장했습니다.'); };
+  document.getElementById('nDmReset').onclick=()=>{
+    if(!confirm('지금 적어둔 DM 답장을 기본 멘트로 되돌릴까요?')) return;
+    DB.notes.dmReply=DEFAULT_DM_REPLY; save(); drawNotes(); toast('기본 멘트로 되돌렸습니다.');
+  };
   document.getElementById('nDmCopy').onclick=()=>copyText(DB.notes.dmReply);
   document.getElementById('nFaqAdd').onclick=()=>{ DB.notes.faq.push({q:'',a:''}); save(); drawNotes(); };
   document.querySelectorAll('[data-faqq]').forEach(el=>el.oninput=e=>{ DB.notes.faq[+e.target.dataset.faqq].q=e.target.value; save(); });
@@ -1811,7 +1817,8 @@ document.getElementById('btnJourney').onclick=()=>{
      <div class="pv-note">예식 후에는 같은 링크에서 Everafter 편지를 읽고, <b>편지에 답하기</b>로 후기를 남길 수 있습니다.</div>
      <div class="opt"><span class="lbl">예식 마침<span class="sub">고객 화면에 편지와 답장 영역을 엽니다.</span></span><button class="btn" id="jDone">${(w.steps||{}).s8?'완료됨':'예식 마침 표시'}</button></div>
      <div class="f" style="margin-top:18px"><label for="jEmail">받는 이메일</label><input id="jEmail" type="email" value="${esc(w.email||'')}" placeholder="couple@example.com"><div class="hint">Everafter 편지와 두 분의 Archive 링크가 이 주소로 발송됩니다.</div></div>
-     <div class="opt"><span class="lbl">Everafter 편지<span class="sub">영애, 오래 사랑한다는 마음을 담아 메일로 보냅니다.</span></span><button class="btn primary" id="jMail">미리보기 · 보내기</button></div>`,
+     <div class="opt"><span class="lbl">Everafter 편지<span class="sub">영애, 오래 사랑한다는 마음을 담아 메일로 보냅니다.</span></span><button class="btn primary" id="jMail">미리보기 · 보내기</button></div>
+     <div class="opt" style="margin-top:18px;border-top:1px solid var(--line);padding-top:18px"><span class="lbl" style="color:var(--wine)">서버 데이터 삭제<span class="sub" style="color:var(--ink2)">테스트로 만들었거나 취소된 예식의 시트 기록(여정·답장·응답·설정·대본·백업)을 전부 지웁니다. 되돌릴 수 없습니다.</span></span><button class="btn quiet" id="jPurge">시트에서 삭제</button></div>`,
     `<button class="btn" id="jOpen">고객 화면 열기</button><button class="btn" id="jCopy">링크 복사</button><button class="btn primary" id="jSync">화면 정보 올리기</button>`);
   const syncJourneyEmail=()=>{ const el=document.getElementById('jEmail'); if(el){ w.email=el.value.trim(); save(); } };
   document.getElementById('jEmail').addEventListener('input',syncJourneyEmail);
