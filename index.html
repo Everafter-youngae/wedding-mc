@@ -381,7 +381,7 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
     <button class="btn" id="btnSend">대본 보내기</button>
     <button class="btn" id="btnInbox">응답 확인<span id="inboxDot" style="display:none;margin-left:5px;color:var(--wine)">●</span></button>
     <button class="btn mob-more" id="btnJourney">두 분의 이야기</button>
-    <button class="btn mob-more" id="btnReplies" title="공개해도 좋다고 답해주신 Everafter 편지 답장만 모아봅니다">편지 답장</button>
+    <button class="btn mob-more" id="btnReplies" title="공개해도 좋다고 답해주신 Everafter 편지 답장만 모아봅니다">편지 답장<span id="repliesDot" style="display:none;margin-left:5px;color:var(--wine)">●</span></button>
   </div>
   <div class="tb-div"></div>
   <div class="tb-group">
@@ -886,6 +886,7 @@ async function load(){
   renderAll();
   setStatus(storageOK===false?'off':'saved');
   maybeNudgeBackup();
+  maybeCheckNewReplies();
   showDashboard();
 }
 
@@ -1434,6 +1435,15 @@ function maybeNudgeBackup(){
   if(days<7) return;
   setTimeout(()=>toast(iso?`전체 백업한 지 ${days}일 지났습니다 · "백업 · 내보내기"에서 새로 받아두세요.`:'전체 백업을 받은 적이 없습니다 · "백업 · 내보내기"에서 지금 받아두세요.',4200),1200);
 }
+async function maybeCheckNewReplies(){
+  if(!(DB.conn||{}).gs) return;
+  try{
+    const list=await fetchReplies();
+    let seen=0; try{ seen=Number(localStorage.getItem('mc-replies-seen')||0); }catch(e){}
+    const dot=document.getElementById('repliesDot');
+    if(dot) dot.style.display = list.length>seen ? '' : 'none';
+  }catch(e){ /* 배지는 부가 기능이라 실패해도 조용히 무시합니다 */ }
+}
 
 /* =========================================================
    7. 무대 모드
@@ -1925,6 +1935,8 @@ document.getElementById('btnReplies').onclick=async()=>{
       `<button class="btn primary" id="rClose">닫기</button>`);
     document.getElementById('rClose').onclick=closeModal; return;
   }
+  try{ localStorage.setItem('mc-replies-seen',String(list.length)); }catch(e){}
+  const dot=document.getElementById('repliesDot'); if(dot) dot.style.display='none';
   if(!list.length){
     openModal('편지 답장',
       '<div class="pv-note">공개해도 좋다고 답해주신 편지 답장이 아직 없습니다. 신랑신부가 Everafter 편지에 답장하면서 공개 범위를 "이름 가리고" 또는 "이름과 함께"로 고르면 여기에 표시됩니다.</div>',
@@ -1967,6 +1979,16 @@ async function pushScript(round){
   const j=await r.json();
   if(!j.ok) throw new Error(authErr_(j.error,'대본을 올리지 못했습니다.'));
 }
+async function notifyScriptEmail(w,round,reviewUrl){
+  const c=DB.conn||{};
+  if(!c.gs||!emailValid(w.email)) return false;
+  try{
+    const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({type:'notifyScript',id:w.id,email:w.email,round:round,bride:w.bride,groom:w.groom,reviewUrl:reviewUrl,token:adminToken()})});
+    const j=await r.json();
+    return !!j.ok;
+  }catch(e){ return false; }
+}
 document.getElementById('btnSend').onclick=()=>{
   const w=cur(), p=DB.print||{};
   const rounds=['1차 검토본','2차 검토본','최종본'];
@@ -2003,6 +2025,11 @@ document.getElementById('btnSend').onclick=()=>{
         copyText(`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분의 이야기를 다듬고 있습니다. 🌷\n\n${line}\n\n아래 링크에서 편하게 둘러보시고,\n더하고 싶은 이야기나 덜어내고 싶은 부분이 있다면 알려주세요.\n\n${tail}\n\n${reviewLink()}`);
         markStep(rd.indexOf('최종')>-1?'s6':(rd.indexOf('2차')>-1?'s4':'s2'));
         note.textContent='올렸습니다. 메시지가 복사됐으니 그대로 보내시면 됩니다.';
+        if(emailValid(w.email)){
+          notifyScriptEmail(w,rd,reviewLink()).then(sent=>{
+            if(sent) note.textContent='올렸습니다. 메시지가 복사됐고, 이메일로도 알림을 보냈습니다.';
+          });
+        }
       }catch(e){ note.textContent=e.message; }
     };
   };
