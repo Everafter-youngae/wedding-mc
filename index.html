@@ -1808,26 +1808,44 @@ document.getElementById('btnJourney').onclick=()=>{
   document.getElementById('jOpen').onclick=()=>window.open(journeyLink(),'_blank');
   document.getElementById('jCopy').onclick=()=>copyText(journeyLink());
   document.getElementById('jSync').onclick=async()=>{ syncJourneyEmail(); try{ await pushJourney(); toast('고객 화면 정보를 올렸습니다.'); }catch(e){ toast(e.message); } };
-  document.getElementById('jDone').onclick=async()=>{ syncJourneyEmail(); markStep('s8'); try{ await pushJourney(); toast('예식 마침을 고객 화면에 반영했습니다.'); }catch(e){ toast(e.message); } closeModal(); document.getElementById('btnJourney').click(); };
+  document.getElementById('jDone').onclick=async()=>{
+    syncJourneyEmail();
+    const alreadyDone=!!(w.steps||{}).s8;
+    markStep('s8');
+    try{ await pushJourney(); toast('예식 마침을 고객 화면에 반영했습니다.'); }
+    catch(e){ toast(e.message); closeModal(); document.getElementById('btnJourney').click(); return; }
+    // 예식 마침을 처음 표시하는 순간, 이메일이 있으면 바로 편지 미리보기로 이어갑니다 —
+    // 별도 발송 버튼을 다시 찾아 눌러야 하는 단계를 없애서 깜빡하고 안 보내는 일을 줄입니다.
+    if(!alreadyDone && !w.archiveSentAt && emailValid(w.email)){
+      openLetterPreview(w);
+    }else{
+      closeModal(); document.getElementById('btnJourney').click();
+      if(!alreadyDone && !w.archiveSentAt) toast('받는 이메일을 입력하면 Everafter 편지를 이어서 보낼 수 있어요.');
+    }
+  };
   document.getElementById('jMail').onclick=()=>{
     syncJourneyEmail();
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(w.email||'')){ toast('받는 이메일 주소를 확인해 주세요.'); document.getElementById('jEmail').focus(); return; }
-    openModal('Everafter 편지 미리보기',
-      `<div class="pv-note" style="margin-bottom:14px">받는 주소 · <b>${esc(w.email)}</b><br>아래 내용 그대로 메일로 발송됩니다.</div>
-       <div style="border:1px solid var(--line);border-radius:12px;padding:22px;background:#FFFEFB">
-         <div style="font-size:14px;font-weight:600;margin-bottom:14px">${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')} 두 분께</div>
-         ${w.archiveSentence?`<div style="text-align:center;color:var(--wine);font-weight:600;font-size:15px;padding:4px 0 18px">“${esc(w.archiveSentence)}”</div>`:''}
-         <div style="white-space:pre-wrap;line-height:1.9;font-size:14px">${esc(letterText(w))}</div>
-       </div>`,
-      `<button class="btn" id="jBack">뒤로</button><button class="btn primary" id="jSendGo">이대로 보내기</button>`);
-    document.getElementById('jBack').onclick=()=>document.getElementById('btnJourney').click();
-    document.getElementById('jSendGo').onclick=async()=>{
-      if(!confirm(`Everafter 편지를 보내시겠어요?\n\n받는 주소: ${w.email}\n발송 후에는 취소할 수 없습니다.`)) return;
-      try{ await sendEverafterLetter(); toast('Everafter 편지를 보냈습니다.'); closeModal(); }
-      catch(e){ toast(e.message); }
-    };
+    if(!emailValid(w.email)){ toast('받는 이메일 주소를 확인해 주세요.'); document.getElementById('jEmail').focus(); return; }
+    openLetterPreview(w);
   };
 };
+function emailValid(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email||''); }
+function openLetterPreview(w){
+  openModal('Everafter 편지 미리보기',
+    `<div class="pv-note" style="margin-bottom:14px">받는 주소 · <b>${esc(w.email)}</b><br>아래 내용 그대로 메일로 발송됩니다.</div>
+     <div style="border:1px solid var(--line);border-radius:12px;padding:22px;background:#FFFEFB">
+       <div style="font-size:14px;font-weight:600;margin-bottom:14px">${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')} 두 분께</div>
+       ${w.archiveSentence?`<div style="text-align:center;color:var(--wine);font-weight:600;font-size:15px;padding:4px 0 18px">“${esc(w.archiveSentence)}”</div>`:''}
+       <div style="white-space:pre-wrap;line-height:1.9;font-size:14px">${esc(letterText(w))}</div>
+     </div>`,
+    `<button class="btn" id="jBack">뒤로</button><button class="btn primary" id="jSendGo">이대로 보내기</button>`);
+  document.getElementById('jBack').onclick=()=>document.getElementById('btnJourney').click();
+  document.getElementById('jSendGo').onclick=async()=>{
+    if(!confirm(`Everafter 편지를 보내시겠어요?\n\n받는 주소: ${w.email}\n발송 후에는 취소할 수 없습니다.`)) return;
+    try{ await sendEverafterLetter(); toast('Everafter 편지를 보냈습니다.'); closeModal(); }
+    catch(e){ toast(e.message); }
+  };
+}
 
 /* ---------- 구글 시트 자동 백업 ---------- */
 let bkTimer=null, lastBackup='';
