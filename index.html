@@ -1875,7 +1875,9 @@ function journeyLink(){
   const w=cur();
   const code=ensureYoungaeCode(w);
   const base=(c.journey||ask.replace(/[^/]*$/,'story.html')||'https://주소를-먼저-설정하세요/story.html').replace(/#.*$/,'');
-  const hash='영애'+code;
+  // 카카오톡 등 인앱 브라우저가 링크 속 한글을 다루다 깨뜨리는 경우가 있어,
+  // 공유되는 링크는 영문/숫자로만 이루어지도록 인코딩합니다.
+  const hash=encodeURIComponent('영애'+code);
   return base+'#'+hash+(c.longLink?('~'+gsId(c.gs)):'');
 }
 function publicJourneyState(w){
