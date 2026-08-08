@@ -59,7 +59,7 @@ header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
 .dots i.now{width:18px;border-radius:3px;background:var(--wine)}
 /* 8비트 튤립 로딩 */
 .load{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px}
-.px{width:150px;height:auto}
+.px{width:112px;height:auto}
 .px .f1,.px .f2,.px .f3{opacity:0}
 .px .f1{animation:pf1 1.26s steps(1) infinite}
 .px .f2{animation:pf2 1.26s steps(1) infinite}
@@ -453,8 +453,14 @@ function renderList(){
 }
 
 function bf(k,label,type='text',ph=''){
+  // 날짜·시간은 기기마다 렌더링이 다른 네이티브 picker(type=date/time) 대신
+  // 텍스트 입력 + 자동 포맷으로 통일합니다 (PC/모바일/인앱 브라우저 간 크기 차이 방지).
+  const fmt=type==='date'?'date':(type==='time'?'time':'');
+  const inputType=fmt?'text':type;
+  const extra=fmt?` inputmode="numeric" data-fmt="${fmt}" maxlength="${fmt==='date'?10:5}"`:'';
+  const placeholder=fmt==='date'?'0000-00-00':(fmt==='time'?'00:00':ph);
   return `<div class="f"><label>${label}</label>
-    <input type="${type}" data-b="${k}" value="${esc(A.basic[k]||'')}" placeholder="${esc(ph)}"></div>`;
+    <input type="${inputType}"${extra} data-b="${k}" value="${esc(A.basic[k]||'')}" placeholder="${esc(placeholder)}"></div>`;
 }
 function card(s,i){
   const a=A.secs[s.k], off=a.use==='off';
@@ -472,6 +478,19 @@ function card(s,i){
 function bind(){
   document.addEventListener('input',e=>{
     const t=e.target;
+    if(t.dataset.fmt==='date'){
+      const digits=t.value.replace(/\D/g,'').slice(0,8);
+      let v=digits.slice(0,4);
+      if(digits.length>4) v+='-'+digits.slice(4,6);
+      if(digits.length>6) v+='-'+digits.slice(6,8);
+      t.value=v;
+    }
+    if(t.dataset.fmt==='time'){
+      const digits=t.value.replace(/\D/g,'').slice(0,4);
+      let v=digits.slice(0,2);
+      if(digits.length>2) v+=':'+digits.slice(2,4);
+      t.value=v;
+    }
     if(t.dataset.b) A.basic[t.dataset.b]=t.value;
     if(t.dataset.sq) A.story[t.dataset.sq]=t.value;
     if(t.dataset.se) A.story[t.dataset.se].etc=t.value;
