@@ -60,15 +60,32 @@ function scriptOverviewHTML(script,d){
     ${d.reviewLink?`<a href="${esc(d.reviewLink)}" class="btn" style="margin-top:18px">대본 자세히 보기 →</a>`:''}
   </section>`;
 }
+function sentenceSectionHTML(d){
+  const picks=d.sentencePicks||[];
+  if(!picks.length) return '';
+  const cats=[];picks.forEach(p=>{if(cats.indexOf(p.category)<0)cats.push(p.category)});
+  return `<section class="card"><div class="eyebrow">함께 전해드리는 문장</div>
+    <p style="color:var(--ink2);margin:10px 0 4px">식전 · 식후에 사용할 수 있도록 골라드린 SNS 문장입니다. 원하는 문장을 복사해 편하게 사용해 주세요.</p>
+    ${cats.map(cat=>`<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+      <div style="font-size:13px;font-weight:700;color:var(--wine);margin-bottom:10px">${esc(cat)}</div>
+      ${picks.map((p,i)=>p.category===cat?`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
+        <div style="flex:1;white-space:pre-line;font-size:14.5px;line-height:1.85">${esc(p.text)}</div>
+        <button type="button" data-copy-sentence="${i}" style="width:auto;flex:none;padding:9px 14px;font-size:12.5px;background:#fff;color:var(--wine);border-color:var(--wine)">복사</button>
+      </div>`:'').join('')}
+    </div>`).join('')}
+  </section>`;
+}
 function render(d,script){const st=state(d),after=Boolean((d.steps||{}).s8);document.title=`${d.bride||''} · ${d.groom||''} 두 분의 이야기`;const code=normalize(d.code||'')||String(d.code||'');
 $('#app').innerHTML=`<div class="brand">Everafter</div><div class="subbrand">LETTER · STORY · MEMORY</div>
 <section class="hero"><div class="code-label">Code</div><div class="code">영애 ${esc(code)}</div><h1>${esc(d.bride||'신부')} · ${esc(d.groom||'신랑')}<br>두 분의 이야기</h1><p>${esc(d.date||'')} 오래 기억될 하루를 함께 준비합니다.</p><div class="tulip">🌷</div></section>
 <section class="card state"><div class="eyebrow">지금 이곳에 있습니다</div><h2>${esc(st.title)}</h2><p>${esc(st.msg)}</p><div class="next"><b>다음 장면</b>${esc(st.next)}</div></section>
 <section class="card"><div class="eyebrow">OUR STORY JOURNEY</div><div class="timeline">${timeline(d,st.idx)}</div></section>
 ${scriptOverviewHTML(script,d)}
+${sentenceSectionHTML(d)}
 ${after?`<section class="card letter-card"><div class="eyebrow">EVERAFTER LETTER · 永愛</div><div class="letter-head">${esc(d.bride||'신부')} · ${esc(d.groom||'신랑')} 두 분께</div>${d.archiveSentence?`<div class="quote">“${esc(d.archiveSentence)}”</div>`:''}<div class="letter">${esc(letterText(d))}</div><div class="letter-signature">Everafter · 永愛</div></section>`:''}
 ${after?`<section class="card reply" id="reply"><div class="eyebrow">편지에 답하기</div><h2>두 분의 오늘도 들려주세요.</h2><p style="color:var(--ink2)">한 문장이어도 충분합니다.</p><label>오늘은 어떤 하루로 기억되나요?</label><div class="chips" id="chips">${['따뜻한 하루','웃음이 많았던 하루','편안했던 하루','우리다웠던 하루','오래 기억하고 싶은 하루'].map(x=>`<button type="button">${x}</button>`).join('')}</div><label>Everafter와 함께하며 가장 좋았던 순간</label><textarea id="best" placeholder="편하게 들려주세요."></textarea><label>Everafter에 남기고 싶은 한 문장</label><textarea id="sentence" placeholder="한 문장이어도 충분합니다."></textarea><label>남겨주신 문장의 소개 범위</label><select id="consent"><option value="private">Everafter에게만 남길게요</option><option value="anonymous">이름을 가리고 소개해도 좋아요</option><option value="named">두 사람의 이름과 함께 소개해도 좋아요</option></select><button id="sendReply" style="margin-top:20px">편지 보내기</button></section>`:''}
 <div class="foot"><b>Everafter · 永愛</b><br>오래 기억될 하루를 함께 만듭니다.</div>`;
+document.querySelectorAll('[data-copy-sentence]').forEach(btn=>btn.addEventListener('click',async()=>{const idx=+btn.dataset.copySentence,text=((d.sentencePicks||[])[idx]||{}).text||'';if(!text)return;try{await navigator.clipboard.writeText(text);const orig=btn.textContent;btn.textContent='복사됨';setTimeout(()=>{btn.textContent=orig},1200)}catch(e){}}));
 if(after){const chosen=[];document.querySelectorAll('#chips button').forEach(btn=>btn.addEventListener('click',()=>{btn.classList.toggle('on');const i=chosen.indexOf(btn.textContent);if(i>-1)chosen.splice(i,1);else chosen.push(btn.textContent)}));$('#sendReply').addEventListener('click',async()=>{const payload={memoryTags:chosen,bestMoment:$('#best').value.trim(),sentence:$('#sentence').value.trim(),publishConsent:$('#consent').value,submittedAt:new Date().toISOString()};try{const route=routeFromHash();const r=await fetch(route.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({type:'afterReview',id:d.id,review:payload})});const j=await r.json();if(!j.ok)throw new Error(j.error||'답장을 보내지 못했습니다.');$('#reply').innerHTML='<div class="eyebrow">편지에 답하기</div><h2>두 분의 이야기를 잘 받았습니다.</h2><p style="color:var(--ink2)">남겨주신 문장을 오래 간직하겠습니다.</p>'}catch(e){alert(e.message)}})} }
 function lookup(){return `<div class="brand">Everafter</div><div class="subbrand">LETTER · STORY · MEMORY</div><section class="lookup"><h1>두 분의 이야기 찾기</h1><p>안내받은 영애 코드와 두 분 중 한 분의 이름을 입력해 주세요.</p><input id="code" placeholder="2608_01"><input id="name" placeholder="이름"><button id="find" style="margin-top:10px">두 분의 이야기 열기</button><div id="err" class="error"></div></section>`}
 async function loadByRoute(route){const code=normalize(route.key);if(code){const r=await fetch(`${route.gs}?story=${encodeURIComponent(code)}`);return r.json()}const r=await fetch(`${route.gs}?journey=${encodeURIComponent(route.key)}`);return r.json()}

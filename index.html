@@ -473,6 +473,7 @@ function blank(){
     groom:'', bride:'', date:'', time:'',
     youngaeCode:'', email:'', journeyNameCheck:'',
     archiveSentence:'', archiveScene:'', archiveClosing:'', archiveSentAt:'',
+    sentencePicks:[],
     venue:'', floor:'', mcName:'',
     relation:'신부', relationText:'대학 동기', story:'',
     farGuests:'',
@@ -881,7 +882,7 @@ async function load(){
   DB.print=Object.assign({mode:'read',pt:15,pageBreak:true,program:true,cover:true,orient:'landscape',cols:false},DB.print||{});
   DB.notes=DB.notes||{dmReply:DEFAULT_DM_REPLY,faq:[]};
   // 새로 추가된 섹션 보정
-  DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+  DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.sentencePicks=w.sentencePicks||[]; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
   maybeNudgeBackup();
@@ -1897,7 +1898,8 @@ async function pushJourney(){
   const payload={
     id:w.id, code:w.youngaeCode, bride:w.bride, groom:w.groom, date:w.date, time:w.time,
     email:w.email||'', steps:w.steps||{}, archiveSentence:w.archiveSentence||'',
-    archiveScene:w.archiveScene||'', archiveClosing:w.archiveClosing||'', reviewLink:reviewLink()
+    archiveScene:w.archiveScene||'', archiveClosing:w.archiveClosing||'', reviewLink:reviewLink(),
+    sentencePicks:w.sentencePicks||[]
   };
   const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
     body:JSON.stringify({type:'journey',id:w.id,data:payload,token:adminToken()})});
@@ -1926,6 +1928,7 @@ document.getElementById('btnJourney').onclick=()=>{
      <div class="opt"><span class="lbl">예식 마침<span class="sub">고객 화면에 편지와 답장 영역을 엽니다.</span></span><button class="btn" id="jDone">${(w.steps||{}).s8?'완료됨':'예식 마침 표시'}</button></div>
      <div class="f" style="margin-top:18px"><label for="jEmail">받는 이메일</label><input id="jEmail" type="email" value="${esc(w.email||'')}" placeholder="couple@example.com"><div class="hint">Everafter 편지와 두 분의 Archive 링크가 이 주소로 발송됩니다.</div></div>
      <div class="opt"><span class="lbl">Everafter 편지<span class="sub">영애, 오래 사랑한다는 마음을 담아 메일로 보냅니다.</span></span><button class="btn primary" id="jMail">미리보기 · 보내기</button></div>
+     <div class="opt"><span class="lbl">식전 · 식후 SNS 문장<span class="sub">${w.sentencePicks&&w.sentencePicks.length?`${w.sentencePicks.length}개 배정됨 · 배정하는 즉시 고객 화면에 보입니다.`:'아직 배정한 문장이 없습니다.'}</span></span><button class="btn" id="jSentences">문장 고르기</button></div>
      <div class="opt" style="margin-top:18px;border-top:1px solid var(--line);padding-top:18px"><span class="lbl" style="color:var(--wine)">서버 데이터 삭제<span class="sub" style="color:var(--ink2)">테스트로 만들었거나 취소된 예식의 시트 기록(여정·답장·응답·설정·대본·백업)을 전부 지웁니다. 되돌릴 수 없습니다.</span></span><button class="btn quiet" id="jPurge">시트에서 삭제</button></div>`,
     `<button class="btn" id="jOpen">고객 화면 열기</button><button class="btn" id="jCopy">링크 복사</button><button class="btn primary" id="jSync">화면 정보 올리기</button>`);
   const syncJourneyEmail=()=>{ const el=document.getElementById('jEmail'); if(el){ w.email=el.value.trim(); save(); } };
@@ -1967,6 +1970,7 @@ document.getElementById('btnJourney').onclick=()=>{
     if(!emailValid(w.email)){ toast('받는 이메일 주소를 확인해 주세요.'); document.getElementById('jEmail').focus(); return; }
     openLetterPreview(w);
   };
+  document.getElementById('jSentences').onclick=()=>openSentencePicker(w);
 };
 function emailValid(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email||''); }
 function openLetterPreview(w){
@@ -2091,6 +2095,55 @@ document.getElementById('btnReplies').onclick=async()=>{
     catch(e){ toast('복사하지 못했습니다. 직접 선택해 복사해 주세요.'); }
   });
 };
+
+/* ---------- 식전 · 식후 SNS 문장 배정 ---------- */
+async function fetchSentenceDb(){
+  const gs=(DB.conn||{}).gs;
+  if(!gs) throw new Error('앱스 스크립트 주소가 아직 없습니다. 응답 링크에서 먼저 설정해 주세요.');
+  const r=await fetch(gs+(gs.includes('?')?'&':'?')+'sentenceDb=1&token='+encodeURIComponent(adminToken()));
+  const j=await r.json();
+  if(!j.ok) throw new Error(authErr_(j.error,'문장 목록을 불러오지 못했습니다.'));
+  return j.items||[];
+}
+async function openSentencePicker(w){
+  const backToJourney=()=>{ closeModal(); document.getElementById('btnJourney').click(); };
+  openModal('식전 · 식후 SNS 문장 고르기','<div class="pv-note">불러오는 중입니다…</div>','');
+  let items;
+  try{ items=await fetchSentenceDb(); }
+  catch(e){
+    openModal('식전 · 식후 SNS 문장 고르기',`<div class="pv-note">${esc(e.message)}</div>`,
+      `<button class="btn primary" id="spClose">닫기</button>`);
+    document.getElementById('spClose').onclick=backToJourney; return;
+  }
+  if(!items.length){
+    openModal('식전 · 식후 SNS 문장 고르기','<div class="pv-note">문장DB 시트에 아직 문장이 없습니다.</div>',
+      `<button class="btn primary" id="spClose">닫기</button>`);
+    document.getElementById('spClose').onclick=backToJourney; return;
+  }
+  const picked=w.sentencePicks||[];
+  const isPicked=it=>picked.some(p=>p.category===it.category&&p.text===it.text);
+  const cats=[]; items.forEach(it=>{ if(cats.indexOf(it.category)<0) cats.push(it.category); });
+  const body=cats.map(cat=>`
+    <div class="pv-note" style="margin:14px 0 6px;font-weight:600">${esc(cat)}</div>
+    ${items.map((it,i)=>it.category===cat?`
+      <label class="check" style="display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)">
+        <input type="checkbox" data-sp="${i}" ${isPicked(it)?'checked':''} style="margin-top:3px">
+        <span style="white-space:pre-line;font-size:13px;line-height:1.6">${esc(it.text)}</span>
+      </label>`:'').join('')}`).join('');
+  openModal('식전 · 식후 SNS 문장 고르기',
+    `<div class="pv-note" style="margin-bottom:10px">체크한 문장이 배정되는 즉시 고객이 영애 코드로 조회하는 화면에 보입니다.</div>${body}`,
+    `<button class="btn" id="spCancel">취소</button><button class="btn primary" id="spSave">저장</button>`);
+  document.getElementById('spCancel').onclick=backToJourney;
+  document.getElementById('spSave').onclick=async()=>{
+    const chosen=[];
+    document.querySelectorAll('[data-sp]').forEach(chk=>{ if(chk.checked) chosen.push(items[+chk.dataset.sp]); });
+    w.sentencePicks=chosen.map(it=>({category:it.category,text:it.text}));
+    save();
+    try{ await pushJourney(); toast(`문장 ${w.sentencePicks.length}개를 배정했습니다.`); }
+    catch(e){ toast(e.message); }
+    backToJourney();
+  };
+}
 
 /* ---------- 대본 보내기 ---------- */
 function reviewLink(){
