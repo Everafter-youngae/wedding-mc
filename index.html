@@ -1753,7 +1753,6 @@ function renderDashboard(){
   const home=(DB.conn||{}).homepage;
   el.innerHTML=`
     <h1 class="dash-title">Everafter 대시보드</h1>
-    ${INQUIRY_COUNT>0?`<button class="dash-inquiry-banner" id="dInquiry">📨 홈페이지로 새 문의 ${INQUIRY_COUNT}건이 왔어요 — 확인하기 →</button>`:''}
     <div class="dash-quick">
       <button class="qbtn primary" id="dNew"><span class="ic">➕</span>새 예식</button>
       <button class="qbtn" id="dNotesBtn"><span class="ic">📋</span>사전 준비</button>
@@ -1769,7 +1768,9 @@ function renderDashboard(){
         <div class="dash-grid dow">${['일','월','화','수','목','금','토'].map(x=>`<div>${x}</div>`).join('')}</div>
         <div class="dash-grid">${cells.join('')}</div>
       </div>
-      <div class="dash-list"><h3>다가오는 예식</h3>
+      <div class="dash-list">
+        ${INQUIRY_COUNT>0?`<button class="dash-inquiry-banner" id="dInquiry">📨 홈페이지로 새 문의 ${INQUIRY_COUNT}건이 왔어요 — 확인하기 →</button>`:''}
+        <h3>다가오는 예식</h3>
         ${upcoming.length?upcoming.map(w=>`<button class="dash-row" data-id="${esc(w.id)}"><b>${esc(dateShort(w)||'날짜 미정')}</b> ${esc(w.bride||'신부')} ♡ ${esc(w.groom||'신랑')}</button>`).join('')
           :'<p class="hint">예정된 예식이 없습니다. "+ 새 예식"으로 시작해 보세요.</p>'}
         <div class="dash-memo"><h3>메모</h3>
