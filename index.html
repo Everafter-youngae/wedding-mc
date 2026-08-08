@@ -212,6 +212,8 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
    (hidden 속성이 클래스 규칙에 밀리는 사고가 한 번 있었어서, 아예 겹치지 않게 함) */
 .dashboard{max-width:1560px;margin:0 auto;padding:22px 36px}
 .dash-title{font-family:var(--serif);font-size:20px;margin:0 0 14px;letter-spacing:-.02em}
+.dash-inquiry-banner{display:block;width:100%;text-align:left;margin:0 0 16px;padding:14px 18px;border-radius:12px;border:1px solid var(--wine);background:var(--wine-soft);color:var(--wine);font-weight:700;font-size:14px;cursor:pointer}
+.dash-inquiry-banner:hover{background:var(--wine);color:#fff}
 .dash-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,200px));justify-content:start;gap:10px;margin-bottom:22px}
 .dash-quick .qbtn{display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);text-decoration:none;color:var(--ink);font-weight:700;font-size:14px;min-height:auto;text-align:left}
 .dash-quick .qbtn:hover{border-color:var(--ink3)}
@@ -885,6 +887,7 @@ async function load(){
   maybeNudgeBackup();
   maybeCheckNewReplies();
   showDashboard();
+  maybeCheckNewInquiries();
 }
 
 function set(k,v){ const w=cur(); w[k]=v; save(); renderAll(); }
@@ -1457,6 +1460,88 @@ async function maybeCheckNewReplies(){
   }catch(e){ /* 배지는 부가 기능이라 실패해도 조용히 무시합니다 */ }
 }
 
+/* ---------- 홈페이지 문의 (studio ask.html → 별도 앱스 스크립트) ---------- */
+let INQUIRY_COUNT=0;
+async function fetchInquiries(){
+  const gs=(DB.conn||{}).inquiryGs;
+  if(!gs) throw new Error('문의 폼 스크립트 주소가 아직 없습니다. 응답 링크 설정에서 넣어 주세요.');
+  const r=await fetch(gs+(gs.includes('?')?'&':'?')+'inquiries=1&token='+encodeURIComponent(adminToken()));
+  const j=await r.json();
+  if(!j.ok) throw new Error(authErr_(j.error,'불러오지 못했습니다.'));
+  return j.items||[];
+}
+async function updateInquiryStatus(row,status){
+  const gs=(DB.conn||{}).inquiryGs;
+  if(!gs) return false;
+  try{
+    const r=await fetch(gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({type:'updateStatus',row:row,status:status,token:adminToken()})});
+    const j=await r.json();
+    return !!j.ok;
+  }catch(e){ return false; }
+}
+async function maybeCheckNewInquiries(){
+  if(!(DB.conn||{}).inquiryGs) return;
+  try{
+    const items=await fetchInquiries();
+    INQUIRY_COUNT=items.filter(x=>x.status==='신규').length;
+    if(document.getElementById('dashboard').style.display==='block') renderDashboard();
+  }catch(e){ /* 배지는 부가 기능이라 실패해도 조용히 무시합니다 */ }
+}
+function createWeddingFromInquiry(inq){
+  const w=blank();
+  const m=String(inq.date||'').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  if(m) w.date=`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  w.venue=inq.venue||'';
+  w.memo=`[홈페이지 문의]\n이름: ${inq.names||''}\n날짜: ${inq.date||''}\n장소: ${inq.venue||''}\n연락처: ${inq.contactInfo||''}\n메시지: ${inq.message||'(없음)'}`;
+  DB.list.push(w); DB.cur=w.id; save();
+  return w;
+}
+async function drawInquiries(){
+  openModal('새 문의','<div class="pv-note">불러오는 중입니다…</div>','');
+  let items;
+  try{ items=await fetchInquiries(); }
+  catch(e){
+    openModal('새 문의',`<div class="pv-note">${esc(e.message)}</div>`,
+      `<button class="btn primary" id="iqClose">닫기</button>`);
+    document.getElementById('iqClose').onclick=closeModal; return;
+  }
+  if(!items.length){
+    openModal('새 문의','<div class="pv-note">아직 문의가 없습니다.</div>',
+      `<button class="btn primary" id="iqClose">닫기</button>`);
+    document.getElementById('iqClose').onclick=closeModal; return;
+  }
+  openModal('새 문의',
+    items.map((it,i)=>{
+      const when=it.receivedAt?new Date(it.receivedAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      const isNew=it.status==='신규';
+      return `<div class="opt" style="align-items:flex-start;flex-direction:column;gap:10px">
+        <span class="lbl">${esc(it.names||'이름 미기재')}
+          <span class="sub">${esc(it.date||'')} · ${esc(it.venue||'')} · ${esc(it.contactInfo||'')} · ${when} · ${isNew?'<b style="color:var(--wine)">신규</b>':esc(it.status||'')}</span></span>
+        ${it.message?`<div class="hint" style="white-space:pre-wrap">${esc(it.message)}</div>`:''}
+        <div style="display:flex;gap:8px;width:100%">
+          <button class="btn primary" data-mkwed="${i}" style="flex:1">새 예식으로 만들기</button>
+          <button class="btn quiet" data-dismiss="${i}">처리함으로 표시</button>
+        </div>
+      </div>`;
+    }).join(''),
+    `<button class="btn primary" id="iqClose">닫기</button>`);
+  document.getElementById('iqClose').onclick=closeModal;
+  document.querySelectorAll('[data-mkwed]').forEach(btn=>btn.onclick=async()=>{
+    const it=items[+btn.dataset.mkwed];
+    createWeddingFromInquiry(it);
+    updateInquiryStatus(it.row,'연락함');
+    closeModal(); showEditor(); toast('문의 내용으로 새 예식을 만들었습니다. 메모를 확인해 주세요.');
+    maybeCheckNewInquiries();
+  });
+  document.querySelectorAll('[data-dismiss]').forEach(btn=>btn.onclick=async()=>{
+    const it=items[+btn.dataset.dismiss];
+    const ok=await updateInquiryStatus(it.row,'처리함');
+    if(ok){ toast('처리함으로 표시했습니다.'); maybeCheckNewInquiries(); drawInquiries(); }
+    else toast('상태를 바꾸지 못했습니다.');
+  });
+}
+
 /* =========================================================
    7. 무대 모드
    ========================================================= */
@@ -1567,6 +1652,9 @@ function connForm(){
     <div class="f"><label>홈페이지(스튜디오) 주소</label>
       <input type="text" id="cHome" value="${esc(c.homepage||'')}" placeholder="https://내스튜디오홈페이지.com">
       <div class="hint">대시보드에서 바로 열어볼 수 있는 링크입니다. 비워두면 대시보드에 안 나옵니다.</div></div>
+    <div class="f"><label>문의 폼 스크립트 주소</label>
+      <input type="text" id="cInquiryGs" value="${esc(c.inquiryGs||'')}" placeholder="https://script.google.com/macros/s/…/exec">
+      <div class="hint">홈페이지 문의 폼(ask.html)이 연결된 앱스 스크립트 주소입니다. 넣어두면 대시보드에 새 문의가 뜹니다. 위 관리자 토큰을 이 스크립트에도 똑같이 설정해야 합니다.</div></div>
     <label class="check" style="margin-top:4px"><input type="checkbox" id="cLong" ${c.longLink?'checked':''}>
       링크에 앱스 스크립트 주소 포함 (링크가 길어집니다)</label>
     <div class="hint">평소에는 꺼두세요. ask.html·review.html 파일 안에 주소가 들어 있어 짧은 링크로도 열립니다.
@@ -1579,6 +1667,7 @@ function saveConn(){
     gs:(((document.getElementById('cGs')||{}).value)||'').trim(),
     token:(((document.getElementById('cToken')||{}).value)||'').trim(),
     homepage:(((document.getElementById('cHome')||{}).value)||'').trim(),
+    inquiryGs:(((document.getElementById('cInquiryGs')||{}).value)||'').trim(),
     longLink:!!(document.getElementById('cLong')||{}).checked});
   save();
 }
@@ -1664,6 +1753,7 @@ function renderDashboard(){
   const home=(DB.conn||{}).homepage;
   el.innerHTML=`
     <h1 class="dash-title">Everafter 대시보드</h1>
+    ${INQUIRY_COUNT>0?`<button class="dash-inquiry-banner" id="dInquiry">📨 홈페이지로 새 문의 ${INQUIRY_COUNT}건이 왔어요 — 확인하기 →</button>`:''}
     <div class="dash-quick">
       <button class="qbtn primary" id="dNew"><span class="ic">➕</span>새 예식</button>
       <button class="qbtn" id="dNotesBtn"><span class="ic">📋</span>사전 준비</button>
@@ -1689,6 +1779,7 @@ function renderDashboard(){
     </div>`;
   document.getElementById('dNew').onclick=()=>document.getElementById('btnNew').click();
   document.getElementById('dNotesBtn').onclick=drawNotes;
+  if(document.getElementById('dInquiry')) document.getElementById('dInquiry').onclick=drawInquiries;
   document.getElementById('dPrev').onclick=()=>{ DASH_MONTH=new Date(y,m-1,1); renderDashboard(); };
   document.getElementById('dNext').onclick=()=>{ DASH_MONTH=new Date(y,m+1,1); renderDashboard(); };
   document.getElementById('dMemo').oninput=e=>{ DB.notes.memo=e.target.value; save(); };
@@ -1726,6 +1817,7 @@ document.getElementById('btnLink').onclick=()=>{
   if(document.getElementById('cJourney')) document.getElementById('cJourney').oninput=upd;
   document.getElementById('cGs').oninput=upd;
   document.getElementById('cToken').oninput=upd;
+  if(document.getElementById('cInquiryGs')) document.getElementById('cInquiryGs').oninput=upd;
   document.getElementById('cHome').oninput=upd;
   document.getElementById('cLong').onchange=upd;
   const note=document.getElementById('lNote');
@@ -2253,6 +2345,7 @@ document.getElementById('btnInbox').onclick=async()=>{
     document.getElementById('cGs').oninput=saveConn;
     document.getElementById('cToken').oninput=saveConn;
     document.getElementById('cHome').oninput=saveConn;
+    if(document.getElementById('cInquiryGs')) document.getElementById('cInquiryGs').oninput=saveConn;
     document.getElementById('iClose').onclick=closeModal;
     document.getElementById('iPaste').onclick=()=>{
       try{ renderInbox([JSON.parse(unb64(document.getElementById('pasteCode').value.trim()))],0,false); }
