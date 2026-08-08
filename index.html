@@ -1062,6 +1062,8 @@ ${secGroups}
 </div></details>
 
 <details class="group" id="g-export" ${op('g-export')}><summary>백업 · 내보내기</summary><div class="gbody">
+  <div class="hint" style="margin-bottom:10px">매주 월요일 오전, 구글 시트 전체가 드라이브 "Everafter 백업" 폴더로 자동 백업됩니다.</div>
+  <button class="btn" id="btnBackupNow" style="width:100%;margin-bottom:16px">지금 바로 구글드라이브에 백업</button>
   <div class="hint" style="margin-bottom:10px">${lastFullBackupHint()}</div>
   <button class="btn primary" id="btnJsonAll" style="width:100%;margin-bottom:8px">전체 예식 백업 파일 저장 (.json) · 지금 ${DB.list.length}건</button>
   <label class="btn" style="width:100%;display:block;text-align:center">전체 백업 파일 불러오기 (복구)
@@ -1195,6 +1197,7 @@ document.getElementById('form').addEventListener('click',e=>{
   if(j){ jumpTo(j.dataset.jump); }
   if(e.target.id==='btnJson') exportJson();
   if(e.target.id==='btnJsonAll') exportAllJson();
+  if(e.target.id==='btnBackupNow') runBackupNow();
 });
 document.getElementById('form').addEventListener('change',e=>{
   if(e.target.id==='fileJson') importJson(e.target.files[0]);
@@ -1390,6 +1393,18 @@ function lastFullBackupHint(){
   return days>=7
     ? `<span style="color:var(--wine)">⚠ 마지막 전체 백업 · ${when} (${days}일 전). 정기적으로 새로 받아두세요.</span>`
     : `마지막 전체 백업 · ${when}`;
+}
+async function runBackupNow(){
+  const c=DB.conn||{};
+  if(!c.gs){ toast('앱스 스크립트 주소가 아직 없습니다.'); return; }
+  toast('구글드라이브에 백업하는 중입니다…');
+  try{
+    const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({type:'runBackupNow',token:adminToken()})});
+    const j=await r.json();
+    if(!j.ok) throw new Error(authErr_(j.error,'백업하지 못했습니다.'));
+    toast('구글드라이브 "Everafter 백업" 폴더에 저장했습니다.');
+  }catch(e){ toast(e.message); }
 }
 function exportAllJson(){
   const payload={version:1,exportedAt:new Date().toISOString(),db:DB};
