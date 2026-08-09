@@ -1083,7 +1083,7 @@ function renderForm(){
   const prev=new Set([...pane.querySelectorAll('details.group[open]')].map(d=>d.id));
   const first=!pane.children.length;
   const scroll=document.querySelector('.pane-l')?document.querySelector('.pane-l').scrollTop:0;
-  const op=id=>(first?['g-basic','g-order'].includes(id):prev.has(id))?'open':'';
+  const op=id=>(first?['g-sched','g-basic','g-order'].includes(id):prev.has(id))?'open':'';
 
   const w=cur();
   const active=SEC_DEFS.filter(d=>w.sections[d.key].on);
@@ -1110,6 +1110,9 @@ function renderForm(){
 
   pane.innerHTML=`
 ${flowHTML()}
+<details class="group" id="g-sched" ${op('g-sched')}><summary>진행 일정</summary><div class="gbody">
+  ${schedHTML()}
+</div></details>
 ${retentionHTML(w)}
 <details class="group" id="g-basic" ${op('g-basic')}><summary>기본 정보</summary><div class="gbody">
   <div class="row">
@@ -1133,10 +1136,6 @@ ${retentionHTML(w)}
     ${txt('연회장 층','floor','지하 1층')}
   </div>
   ${area('예식 메모','memo','신랑신부가 들려준 이야기, 주의할 점 등','사전 질문지 답변을 여기에 모아둘 수 있습니다. 대본에는 나가지 않습니다.')}
-</div></details>
-
-<details class="group" id="g-sched" ${op('g-sched')}><summary>진행 일정</summary><div class="gbody">
-  ${schedHTML()}
 </div></details>
 
 <details class="group" id="g-order" ${op('g-order')}><summary>식순 구성</summary><div class="gbody">
