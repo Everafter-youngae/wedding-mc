@@ -1828,6 +1828,44 @@ function drawNotes(){
 }
 document.getElementById('btnNotes').onclick=drawNotes;
 
+/* ---------- 명함 보내기 (스튜디오 홈페이지의 /card/) ---------- */
+// 홈페이지 주소를 넣어두셨으면 그걸 기준으로, 아니면 기본 주소를 씁니다.
+// (studio 쪽 푸터도 이 저장소 주소를 그대로 박아두고 있어 서로 대칭입니다.)
+const CARD_URL_FALLBACK='https://everafter-youngae.github.io/studio/card/';
+function cardLink(){
+  const home=((DB.conn||{}).homepage||'').trim();
+  if(!home) return CARD_URL_FALLBACK;
+  return home.replace(/[?#].*$/,'')          // 쿼리·해시 제거
+             .replace(/\/[^/]*\.html?$/i,'/') // index.html 같은 파일명 제거
+             .replace(/\/*$/,'/')             // 끝에 슬래시 보장
+             +'card/';
+}
+const cardMsg=link=>`Everafter 명함을 보내드려요. 🌷
+
+결혼식을 진행합니다.
+그보다 먼저, 두 사람의 이야기를 듣습니다.
+
+아래 링크에서 편하게 둘러봐 주세요.
+
+${link}`;
+function drawCard(){
+  const link=cardLink();
+  const noHome=!((DB.conn||{}).homepage||'').trim();
+  openModal('명함 보내기',
+    `<div class="f"><label>명함 주소</label>
+      <textarea id="cardLnk" style="width:100%;min-height:56px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(link)}</textarea></div>
+     <div class="pv-note">처음 문의 주신 분께 보내는 한 장짜리 소개입니다.
+       소개 · 진행 과정 · 비용 · 문의가 이 안에서 모두 이어집니다.
+       ${noHome?'<br><br>지금은 기본 주소를 쓰고 있습니다. <b>응답 링크</b>에서 <b>홈페이지(스튜디오) 주소</b>를 넣으시면 그 주소를 기준으로 만들어집니다.':''}</div>
+     <a class="btn ghost" href="${esc(link)}" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;justify-content:center;width:100%;margin-top:12px;text-decoration:none">명함 열어보기 ↗</a>`,
+    `<button class="btn" id="cardCopy">링크만 복사</button>
+     <button class="btn primary" id="cardMsgBtn">카톡 메시지까지 복사</button>`);
+  const cur_=()=>document.getElementById('cardLnk').value.trim();
+  document.getElementById('cardCopy').onclick=()=>copyText(cur_());
+  document.getElementById('cardMsgBtn').onclick=()=>copyText(cardMsg(cur_()));
+}
+
 /* ---------- 대시보드 (메인 화면 · 예식 등록 전에도 항상 볼 수 있음) ---------- */
 let DASH_MONTH=new Date();
 function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -1870,6 +1908,7 @@ function renderDashboard(){
     <div class="dash-quick">
       <button class="qbtn primary" id="dNew"><span class="ic">➕</span>새 예식</button>
       <button class="qbtn" id="dNotesBtn"><span class="ic">📋</span>사전 준비</button>
+      <button class="qbtn" id="dCard"><span class="ic">💌</span>명함 보내기</button>
       ${home?`<a class="qbtn" href="${esc(home)}" target="_blank" rel="noopener"><span class="ic">🏠</span>홈페이지 보기 ↗</a>`:''}
     </div>
     <div class="dash-body">
@@ -1893,6 +1932,7 @@ function renderDashboard(){
     </div>`;
   document.getElementById('dNew').onclick=()=>document.getElementById('btnNew').click();
   document.getElementById('dNotesBtn').onclick=drawNotes;
+  document.getElementById('dCard').onclick=drawCard;
   if(document.getElementById('dInquiry')) document.getElementById('dInquiry').onclick=drawInquiries;
   document.getElementById('dPrev').onclick=()=>{ DASH_MONTH=new Date(y,m-1,1); renderDashboard(); };
   document.getElementById('dNext').onclick=()=>{ DASH_MONTH=new Date(y,m+1,1); renderDashboard(); };
