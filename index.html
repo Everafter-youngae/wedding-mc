@@ -88,6 +88,8 @@ select.sel{border:1px solid var(--line);background:var(--card);border-radius:8px
 .fstep.done .t{color:var(--ink)}
 .fstep.now .t{color:var(--wine);font-weight:700}
 .fstep .when{font-size:11px;color:var(--ink3);margin-top:2px;display:block}
+.fstep .when.plan{color:var(--ink3)}
+.fstep.now .when.plan{color:var(--wine);font-weight:600}
 .flow .next{margin-top:12px;font-size:12px;color:var(--wine);background:var(--wine-soft);border-radius:6px;padding:9px 11px;line-height:1.5}
 .group{border-bottom:1px solid var(--line2)}
 .group>summary{
@@ -937,16 +939,17 @@ const FLOW=[
    예식일에서 자동으로 계산합니다. 신랑신부가 해주실 일은 주말에 상의하고
    알려주실 수 있도록 '몇 주 전 일요일'로 잡습니다 (토요일 예식이면 D-27/20/13).
    급하게 잡힌 예식은 간격이 안 맞으므로 날짜별로 직접 고칠 수 있습니다. */
+/* step: 진행 단계(FLOW)의 어느 칸에 걸리는 일정인지 — 예정일/완료일을 나란히 보여주는 데 씁니다 */
 const SCHED=[
-  {k:'ask',    t:'사전 설문지 답변 주기',          who:'couple', weeks:11},
-  {k:'draft1', t:'첫 번째 대본 보내드리기',         who:'mc',     weeks:9},
-  {k:'fb1',    t:'첫 번째 대본 의견 주기',          who:'couple', weeks:7},
-  {k:'draft2', t:'함께 다듬은 대본 보내드리기',      who:'mc',     weeks:5},
-  {k:'fb2',    t:'두 번째 대본 의견 주기',          who:'couple', weeks:3},
+  {k:'ask',    t:'사전 설문지 답변 주기',          who:'couple', weeks:11, step:'s1'},
+  {k:'draft1', t:'첫 번째 대본 보내드리기',         who:'mc',     weeks:9,  step:'s2'},
+  {k:'fb1',    t:'첫 번째 대본 의견 주기',          who:'couple', weeks:7,  step:'s3'},
+  {k:'draft2', t:'함께 다듬은 대본 보내드리기',      who:'mc',     weeks:5,  step:'s4'},
+  {k:'fb2',    t:'두 번째 대본 의견 주기',          who:'couple', weeks:3,  step:'s5'},
   /* 2차 대본을 확정할 때까지는 정해져야 최종 대본에 담을 수 있습니다 */
-  {k:'people', t:'주례 · 축가 · 축사 정해서 알려주기', who:'couple', weeks:3},
-  {k:'final',  t:'최종 대본 보내드리기',           who:'mc',     days:8},
-  {k:'check',  t:'예식 전 마지막 함께 점검하기',     who:'mc',     days:1},
+  {k:'people', t:'주례 · 축가 · 축사 정하기',        who:'couple', weeks:3},
+  {k:'final',  t:'최종 대본 보내드리기',           who:'mc',     days:8,   step:'s6'},
+  {k:'check',  t:'예식 전 마지막 함께 점검하기',     who:'mc',     days:1,   step:'s7'},
 ];
 const DOW=['일','월','화','수','목','금','토'];
 function ymd(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -965,7 +968,7 @@ function schedList(w){
   return SCHED.map(it=>{
     const date=ov[it.k]||autoSchedDate(w.date,it);
     const d=date?new Date(date+'T00:00:00'):null;
-    return {k:it.k,t:it.t,who:it.who,date,
+    return {k:it.k,t:it.t,who:it.who,step:it.step,date,
       label:d&&!isNaN(d)?`${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`:'',
       edited:!!ov[it.k]};
   });
@@ -985,18 +988,15 @@ function schedText(w){
   const rows=schedList(w).filter(r=>r.date);
   if(!rows.length) return '';
   const mine=rows.filter(r=>r.who==='couple'), ours=rows.filter(r=>r.who==='mc');
-  /* 카톡에서 딱딱해 보이지 않도록, 날짜와 할 일을 줄로 나눠 여백을 둡니다.
-     같은 날에 걸린 항목은 날짜를 한 번만 쓰고 아래로 묶습니다. */
-  const block=g=>`✓ ${g.label}\n${g.ts.join('\n')}`;
-  return [`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분의 이야기를 함께 준비하고 있습니다. 🌷`,
-    '앞으로의 준비 일정을 함께 보내드립니다.','',
-    ...(mine.length?['✨ 두 분이 정해주실 것','',...byDate(mine).map(block).flatMap(b=>[b,'']) ]:[]),
-    ...(ours.length?['✍🏻 제가 준비하는 것','',...byDate(ours).map(block).flatMap(b=>[b,'']) ]:[]),
-    '💌 일정은 조금 여유 있게 잡아두었습니다.',
-    '주례 · 축가 · 축사는 천천히 이야기 나누시고,',
-    '정해지는 대로 편하게 알려주세요.','',
-    '두 분은 하나씩 준비해주시면,',
-    '나머지는 제가 함께 준비해가겠습니다.'].join('\n');
+  /* 카톡은 길이 자체가 부담이라 한 줄에 날짜와 할 일을 같이 둡니다.
+     따뜻함은 여백 대신 앞뒤 인사와 이모지 머리말로 냅니다.
+     같은 날에 걸린 항목은 날짜를 한 번만 쓰고 가운뎃점으로 잇습니다. */
+  const line=g=>`${g.label}  ${g.ts.join(', ')}`;
+  return [`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분의 준비 일정입니다 🌷`,'',
+    ...(mine.length?['✨ 두 분이 정해주실 것',...byDate(mine).map(line),'']:[]),
+    ...(ours.length?['✍🏻 제가 준비하는 것',...byDate(ours).map(line),'']:[]),
+    '💌 여유 있게 잡아둔 일정이라 조금 늦어져도 괜찮습니다.',
+    '두 분은 하나씩만 준비해주시면, 나머지는 제가 함께 준비해가겠습니다.'].join('\n');
 }
 function schedHTML(){
   const w=cur(), rows=schedList(w);
@@ -1022,14 +1022,23 @@ function markStep(k){ const w=cur(); w.steps=w.steps||{}; if(!w.steps[k]){ w.ste
 function flowHTML(){
   const w=cur(), st=w.steps||{};
   const firstOpen=FLOW.findIndex(f=>!st[f.k]);
+  /* 단계별 예정일 — 늦어지고 있는지 한눈에 보이도록 완료일과 나란히 둡니다 */
+  const plan={};
+  schedList(w).forEach(r=>{ if(r.step&&r.label) plan[r.step]=r.label; });
+  if(w.date) plan.s8=schedList({date:w.date}).length?(()=>{const d=new Date(w.date+'T00:00:00');
+    return isNaN(d)?'':`${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`;})():'';
   return `<div class="flow">
     <h4>진행 단계</h4>
     ${FLOW.map((f,i)=>{
       const done=!!st[f.k], now=(i===firstOpen);
       const when=done?new Date(st[f.k]).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'}):'';
+      const p=plan[f.k]||'';
+      const meta=done
+        ? `<span class="when">${p?`예정 ${esc(p)} · `:''}${when} 완료</span>`
+        : (p?`<span class="when plan">${esc(p)} 예정</span>`:'');
       return `<div class="fstep ${done?'done':''} ${now?'now':''}" data-step="${f.k}">
         <span class="mark">✓</span>
-        <span class="t">${i+1}. ${f.t}${done?`<span class="when">${when} 완료</span>`:''}</span>
+        <span class="t">${i+1}. ${f.t}${meta}</span>
       </div>`;
     }).join('')}
     ${firstOpen>-1?`<div class="next">다음 할 일 · ${FLOW[firstOpen].hint}</div>`
@@ -2152,7 +2161,9 @@ async function pushJourney(){
     email:w.email||'', steps:w.steps||{}, archiveSentence:w.archiveSentence||'',
     archiveScene:w.archiveScene||'', archiveClosing:w.archiveClosing||'', reviewLink:reviewLink(),
     sentencePicks:w.sentencePicks||[],
-    sched:schedList(w).filter(r=>r.date).map(r=>({t:r.t,who:r.who,label:r.label}))
+    sched:schedList(w).filter(r=>r.date).map(r=>({t:r.t,who:r.who,label:r.label})),
+    /* 타임라인 칸별 예정일 (s1…s7) */
+    plan:schedList(w).reduce((o,r)=>{ if(r.step&&r.label) o[r.step]=r.label; return o; },{})
   };
   const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
     body:JSON.stringify({type:'journey',id:w.id,data:payload,token:adminToken()})});
