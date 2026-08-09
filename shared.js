@@ -47,6 +47,15 @@ const LOADER_CSS = `.load{min-height:56vh;display:flex;flex-direction:column;ali
 @keyframes hfly1{0%,46%{opacity:0;transform:translate(0,0)}52%{opacity:1}64%{opacity:.95;transform:translate(-3px,-15px)}72%,100%{opacity:0;transform:translate(-4px,-21px)}}
 @keyframes hfly2{0%,50%{opacity:0;transform:translate(0,0)}56%{opacity:1}68%{opacity:.95;transform:translate(3px,-16px)}76%,100%{opacity:0;transform:translate(4px,-22px)}}
 @keyframes hfly3{0%,53%{opacity:0;transform:translate(0,0)}59%{opacity:1}70%{opacity:.95;transform:translate(0,-13px)}79%,100%{opacity:0;transform:translate(0,-19px)}}
+.notice{min-height:56vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px}
+.notice .env-scene{margin-bottom:18px}
+.notice h2{margin:0;font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.notice p{margin:10px 0 0;font-size:14px;line-height:1.85;color:var(--ink2);word-break:keep-all}
+.notice .act{margin-top:24px}
+.notice .act a{display:inline-block;padding:13px 22px;border-radius:999px;background:var(--wine);color:#fff;font-size:14px;font-weight:700;text-decoration:none}
+.notice .flap-down,.notice .seal{opacity:1;animation:none}
+.notice .flap-mid,.notice .flap-flat,.notice .flap-up,.notice .hfly{opacity:0;animation:none}
+.notice .letter-slide{animation:none}
 @media (prefers-reduced-motion:reduce){
   .flap-down,.seal{opacity:1;animation:none}
   .flap-mid,.flap-flat,.flap-up,.hfly{opacity:0;animation:none}
@@ -62,6 +71,17 @@ function loaderHTML(msg, sub) {
   return `<div class="load" role="status" aria-live="polite">`
     + `<div class="env-scene">${LOADER_SVG}</div>`
     + `<div><p class="msg">${msg}</p>${subLine}</div>`
+    + `</div>`;
+}
+
+/** 안내·오류 화면. 로딩과 같은 봉투 그림을 쓰되 애니메이션 없이 봉인된 한 장면으로 보여줍니다.
+ *  action 은 <div class="act"><a href="...">…</a></div> 형태의 마크업을 그대로 받습니다. */
+function noticeHTML(title, body, action) {
+  return `<div class="notice" role="status">`
+    + `<div class="env-scene">${LOADER_SVG}</div>`
+    + `<h2>${title}</h2>`
+    + `<p>${body}</p>`
+    + (action || '')
     + `</div>`;
 }
 

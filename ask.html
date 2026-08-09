@@ -140,11 +140,11 @@ function decode(h){
 }
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-function screen(icon,title,body){
-  $('#app').innerHTML=`<div class="done"><div class="ic">${icon}</div><h2>${title}</h2><p>${body}</p></div>`;
+function screen(title,body){
+  $('#app').innerHTML=noticeHTML(title,body);
 }
 function badLink(){
-  screen('🔗','링크가 올바르지 않습니다',
+  screen('링크가 올바르지 않습니다',
     '사회자분께 받은 주소를 처음부터 끝까지 복사해서 다시 열어 주세요.<br>주소 뒷부분이 잘리면 열리지 않습니다.');
 }
 
@@ -243,7 +243,7 @@ async function init(){
       try{
         CFG=await pull(); CFG.gs=gs; CFG.id=id;
       }catch(e){
-        screen('⏳','내용을 불러오지 못했습니다',
+        screen('내용을 불러오지 못했습니다',
           '인터넷 연결을 확인하고 새로고침해 주세요.<br>계속 같은 화면이면 사회자분께 알려 주세요.');
         return;
       }
