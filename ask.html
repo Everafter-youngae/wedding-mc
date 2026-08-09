@@ -146,7 +146,7 @@ function screen(title,body){
 }
 function badLink(){
   screen('링크가 올바르지 않습니다',
-    '사회자분께 받은 주소를 처음부터 끝까지 복사해서 다시 열어 주세요.<br>주소 뒷부분이 잘리면 열리지 않습니다.');
+    '<span>사회자분께 받은 주소를 처음부터 끝까지 복사해서 다시 열어 주세요.</span><span>주소 뒷부분이 잘리면 열리지 않습니다.</span>');
 }
 
 
@@ -246,7 +246,7 @@ async function init(){
         CFG=await pull(); CFG.gs=gs; CFG.id=id; CFG.t=linkT||'';
       }catch(e){
         screen('내용을 불러오지 못했습니다',
-          '인터넷 연결을 확인하고 새로고침해 주세요.<br>계속 같은 화면이면 사회자분께 알려 주세요.');
+          '<span>인터넷 연결을 확인하고 새로고침해 주세요.</span><span>계속 같은 화면이면 사회자분께 알려 주세요.</span>');
         return;
       }
     }
@@ -275,9 +275,7 @@ function intro(){
     <div class="ribbon-top">🌷 Everafter &nbsp;|&nbsp; 첫 번째 이야기</div>
     <div class="rule"></div>
     <p class="lead">두 분의 이야기를 담아,<br>오래 기억될 하루를 함께 준비하고 있습니다.</p>
-    <p>아래 질문은 더 두 분다운 결혼식을<br>만들기 위해 여쭤보는 내용입니다.<br><br>
-      정답은 없습니다.<br>
-      아는 내용만 답해주셔도 충분합니다.</p>
+    <p class="lines"><span>아래 질문은 더 두 분다운 결혼식을 만들기 위해 여쭤보는 내용입니다.</span><span>정답은 없습니다.</span><span>아는 내용만 답해주셔도 충분합니다.</span></p>
     <button class="go" id="goStart">시작</button>
   </div>`;
   $('#goStart').onclick=()=>{ VIEW='card'; IDX=0; paint(); window.scrollTo(0,0); };
@@ -404,7 +402,7 @@ function renderLast(){
   <div class="deck"><div class="card one">
     <div class="ribbon">마지막 장</div>
     <h2>다 확인해주셔서 감사합니다</h2>
-    <p class="desc">보내주신 내용은 그대로 대본에 반영됩니다.${A.skipSecs===true?'<br>식순은 나중에 같은 링크로 들어오셔서 알려주셔도 됩니다.':''}</p>
+    <p class="desc lines"><span>보내주신 내용은 그대로 대본에 반영됩니다.</span>${A.skipSecs===true?'<span>식순은 나중에 같은 링크로 들어오셔서 알려주셔도 됩니다.</span>':''}</p>
     <div class="f"><label>꼭 넣어 달라거나, 빼 달라고 하실 내용이 있다면 자유롭게 적어 주세요</label>
       <textarea id="free" placeholder="예: 아버지가 몸이 불편하셔서 이동을 줄여 주세요">${esc(A.free)}</textarea></div>
     <div class="f"><label>작성자 (누가 답해 주셨는지)</label>
@@ -638,7 +636,7 @@ async function send(){
 function done(){
   $('#app').innerHTML=`<div class="done"><div class="ic">✓</div>
     <h2>전달했습니다</h2>
-    <p>답변이 사회자에게 잘 전달됐습니다.<br>수정할 내용이 생기면 이 링크로 다시 들어와 보내주시면 됩니다.</p></div>`;
+    <p class="lines"><span>답변이 사회자에게 잘 전달됐습니다.</span><span>수정할 내용이 생기면 이 링크로 다시 들어와 보내주시면 됩니다.</span></p></div>`;
   window.scrollTo(0,0);
 }
 function fallback(payload){
