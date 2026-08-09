@@ -212,7 +212,7 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
    (hidden 속성이 클래스 규칙에 밀리는 사고가 한 번 있었어서, 아예 겹치지 않게 함) */
 .dashboard{max-width:1560px;margin:0 auto;padding:22px 36px}
 .dash-title{font-family:var(--serif);font-size:20px;margin:0 0 14px;letter-spacing:-.02em}
-.dash-inquiry-banner{display:block;width:100%;text-align:left;margin:0 0 16px;padding:14px 18px;border-radius:12px;border:1px solid var(--wine);background:var(--wine-soft);color:var(--wine);font-weight:700;font-size:14px;cursor:pointer}
+.dash-inquiry-banner{display:block;width:100%;max-width:720px;text-align:left;margin:0 0 16px;padding:14px 18px;border-radius:12px;border:1px solid var(--wine);background:var(--wine-soft);color:var(--wine);font-weight:700;font-size:14px;cursor:pointer}
 .dash-inquiry-banner:hover{background:var(--wine);color:#fff}
 .dash-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,200px));justify-content:start;gap:10px;margin-bottom:22px}
 .dash-quick .qbtn{display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);text-decoration:none;color:var(--ink);font-weight:700;font-size:14px;min-height:auto;text-align:left}
@@ -244,7 +244,12 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 }
 @media (max-width:640px){
   .dashboard{padding:18px 16px}
-  .dash-quick .qbtn{padding:14px}
+  .dash-title{font-size:18px;margin-bottom:12px}
+  /* 버튼 3개가 세로로 길게 쌓이지 않도록 한 줄에 나란히 · 아이콘 위 / 글자 아래 */
+  .dash-quick{display:flex;gap:8px;margin-bottom:16px}
+  .dash-quick .qbtn{flex:1;min-width:0;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;padding:12px 6px;font-size:12px;line-height:1.3;text-align:center;word-break:keep-all;border-radius:10px}
+  .dash-quick .qbtn .ic{font-size:18px}
+  .dash-inquiry-banner{padding:12px 14px;font-size:13px;line-height:1.45;word-break:keep-all}
   .dcell{min-height:48px;font-size:11px}
   .dwed{font-size:9.5px}
 }
@@ -1753,6 +1758,7 @@ function renderDashboard(){
   const home=(DB.conn||{}).homepage;
   el.innerHTML=`
     <h1 class="dash-title">Everafter 대시보드</h1>
+    ${INQUIRY_COUNT>0?`<button class="dash-inquiry-banner" id="dInquiry">📨 홈페이지로 새 문의 ${INQUIRY_COUNT}건이 왔어요 — 확인하기 →</button>`:''}
     <div class="dash-quick">
       <button class="qbtn primary" id="dNew"><span class="ic">➕</span>새 예식</button>
       <button class="qbtn" id="dNotesBtn"><span class="ic">📋</span>사전 준비</button>
@@ -1769,7 +1775,6 @@ function renderDashboard(){
         <div class="dash-grid">${cells.join('')}</div>
       </div>
       <div class="dash-list">
-        ${INQUIRY_COUNT>0?`<button class="dash-inquiry-banner" id="dInquiry">📨 홈페이지로 새 문의 ${INQUIRY_COUNT}건이 왔어요 — 확인하기 →</button>`:''}
         <h3>다가오는 예식</h3>
         ${upcoming.length?upcoming.map(w=>`<button class="dash-row" data-id="${esc(w.id)}"><b>${esc(dateShort(w)||'날짜 미정')}</b> ${esc(w.bride||'신부')} ♡ ${esc(w.groom||'신랑')}</button>`).join('')
           :'<p class="hint">예정된 예식이 없습니다. "+ 새 예식"으로 시작해 보세요.</p>'}
