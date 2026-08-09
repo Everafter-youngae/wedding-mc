@@ -2189,6 +2189,27 @@ async function sendEverafterLetter(){
   const j=await r.json(); if(!j.ok) throw new Error(authErr_(j.error,'메일을 보내지 못했습니다.'));
   w.archiveSentAt=new Date().toISOString(); markStep('s10'); save();
 }
+/* 고객에게 이야기 링크를 보낼 때 쓰는 기본 문구.
+   카톡에서 줄이 아무 데서나 끊기지 않도록 문장을 미리 끊어둡니다. */
+function journeyMsg(w){
+  return [`🕊️💌 ${w.bride||'신부'} · ${w.groom||'신랑'} 두 분의 이야기를`,
+    '차근차근 준비하고 있습니다.','',
+    '아래 링크에서는',
+    '지금까지 함께 준비한 내용과',
+    '앞으로의 일정을 한눈에 보실 수 있습니다.','',
+    '준비가 이어지는 동안',
+    '이곳에도 두 분의 이야기가 하나씩 더해집니다.',
+    '필요하실 때마다 편하게 찾아와 주세요.','',
+    `🔗 ${journeyLink()}`,'',
+    '오래 기억될 하루를 함께 만들어가겠습니다.'].join('\n');
+}
+/* 링크를 보내기 전에 고객 화면 정보를 올려둡니다. 안 올린 채로 링크만 보내면
+   빈 화면이 열립니다. 클립보드는 사용자 클릭 직후에 써야 막히지 않으므로
+   복사를 먼저 하고 올리기는 뒤에서 진행합니다. */
+function copyJourney(text){
+  copyText(text);
+  pushJourney().catch(()=>toast('링크는 복사했지만 고객 화면 정보를 올리지 못했습니다. "화면 정보 올리기"를 눌러 주세요.'));
+}
 document.getElementById('btnJourney').onclick=async()=>{
   await ensureLinkKey(cur());
   const w=cur(); ensureYoungaeCode(w); const state=publicJourneyState(w);
@@ -2196,17 +2217,18 @@ document.getElementById('btnJourney').onclick=async()=>{
   openModal('두 분의 이야기',
     `<div class="pv-note"><b>${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')}</b><br>영애 ${esc(code)}<br><br>현재 장면 · <b>${esc(state[1])}</b></div>
      <div class="f" style="margin-top:16px"><label>고객 이야기 링크</label><textarea id="jlnk" style="width:100%;min-height:64px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(journeyLink())}</textarea></div>
-     <div class="pv-note">예식 후에는 같은 링크에서 Everafter 편지를 읽고, <b>편지에 답하기</b>로 후기를 남길 수 있습니다.</div>
+     <div class="pv-note">복사를 누르면 지금 화면 정보가 함께 올라갑니다. 링크 자체는 바뀌지 않습니다.<br>예식 후에는 같은 링크에서 Everafter 편지를 읽고, <b>편지에 답하기</b>로 후기를 남길 수 있습니다.</div>
      <div class="opt"><span class="lbl">예식 마침<span class="sub">고객 화면에 편지와 답장 영역을 엽니다.</span></span><button class="btn" id="jDone">${(w.steps||{}).s8?'완료됨':'예식 마침 표시'}</button></div>
      <div class="f" style="margin-top:18px"><label for="jEmail">받는 이메일</label><input id="jEmail" type="email" value="${esc(w.email||'')}" placeholder="couple@example.com"><div class="hint">Everafter 편지와 두 분의 Archive 링크가 이 주소로 발송됩니다.</div></div>
      <div class="opt"><span class="lbl">Everafter 편지<span class="sub">영애, 오래 사랑한다는 마음을 담아 메일로 보냅니다.</span></span><button class="btn primary" id="jMail">미리보기 · 보내기</button></div>
      <div class="opt"><span class="lbl">식전 · 식후 SNS 문장<span class="sub">${w.sentencePicks&&w.sentencePicks.length?`${w.sentencePicks.length}개 배정됨 · 배정하는 즉시 고객 화면에 보입니다.`:'아직 배정한 문장이 없습니다.'}</span></span><button class="btn" id="jSentences">문장 고르기</button></div>
      <div class="opt" style="margin-top:18px;border-top:1px solid var(--line);padding-top:18px"><span class="lbl" style="color:var(--wine)">서버 데이터 삭제<span class="sub" style="color:var(--ink2)">테스트로 만들었거나 취소된 예식의 시트 기록(여정·답장·응답·설정·대본·백업)을 전부 지웁니다. 되돌릴 수 없습니다.</span></span><button class="btn quiet" id="jPurge">시트에서 삭제</button></div>`,
-    `<button class="btn" id="jOpen">고객 화면 열기</button><button class="btn" id="jCopy">링크 복사</button><button class="btn primary" id="jSync">화면 정보 올리기</button>`);
+    `<button class="btn" id="jOpen">고객 화면 열기</button><button class="btn" id="jCopy">링크만 복사</button><button class="btn" id="jSync">화면 정보 올리기</button><button class="btn primary" id="jMsg">카톡 메시지까지 복사</button>`);
   const syncJourneyEmail=()=>{ const el=document.getElementById('jEmail'); if(el){ w.email=el.value.trim(); save(); } };
   document.getElementById('jEmail').addEventListener('input',syncJourneyEmail);
   document.getElementById('jOpen').onclick=()=>window.open(journeyLink(),'_blank');
-  document.getElementById('jCopy').onclick=()=>copyText(journeyLink());
+  document.getElementById('jCopy').onclick=()=>{ syncJourneyEmail(); copyJourney(journeyLink()); };
+  document.getElementById('jMsg').onclick=()=>{ syncJourneyEmail(); copyJourney(journeyMsg(w)); };
   document.getElementById('jSync').onclick=async()=>{ syncJourneyEmail(); try{ await pushJourney(); toast('고객 화면 정보를 올렸습니다.'); }catch(e){ toast(e.message); } };
   document.getElementById('jPurge').onclick=async()=>{
     const label=`${w.bride||'신부'} · ${w.groom||'신랑'}${code!=='예식일을 입력해 주세요'?' (영애 '+code+')':''}`;
