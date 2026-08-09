@@ -494,11 +494,29 @@ function bf(k,label,type='text',ph=''){
   return `<div class="f"><label>${label}</label>
     <input type="${inputType}"${extra} data-b="${k}" value="${esc(A.basic[k]||'')}" placeholder="${esc(placeholder)}"></div>`;
 }
+/* 국제전화 형태(+82 10-…)로 넣으면 앞의 0이 빠져 어긋나므로 되살립니다 */
+function normPhone(raw){
+  let d=String(raw||'').replace(/\D/g,'');
+  if(d.startsWith('0082')) d=d.slice(4);
+  else if(d.startsWith('82')&&d.length>=11&&d.length<=13) d=d.slice(2);
+  if((d.length===9||d.length===10)&&d[0]!=='0') d='0'+d;
+  return d.slice(0,12);
+}
+function fmtPhone(raw){
+  const d=normPhone(raw);
+  if(d.length===12) return `${d.slice(0,4)}-${d.slice(4,8)}-${d.slice(8)}`; /* 0507 안심번호 */
+  if(d.length===11) return `${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`;
+  if(d.length===10) return d.startsWith('02')?`${d.slice(0,2)}-${d.slice(2,6)}-${d.slice(6)}`:`${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}`;
+  if(d.length===9&&d.startsWith('02')) return `${d.slice(0,2)}-${d.slice(2,5)}-${d.slice(5)}`;
+  if(d.length>3) return `${d.slice(0,3)}-${d.slice(3)}`;
+  return d;
+}
+
 /* 연락처 + 개인정보 동의 · 카드형/목록형 두 화면에서 같이 씁니다 */
 function contactBlock(){
   const c=A.contact||{}, ok=!!(A.consent&&A.consent.agreed);
   return `<div class="f"><label>연락처 (두 분 중 한 분 것이면 충분합니다)</label>
-      <input type="tel" inputmode="numeric" id="cPhone" data-fmt="phone" maxlength="13" value="${esc(c.phone||'')}" placeholder="010-0000-0000"></div>
+      <input type="tel" inputmode="numeric" id="cPhone" data-fmt="phone" maxlength="14" value="${esc(c.phone||'')}" placeholder="010-0000-0000"></div>
     <div class="f"><label>카카오톡 ID 또는 오픈채팅 링크 <span class="opt">· 선택</span></label>
       <input type="text" id="cKakao" value="${esc(c.kakao||'')}" placeholder="비워두셔도 됩니다"></div>
     <div class="privacy" id="pvBox">
@@ -547,11 +565,7 @@ function bind(){
     if(t.dataset.opt) A.opts[t.dataset.opt]=t.value;
     if(t.dataset.mus) A.secs[t.dataset.mus].music=t.value;
     if(t.dataset.note) A.secs[t.dataset.note].note=t.value;
-    if(t.dataset.fmt==='phone'){
-      const d=t.value.replace(/\D/g,'').slice(0,11);
-      t.value=d.length>7?`${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`
-        :(d.length>3?`${d.slice(0,3)}-${d.slice(3)}`:d);
-    }
+    if(t.dataset.fmt==='phone') t.value=fmtPhone(t.value);
     if(t.id==='free') A.free=t.value;
     if(t.id==='who') A.name=t.value;
     if(t.id==='cPhone'){ A.contact.phone=t.value; }
