@@ -973,30 +973,23 @@ function schedList(w){
       edited:!!ov[it.k]};
   });
 }
-/* 같은 날짜끼리 묶습니다 — 날짜가 두 번 반복되지 않도록 */
-function byDate(rows){
-  const out=[];
-  rows.forEach(r=>{
-    const last=out[out.length-1];
-    if(last&&last.label===r.label) last.ts.push(r.t);
-    else out.push({label:r.label,ts:[r.t]});
-  });
-  return out;
-}
 /* 카톡·DM으로 그대로 보낼 수 있는 글 */
 function schedText(w){
   const rows=schedList(w).filter(r=>r.date);
   if(!rows.length) return '';
   const mine=rows.filter(r=>r.who==='couple'), ours=rows.filter(r=>r.who==='mc');
   /* 카톡은 길이 자체가 부담이라 한 줄에 날짜와 할 일을 같이 둡니다.
-     따뜻함은 여백 대신 앞뒤 인사와 이모지 머리말로 냅니다.
-     같은 날에 걸린 항목은 날짜를 한 번만 쓰고 가운뎃점으로 잇습니다. */
-  const line=g=>`${g.label}  ${g.ts.join(', ')}`;
+     한 줄이 길면 카톡이 아무 데서나 끊어 지저분해지므로, 같은 날짜라도
+     항목마다 줄을 나눕니다(날짜를 다시 적는 편이 끊긴 줄보다 깔끔합니다).
+     맺음말도 쉼표에서 미리 끊어 어디서 줄이 바뀔지 정해둡니다. */
+  const line=r=>`${r.label} ${r.t}`;
   return [`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분의 준비 일정입니다 🌷`,'',
-    ...(mine.length?['✨ 두 분이 정해주실 것',...byDate(mine).map(line),'']:[]),
-    ...(ours.length?['✍🏻 제가 준비하는 것',...byDate(ours).map(line),'']:[]),
-    '💌 여유 있게 잡아둔 일정이라 조금 늦어져도 괜찮습니다.',
-    '두 분은 하나씩만 준비해주시면, 나머지는 제가 함께 준비해가겠습니다.'].join('\n');
+    ...(mine.length?['✨ 두 분이 정해주실 것',...mine.map(line),'']:[]),
+    ...(ours.length?['✍🏻 제가 준비하는 것',...ours.map(line),'']:[]),
+    '💌 여유 있게 잡아둔 일정이라',
+    '조금 늦어져도 괜찮습니다.','',
+    '두 분은 하나씩만 준비해주시면,',
+    '나머지는 제가 함께 준비해가겠습니다.'].join('\n');
 }
 function schedHTML(){
   const w=cur(), rows=schedList(w);
