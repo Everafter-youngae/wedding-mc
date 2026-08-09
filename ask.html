@@ -96,6 +96,18 @@ header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
 .qbody textarea:focus{border-color:var(--wine);outline:none}
 .pick.col{flex-direction:column}
 .pick.col button{min-height:52px}
+.opt{color:var(--ink3);font-weight:400}
+.privacy{margin-top:18px;border:1px solid var(--line);border-radius:12px;background:#FAFBFC;padding:16px}
+.privacy .ph{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:12px}
+.privacy .ph b{color:var(--wine)}
+.privacy ul{list-style:none;margin:0;padding:0}
+.privacy li{display:flex;gap:10px;font-size:12.5px;color:var(--ink2);line-height:1.6;margin-bottom:7px;word-break:keep-all}
+.privacy li span{flex:none;width:62px;color:var(--ink3);font-weight:600}
+.privacy .note{font-size:12.5px;color:var(--ink3);line-height:1.6;margin:12px 0 0;word-break:keep-all}
+.privacy .agree{display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
+  font-size:14px;color:var(--ink);line-height:1.5;word-break:keep-all;cursor:pointer;font-weight:500}
+.privacy .agree input{flex:none;width:22px;height:22px;margin:0;accent-color:var(--wine)}
+.privacy.need{border-color:var(--wine);background:var(--wine-soft)}
 .pick.col button .fs{display:block;font-size:12.5px;color:var(--ink3);font-weight:400;margin-top:4px}
 .pick.col button{padding:16px 12px;min-height:66px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -130,7 +142,12 @@ header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
 <script src="shared.js"></script>
 <script>
 const $=(s,r=document)=>r.querySelector(s);
-let CFG=null, A={basic:{},opts:{},secs:{},story:{},skipSecs:null,free:'',name:''};
+let CFG=null, A={basic:{},opts:{},secs:{},story:{},skipSecs:null,free:'',name:'',contact:{phone:'',kakao:''},consent:null};
+/* 개인정보 수집·이용 동의 · 문구를 고치면 반드시 VER를 올려주세요 (언제 어떤 문구에 동의했는지 남기기 위함) */
+const PRIVACY_VER='1.0';
+const PRIVACY_ITEMS='연락처(휴대폰 번호), 카카오톡 ID';
+const PRIVACY_PURPOSE='예식 사회 진행 준비와 당일 연락, 예식 후 Everafter 편지·기록 발송';
+const PRIVACY_KEEP='수집일부터 예식일 1년 후까지 (기간이 지나면 지체 없이 파기합니다)';
 let VIEW='card', IDX=0, BOUND=false;
 
 function decode(h){
@@ -204,7 +221,11 @@ const SECS=[
 
 function draftKey(){ return 'mc-ask-'+(CFG?CFG.id:'x'); }
 function saveDraft(){ try{ localStorage.setItem(draftKey(),JSON.stringify(A)); }catch(e){} }
-function loadDraft(){ try{ const v=localStorage.getItem(draftKey()); if(v) A=Object.assign(A,JSON.parse(v)); }catch(e){} }
+function loadDraft(){ try{ const v=localStorage.getItem(draftKey()); if(v) A=Object.assign(A,JSON.parse(v)); }catch(e){}
+  A.contact=A.contact||{phone:'',kakao:''};
+  /* 문구가 바뀐 뒤에 돌아온 분께는 다시 동의를 받습니다 (예전 문구 동의로 새 문구를 갈음하지 않도록) */
+  if(A.consent&&A.consent.ver!==PRIVACY_VER) A.consent=null;
+}
 
 function loading(){ $('#app').innerHTML=`<div class="load"><div class="env-scene"><svg class="envelope-px" viewBox="0 0 48 56" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"><defs><clipPath id="cardMask"><rect x="0" y="0" width="48" height="24"/></clipPath></defs><g><rect x="4" y="24" width="40" height="2" fill="#181512"/><rect x="4" y="48" width="40" height="2" fill="#181512"/><rect x="4" y="26" width="2" height="2" fill="#181512"/><rect x="42" y="26" width="2" height="2" fill="#181512"/><rect x="6" y="26" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="28" width="2" height="2" fill="#181512"/><rect x="42" y="28" width="2" height="2" fill="#181512"/><rect x="6" y="28" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="30" width="2" height="2" fill="#181512"/><rect x="42" y="30" width="2" height="2" fill="#181512"/><rect x="6" y="30" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="32" width="2" height="2" fill="#181512"/><rect x="42" y="32" width="2" height="2" fill="#181512"/><rect x="6" y="32" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="34" width="2" height="2" fill="#181512"/><rect x="42" y="34" width="2" height="2" fill="#181512"/><rect x="6" y="34" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="36" width="2" height="2" fill="#181512"/><rect x="42" y="36" width="2" height="2" fill="#181512"/><rect x="6" y="36" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="38" width="2" height="2" fill="#181512"/><rect x="42" y="38" width="2" height="2" fill="#181512"/><rect x="6" y="38" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="40" width="2" height="2" fill="#181512"/><rect x="42" y="40" width="2" height="2" fill="#181512"/><rect x="6" y="40" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="42" width="2" height="2" fill="#181512"/><rect x="42" y="42" width="2" height="2" fill="#181512"/><rect x="6" y="42" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="44" width="2" height="2" fill="#181512"/><rect x="42" y="44" width="2" height="2" fill="#181512"/><rect x="6" y="44" width="36" height="2" fill="#FFFFFF"/><rect x="4" y="46" width="2" height="2" fill="#181512"/><rect x="42" y="46" width="2" height="2" fill="#181512"/><rect x="6" y="46" width="36" height="2" fill="#FFFFFF"/><rect x="2" y="24" width="4" height="2" fill="#181512"/><rect x="6" y="26" width="4" height="2" fill="#181512"/><rect x="8" y="28" width="4" height="2" fill="#181512"/><rect x="12" y="30" width="4" height="2" fill="#181512"/><rect x="16" y="32" width="4" height="2" fill="#181512"/><rect x="18" y="34" width="4" height="2" fill="#181512"/><rect x="22" y="36" width="4" height="2" fill="#181512"/><rect x="42" y="24" width="4" height="2" fill="#181512"/><rect x="38" y="26" width="4" height="2" fill="#181512"/><rect x="36" y="28" width="4" height="2" fill="#181512"/><rect x="32" y="30" width="4" height="2" fill="#181512"/><rect x="28" y="32" width="4" height="2" fill="#181512"/><rect x="26" y="34" width="4" height="2" fill="#181512"/><rect x="22" y="36" width="4" height="2" fill="#181512"/></g><g><rect x="18" y="30" width="4" height="2" fill="#D8303F"/><rect x="26" y="30" width="4" height="2" fill="#D8303F"/><rect x="16" y="32" width="16" height="2" fill="#D8303F"/><rect x="18" y="32" width="4" height="2" fill="#F26B78"/><rect x="16" y="34" width="16" height="2" fill="#D8303F"/><rect x="18" y="36" width="12" height="2" fill="#D8303F"/><rect x="20" y="38" width="8" height="2" fill="#D8303F"/><rect x="22" y="40" width="4" height="2" fill="#D8303F"/></g><g clip-path="url(#cardMask)"><g class="card-wrap" transform="translate(10,48)"><g class="card-slide"><rect x="2" y="0" width="24" height="2" fill="#181512"/><rect x="2" y="26" width="24" height="2" fill="#181512"/><rect x="0" y="2" width="2" height="2" fill="#181512"/><rect x="26" y="2" width="2" height="2" fill="#181512"/><rect x="2" y="2" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="4" width="2" height="2" fill="#181512"/><rect x="26" y="4" width="2" height="2" fill="#181512"/><rect x="2" y="4" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="6" width="2" height="2" fill="#181512"/><rect x="26" y="6" width="2" height="2" fill="#181512"/><rect x="2" y="6" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="8" width="2" height="2" fill="#181512"/><rect x="26" y="8" width="2" height="2" fill="#181512"/><rect x="2" y="8" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="10" width="2" height="2" fill="#181512"/><rect x="26" y="10" width="2" height="2" fill="#181512"/><rect x="2" y="10" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="12" width="2" height="2" fill="#181512"/><rect x="26" y="12" width="2" height="2" fill="#181512"/><rect x="2" y="12" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="14" width="2" height="2" fill="#181512"/><rect x="26" y="14" width="2" height="2" fill="#181512"/><rect x="2" y="14" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="16" width="2" height="2" fill="#181512"/><rect x="26" y="16" width="2" height="2" fill="#181512"/><rect x="2" y="16" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="18" width="2" height="2" fill="#181512"/><rect x="26" y="18" width="2" height="2" fill="#181512"/><rect x="2" y="18" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="20" width="2" height="2" fill="#181512"/><rect x="26" y="20" width="2" height="2" fill="#181512"/><rect x="2" y="20" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="22" width="2" height="2" fill="#181512"/><rect x="26" y="22" width="2" height="2" fill="#181512"/><rect x="2" y="22" width="24" height="2" fill="#DCEFF2"/><rect x="0" y="24" width="2" height="2" fill="#181512"/><rect x="26" y="24" width="2" height="2" fill="#181512"/><rect x="2" y="24" width="24" height="2" fill="#DCEFF2"/><rect x="8" y="8" width="4" height="2" fill="#D8303F"/><rect x="16" y="8" width="4" height="2" fill="#D8303F"/><rect x="6" y="10" width="16" height="2" fill="#D8303F"/><rect x="8" y="10" width="4" height="2" fill="#F26B78"/><rect x="6" y="12" width="16" height="2" fill="#D8303F"/><rect x="8" y="14" width="12" height="2" fill="#D8303F"/><rect x="10" y="16" width="8" height="2" fill="#D8303F"/><rect x="12" y="18" width="4" height="2" fill="#D8303F"/></g></g></g><g><rect x="22" y="36" width="4" height="2" fill="#181512"/><rect x="22" y="36" width="4" height="2" fill="#181512"/><rect x="18" y="38" width="4" height="2" fill="#181512"/><rect x="26" y="38" width="4" height="2" fill="#181512"/><rect x="22" y="38" width="4" height="2" fill="#FFFFFF"/><rect x="16" y="40" width="4" height="2" fill="#181512"/><rect x="28" y="40" width="4" height="2" fill="#181512"/><rect x="20" y="40" width="8" height="2" fill="#FFFFFF"/><rect x="12" y="42" width="4" height="2" fill="#181512"/><rect x="32" y="42" width="4" height="2" fill="#181512"/><rect x="16" y="42" width="16" height="2" fill="#FFFFFF"/><rect x="8" y="44" width="4" height="2" fill="#181512"/><rect x="36" y="44" width="4" height="2" fill="#181512"/><rect x="12" y="44" width="24" height="2" fill="#FFFFFF"/><rect x="6" y="46" width="4" height="2" fill="#181512"/><rect x="38" y="46" width="4" height="2" fill="#181512"/><rect x="10" y="46" width="28" height="2" fill="#FFFFFF"/><rect x="2" y="48" width="4" height="2" fill="#181512"/><rect x="42" y="48" width="4" height="2" fill="#181512"/><rect x="6" y="48" width="36" height="2" fill="#FFFFFF"/></g></svg></div><div><div class="msg">예식 준비 내용을 여는 중입니다</div><div class="sub dots">잠시만 기다려 주세요</div></div></div>`; }
 
@@ -402,6 +423,7 @@ function renderLast(){
       <textarea id="free" placeholder="예: 아버지가 몸이 불편하셔서 이동을 줄여 주세요">${esc(A.free)}</textarea></div>
     <div class="f"><label>작성자 (누가 답해 주셨는지)</label>
       <input type="text" id="who" value="${esc(A.name)}" placeholder="김민주"></div>
+    ${contactBlock()}
   </div></div>
   <div class="cardnav"><div class="in">
     <button class="prev" id="cPrev">이전</button>
@@ -446,6 +468,7 @@ function renderList(){
       <textarea id="free" placeholder="예: 아버지가 몸이 불편하셔서 이동을 줄여 주세요">${esc(A.free)}</textarea></div>
     <div class="f"><label>작성자 (누가 답해 주셨는지)</label>
       <input type="text" id="who" value="${esc(A.name)}" placeholder="김민주"></div>
+    ${contactBlock()}
   </div>
 
   <div class="bar"><div class="in">
@@ -463,6 +486,24 @@ function bf(k,label,type='text',ph=''){
   const placeholder=fmt==='date'?'0000-00-00':(fmt==='time'?'00:00':ph);
   return `<div class="f"><label>${label}</label>
     <input type="${inputType}"${extra} data-b="${k}" value="${esc(A.basic[k]||'')}" placeholder="${esc(placeholder)}"></div>`;
+}
+/* 연락처 + 개인정보 동의 · 카드형/목록형 두 화면에서 같이 씁니다 */
+function contactBlock(){
+  const c=A.contact||{}, ok=!!(A.consent&&A.consent.agreed);
+  return `<div class="f"><label>연락처 (두 분 중 한 분 것이면 충분합니다)</label>
+      <input type="tel" inputmode="numeric" id="cPhone" data-fmt="phone" maxlength="13" value="${esc(c.phone||'')}" placeholder="010-0000-0000"></div>
+    <div class="f"><label>카카오톡 ID 또는 오픈채팅 링크 <span class="opt">· 선택</span></label>
+      <input type="text" id="cKakao" value="${esc(c.kakao||'')}" placeholder="비워두셔도 됩니다"></div>
+    <div class="privacy" id="pvBox">
+      <div class="ph">개인정보 수집·이용 동의 <b>(필수)</b></div>
+      <ul>
+        <li><span>수집 항목</span>${PRIVACY_ITEMS}</li>
+        <li><span>이용 목적</span>${PRIVACY_PURPOSE}</li>
+        <li><span>보유 기간</span>${PRIVACY_KEEP}</li>
+      </ul>
+      <p class="note">동의를 거부하실 수 있습니다. 다만 연락처가 없으면 예식을 준비하는 동안 연락을 드리기 어렵습니다.</p>
+      <label class="agree"><input type="checkbox" id="cAgree"${ok?' checked':''}><span>위 내용을 확인했으며, 개인정보 수집·이용에 동의합니다.</span></label>
+    </div>`;
 }
 function card(s,i){
   const a=A.secs[s.k], off=a.use==='off';
@@ -499,8 +540,23 @@ function bind(){
     if(t.dataset.opt) A.opts[t.dataset.opt]=t.value;
     if(t.dataset.mus) A.secs[t.dataset.mus].music=t.value;
     if(t.dataset.note) A.secs[t.dataset.note].note=t.value;
+    if(t.dataset.fmt==='phone'){
+      const d=t.value.replace(/\D/g,'').slice(0,11);
+      t.value=d.length>7?`${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`
+        :(d.length>3?`${d.slice(0,3)}-${d.slice(3)}`:d);
+    }
     if(t.id==='free') A.free=t.value;
     if(t.id==='who') A.name=t.value;
+    if(t.id==='cPhone'){ A.contact.phone=t.value; }
+    if(t.id==='cKakao'){ A.contact.kakao=t.value; }
+    saveDraft();
+  });
+  document.addEventListener('change',e=>{
+    if(e.target.id!=='cAgree') return;
+    /* 동의한 시점과 문구 버전을 함께 남깁니다 — 나중에 "무엇에 동의했는지" 확인할 수 있어야 하므로 */
+    A.consent=e.target.checked?{agreed:true,at:new Date().toISOString(),ver:PRIVACY_VER}:null;
+    const box=document.getElementById('pvBox');
+    if(box&&e.target.checked) box.classList.remove('need');
     saveDraft();
   });
   document.addEventListener('click',e=>{
@@ -553,8 +609,20 @@ function count(){
 }
 
 async function send(){
+  /* 동의 없이는 연락처를 받지 않습니다 — 체크 전에는 전송 자체를 막습니다 */
+  if(!(A.consent&&A.consent.agreed)){
+    const box=document.getElementById('pvBox');
+    if(box){
+      box.classList.add('need');
+      box.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+    const cb=document.getElementById('cAgree');
+    if(cb) cb.focus({preventScroll:true});
+    return;
+  }
   const btn=$('#send'); btn.disabled=true; btn.textContent='보내는 중…';
-  const payload={id:CFG.id,ts:new Date().toISOString(),name:A.name,basic:A.basic,opts:A.opts,secs:A.secs,story:A.story,skipSecs:A.skipSecs===true,free:A.free};
+  const payload={id:CFG.id,ts:new Date().toISOString(),name:A.name,basic:A.basic,opts:A.opts,secs:A.secs,story:A.story,skipSecs:A.skipSecs===true,free:A.free,
+    contact:A.contact,consent:A.consent};
   try{
     if(!CFG.gs) throw new Error('no endpoint');
     const r=await fetch(CFG.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
