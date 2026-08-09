@@ -483,7 +483,7 @@ function blank(){
   return {
     id:'w'+Date.now().toString(36),
     groom:'', bride:'', date:'', time:'',
-    youngaeCode:'', email:'', journeyNameCheck:'',
+    youngaeCode:'', email:'', journeyNameCheck:'', linkKey:'',
     phone:'', kakao:'', consentAt:'', consentVer:'', consentSrc:'',
     archiveSentence:'', archiveScene:'', archiveClosing:'', archiveSentAt:'',
     sentencePicks:[],
@@ -896,7 +896,7 @@ async function load(){
   DB.notes=DB.notes||{dmReply:DEFAULT_DM_REPLY,faq:[]};
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
-    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.sentencePicks=w.sentencePicks||[]; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
   maybeNudgeBackup();
@@ -1720,7 +1720,8 @@ function askConfig(){
 }
 function askLink(){
   const c=DB.conn||{}, base=(c.ask||'https://주소를-먼저-설정하세요/ask.html').trim().replace(/#.*$/,'');
-  return base+'#'+cur().id+(c.longLink?('~'+gsId(c.gs)):'');
+  const w=cur();
+  return base+'#'+w.id+(w.linkKey?('.'+w.linkKey):'')+(c.longLink?('~'+gsId(c.gs)):'');
 }
 function authErr_(e,fallback){ return e==='unauthorized'?'관리자 토큰이 맞지 않습니다. 응답 링크에서 확인해 주세요.':(e||fallback); }
 async function pushConfig(){
@@ -1733,6 +1734,23 @@ async function pushConfig(){
 }
 
 function adminToken(){ return ((DB.conn||{}).token||'').trim(); }
+
+/* 예식마다 추측할 수 없는 링크키를 하나씩 둡니다. 예전에는 영애 코드(순번)만
+   알면 남의 예식도 열렸기 때문입니다. 한 번 받아오면 예식에 저장해 두고
+   그대로 씁니다. 링크를 만들기 전에 불러야 합니다. */
+async function ensureLinkKey(w){
+  if(!w) return '';
+  if(w.linkKey) return w.linkKey;
+  const c=DB.conn||{};
+  if(!c.gs) return '';
+  try{
+    const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({type:'linkKey',id:w.id,token:adminToken()})});
+    const j=await r.json();
+    if(j.ok&&j.t){ w.linkKey=j.t; save(); return w.linkKey; }
+  }catch(e){}
+  return '';
+}
 function connForm(){
   const c=DB.conn||{};
   return `<div class="f"><label>응답 폼 주소 (ask.html을 올린 주소)</label>
@@ -1884,7 +1902,8 @@ function renderDashboard(){
 }
 document.getElementById('btnDash').onclick=showDashboard;
 
-document.getElementById('btnLink').onclick=()=>{
+document.getElementById('btnLink').onclick=async()=>{
+  await ensureLinkKey(cur());
   const c=DB.conn||{};
   const ready=c.ask&&c.gs;
   openModal('응답 링크 보내기',
@@ -1971,7 +1990,7 @@ function journeyLink(){
   const base=(c.journey||ask.replace(/[^/]*$/,'story.html')||'https://주소를-먼저-설정하세요/story.html').replace(/#.*$/,'');
   // 카카오톡 등 인앱 브라우저가 링크 속 한글을 다루다 깨뜨리는 경우가 있어,
   // 공유되는 링크는 영문/숫자로만 이루어지도록 인코딩합니다.
-  const hash=encodeURIComponent('영애'+code);
+  const hash=encodeURIComponent('영애'+code)+(w.linkKey?('.'+w.linkKey):'');
   return base+'#'+hash+(c.longLink?('~'+gsId(c.gs)):'');
 }
 function publicJourneyState(w){
@@ -2014,7 +2033,8 @@ async function sendEverafterLetter(){
   const j=await r.json(); if(!j.ok) throw new Error(authErr_(j.error,'메일을 보내지 못했습니다.'));
   w.archiveSentAt=new Date().toISOString(); markStep('s10'); save();
 }
-document.getElementById('btnJourney').onclick=()=>{
+document.getElementById('btnJourney').onclick=async()=>{
+  await ensureLinkKey(cur());
   const w=cur(); ensureYoungaeCode(w); const state=publicJourneyState(w);
   const code=w.youngaeCode||'예식일을 입력해 주세요';
   openModal('두 분의 이야기',
@@ -2244,7 +2264,8 @@ async function openSentencePicker(w){
 /* ---------- 대본 보내기 ---------- */
 function reviewLink(){
   const c=DB.conn||{}, base=(c.ask||'https://주소를-먼저-설정하세요/ask.html').trim().replace(/#.*$/,'');
-  return base.replace(/[^/]*$/,'review.html')+'#'+cur().id+((DB.conn||{}).longLink?('~'+gsId(c.gs)):'');
+  const w=cur();
+  return base.replace(/[^/]*$/,'review.html')+'#'+w.id+(w.linkKey?('.'+w.linkKey):'')+((DB.conn||{}).longLink?('~'+gsId(c.gs)):'');
 }
 async function pushScript(round){
   const c=DB.conn||{}, w=cur();
@@ -2267,7 +2288,8 @@ async function notifyScriptEmail(w,round,reviewUrl){
     return !!j.ok;
   }catch(e){ return false; }
 }
-document.getElementById('btnSend').onclick=()=>{
+document.getElementById('btnSend').onclick=async()=>{
+  await ensureLinkKey(cur());
   const w=cur(), p=DB.print||{};
   const rounds=['1차 검토본','2차 검토본','최종본'];
   const draw=()=>{

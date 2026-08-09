@@ -222,27 +222,28 @@ async function init(){
   h=h.replace(/%7E/gi,'~');
   if(!h){ badLink(); return; }
 
-  if(h.indexOf('~')>-1||/^[A-Za-z0-9_-]+$/.test(h)){
-    const [id,dep]=h.split('~');
+  if(h.indexOf('~')>-1||/^[A-Za-z0-9_.-]+$/.test(h)){
+    const [head,dep]=h.split('~');
+    const [id,linkT]=head.split('.');
     if(!id){ badLink(); return; }
     const gs=dep?('https://script.google.com/macros/s/'+dep+'/exec'):GS_URL;
     if(!gs){ badLink(); return; }
     let cached=null;
     try{ const v=localStorage.getItem('mc-cfg-'+id); if(v) cached=JSON.parse(v); }catch(e){}
     const pull=async()=>{
-      const r=await fetch(gs+'?cfg='+encodeURIComponent(id));
+      const r=await fetch(gs+'?cfg='+encodeURIComponent(id)+'&t='+encodeURIComponent(linkT));
       const j=await r.json();
       if(!j.ok||!j.cfg) throw new Error('no config');
       try{ localStorage.setItem('mc-cfg-'+id,JSON.stringify(j.cfg)); }catch(e){}
       return j.cfg;
     };
     if(cached){
-      CFG=cached; CFG.gs=gs; CFG.id=id;
+      CFG=cached; CFG.gs=gs; CFG.id=id; CFG.t=linkT||'';
       pull().then(()=>{}).catch(()=>{});
     }else{
       loading();
       try{
-        CFG=await pull(); CFG.gs=gs; CFG.id=id;
+        CFG=await pull(); CFG.gs=gs; CFG.id=id; CFG.t=linkT||'';
       }catch(e){
         screen('내용을 불러오지 못했습니다',
           '인터넷 연결을 확인하고 새로고침해 주세요.<br>계속 같은 화면이면 사회자분께 알려 주세요.');
@@ -620,7 +621,7 @@ async function send(){
     return;
   }
   const btn=$('#send'); btn.disabled=true; btn.textContent='보내는 중…';
-  const payload={id:CFG.id,ts:new Date().toISOString(),name:A.name,basic:A.basic,opts:A.opts,secs:A.secs,story:A.story,skipSecs:A.skipSecs===true,free:A.free,
+  const payload={id:CFG.id,t:CFG.t||'',ts:new Date().toISOString(),name:A.name,basic:A.basic,opts:A.opts,secs:A.secs,story:A.story,skipSecs:A.skipSecs===true,free:A.free,
     contact:A.contact,consent:A.consent};
   try{
     if(!CFG.gs) throw new Error('no endpoint');
