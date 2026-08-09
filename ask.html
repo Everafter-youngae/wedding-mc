@@ -297,15 +297,20 @@ function intro(){
 function schedHTML(){
   const rows=(CFG.sched||[]).filter(r=>r&&r.label);
   if(!rows.length) return '';
-  const mine=rows.filter(r=>r.who==='couple'), ours=rows.filter(r=>r.who==='mc');
+  /* 같은 날에 걸린 항목은 날짜를 한 번만 쓰고 아래로 묶습니다 */
+  const byDate=rs=>rs.reduce((o,r)=>{
+    const last=o[o.length-1];
+    if(last&&last.label===r.label) last.ts.push(r.t); else o.push({label:r.label,ts:[r.t]});
+    return o;
+  },[]);
+  const li=g=>`<li><b>${esc(g.label)}</b><span>${g.ts.map(t=>esc(t)).join('<br>')}</span></li>`;
+  const mine=byDate(rows.filter(r=>r.who==='couple')), ours=byDate(rows.filter(r=>r.who==='mc'));
   return `<div class="sched">
     <p class="sched-h">앞으로의 준비 일정</p>
     ${mine.length?`<p class="sched-sub">✨ 두 분이 정해주실 것</p>
-      <ul class="sched-mine">${mine.map(r=>
-        `<li><b>${esc(r.label)}</b><span>${esc(r.t)}</span></li>`).join('')}</ul>`:''}
+      <ul class="sched-mine">${mine.map(li).join('')}</ul>`:''}
     ${ours.length?`<p class="sched-sub soft">✍🏻 제가 준비하는 것</p>
-      <ul class="sched-ours">${ours.map(r=>
-        `<li><b>${esc(r.label)}</b><span>${esc(r.t)}</span></li>`).join('')}</ul>`:''}
+      <ul class="sched-ours">${ours.map(li).join('')}</ul>`:''}
     <p class="sched-note">💌 일정은 조금 여유 있게 잡아두었습니다.<br>
       주례 · 축가 · 축사는 천천히 이야기 나누시고, 정해지는 대로 편하게 알려주세요.<br><br>
       두 분은 하나씩 준비해주시면, 나머지는 제가 함께 준비해가겠습니다.</p>

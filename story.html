@@ -82,8 +82,12 @@ function sentenceSectionHTML(d){
   </section>`;
 }
 /* 준비 일정 · 예식이 끝나면(s8) 의미가 없어 감춥니다 */
-function schedSectionHTML(d){const rows=(d.sched||[]).filter(r=>r&&r.label);if(!rows.length)return'';const mine=rows.filter(r=>r.who==='couple'),ours=rows.filter(r=>r.who==='mc');
-return `<section class="card"><div class="eyebrow">앞으로의 준비 일정</div>${mine.length?`<p class="sc-sub">✨ 두 분이 정해주실 것</p><ul class="sc">${mine.map(r=>`<li><b>${esc(r.label)}</b><span>${esc(r.t)}</span></li>`).join('')}</ul>`:''}${ours.length?`<p class="sc-sub soft">✍🏻 제가 준비하는 것</p><ul class="sc soft">${ours.map(r=>`<li><b>${esc(r.label)}</b><span>${esc(r.t)}</span></li>`).join('')}</ul>`:''}<p class="sc-note">💌 일정은 조금 여유 있게 잡아두었습니다.<br>주례 · 축가 · 축사는 천천히 이야기 나누시고, 정해지는 대로 편하게 알려주세요.<br><br>두 분은 하나씩 준비해주시면, 나머지는 제가 함께 준비해가겠습니다.</p></section>`}
+function schedSectionHTML(d){const rows=(d.sched||[]).filter(r=>r&&r.label);if(!rows.length)return'';
+/* 같은 날에 걸린 항목은 날짜를 한 번만 쓰고 아래로 묶습니다 */
+const byDate=rs=>rs.reduce((o,r)=>{const last=o[o.length-1];if(last&&last.label===r.label)last.ts.push(r.t);else o.push({label:r.label,ts:[r.t]});return o},[]);
+const li=g=>`<li><b>${esc(g.label)}</b><span>${g.ts.map(t=>esc(t)).join('<br>')}</span></li>`;
+const mine=byDate(rows.filter(r=>r.who==='couple')),ours=byDate(rows.filter(r=>r.who==='mc'));
+return `<section class="card"><div class="eyebrow">앞으로의 준비 일정</div>${mine.length?`<p class="sc-sub">✨ 두 분이 정해주실 것</p><ul class="sc">${mine.map(li).join('')}</ul>`:''}${ours.length?`<p class="sc-sub soft">✍🏻 제가 준비하는 것</p><ul class="sc soft">${ours.map(li).join('')}</ul>`:''}<p class="sc-note">💌 일정은 조금 여유 있게 잡아두었습니다.<br>주례 · 축가 · 축사는 천천히 이야기 나누시고, 정해지는 대로 편하게 알려주세요.<br><br>두 분은 하나씩 준비해주시면, 나머지는 제가 함께 준비해가겠습니다.</p></section>`}
 function render(d,script){const st=state(d),after=Boolean((d.steps||{}).s8);document.title=`${d.bride||''} · ${d.groom||''} 두 분의 이야기`;const code=normalize(d.code||'')||String(d.code||'');
 $('#app').innerHTML=`<div class="brand">Everafter</div><div class="subbrand">LETTER · STORY · MEMORY</div>
 <section class="hero"><div class="code-label">Code</div><div class="code">영애 ${esc(code)}</div><h1>${esc(d.bride||'신부')} · ${esc(d.groom||'신랑')}<br>두 분의 이야기</h1><p>${esc(d.date||'')} 오래 기억될 하루를 함께 준비합니다.</p><div class="tulip">🌷</div></section>
