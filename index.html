@@ -938,11 +938,13 @@ const FLOW=[
    알려주실 수 있도록 '몇 주 전 일요일'로 잡습니다 (토요일 예식이면 D-27/20/13).
    급하게 잡힌 예식은 간격이 안 맞으므로 날짜별로 직접 고칠 수 있습니다. */
 const SCHED=[
-  {k:'order',  t:'식순 정해서 알려주기',           who:'couple', weeks:4},
-  {k:'people', t:'주례·축가·축사 정해서 알려주기',  who:'couple', weeks:3},
-  {k:'draft1', t:'1차 대본 보내드리기',            who:'mc',     weeks:2},
-  {k:'final',  t:'최종 대본 보내드리기',           who:'mc',     days:10},
-  {k:'check',  t:'마지막으로 함께 점검하기',        who:'mc',     days:1},
+  {k:'ask',    t:'사전 설문지 답변 주기',          who:'couple', weeks:11},
+  {k:'draft1', t:'첫 번째 대본 보내드리기',         who:'mc',     weeks:9},
+  {k:'fb1',    t:'첫 번째 대본 의견 주기',          who:'couple', weeks:7},
+  {k:'draft2', t:'함께 다듬은 대본 보내드리기',      who:'mc',     weeks:5},
+  {k:'fb2',    t:'두 번째 대본 의견 주기',          who:'couple', weeks:3},
+  {k:'final',  t:'최종 대본 보내드리기',           who:'mc',     days:8},
+  {k:'check',  t:'예식 전 마지막 함께 점검하기',     who:'mc',     days:1},
 ];
 const DOW=['일','월','화','수','목','금','토'];
 function ymd(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -962,7 +964,7 @@ function schedList(w){
     const date=ov[it.k]||autoSchedDate(w.date,it);
     const d=date?new Date(date+'T00:00:00'):null;
     return {k:it.k,t:it.t,who:it.who,date,
-      label:d&&!isNaN(d)?`${d.getMonth()+1}/${d.getDate()} (${DOW[d.getDay()]})`:'',
+      label:d&&!isNaN(d)?`${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`:'',
       edited:!!ov[it.k]};
   });
 }
@@ -971,15 +973,17 @@ function schedText(w){
   const rows=schedList(w).filter(r=>r.date);
   if(!rows.length) return '';
   const mine=rows.filter(r=>r.who==='couple'), ours=rows.filter(r=>r.who==='mc');
-  return ['[예식 준비 일정]','',
-    '두 분이 해주실 일은 두 가지입니다.',
-    ...mine.map(r=>`· ${r.label}까지  ${r.t}`),
-    '',
-    '나머지는 제가 준비해서 보내드립니다.',
-    ...ours.map(r=>`· ${r.label}  ${r.t}`),
-    '',
-    '날짜는 여유 있게 잡아둔 것이니 조금 늦어져도 괜찮습니다.',
-    '주례·축가·축사는 천천히 정하셔도 되고, 정해지는 대로 알려주시면 됩니다.'].join('\n');
+  /* 카톡에서 딱딱해 보이지 않도록, 날짜와 할 일을 줄로 나눠 여백을 둡니다 */
+  const block=r=>`✓ ${r.label}\n${r.t}`;
+  return [`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분의 이야기를 함께 준비하고 있습니다. 🌷`,
+    '앞으로의 준비 일정을 함께 보내드립니다.','',
+    ...(mine.length?['✨ 두 분이 정해주실 것','',...mine.map(block).flatMap(b=>[b,'']) ]:[]),
+    ...(ours.length?['✍🏻 제가 준비하는 것','',...ours.map(block).flatMap(b=>[b,'']) ]:[]),
+    '💌 일정은 조금 여유 있게 잡아두었습니다.',
+    '주례 · 축가 · 축사는 천천히 이야기 나누시고,',
+    '정해지는 대로 편하게 알려주세요.','',
+    '두 분은 하나씩 준비해주시면,',
+    '나머지는 제가 함께 준비해가겠습니다.'].join('\n');
 }
 function schedHTML(){
   const w=cur(), rows=schedList(w);
