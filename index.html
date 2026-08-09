@@ -113,6 +113,11 @@ select.sel{border:1px solid var(--line);background:var(--card);border-radius:8px
 .row>*{flex:1;min-width:0}
 .hint{font-size:12px;color:var(--ink3);margin-top:6px;line-height:1.5}
 .linklike{border:0;background:none;padding:0;font:inherit;color:var(--ink3);text-decoration:underline;cursor:pointer}
+.sched-row .who{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:100px;font-size:10.5px;font-weight:700;vertical-align:middle}
+.sched-row .who.couple{background:var(--wine-soft);color:var(--wine)}
+.sched-row .who.mc{background:#EDF0F3;color:var(--ink2)}
+.sched-when{max-width:130px;flex:none}
+.sched-label{font-size:13px;color:var(--ink2);padding:9px 0}
 .linklike:hover{color:var(--wine)}
 .retain-warn{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 14px;padding:14px 16px;
   border:1px solid var(--wine);border-radius:10px;background:var(--wine-soft);font-size:13px;line-height:1.55;word-break:keep-all}
@@ -928,6 +933,68 @@ const FLOW=[
   {k:'s9',t:'편지에 답장 수신',   hint:'고객이 후기를 남기면 자동으로 표시됩니다.'},
   {k:'s10',t:'Everafter 편지 발송',hint:'<b>두 분의 이야기</b>에서 편지를 확인하고 메일로 보내세요.'},
 ];
+/* ---------- 진행 일정 ----------
+   예식일에서 자동으로 계산합니다. 신랑신부가 해주실 일은 주말에 상의하고
+   알려주실 수 있도록 '몇 주 전 일요일'로 잡습니다 (토요일 예식이면 D-27/20/13).
+   급하게 잡힌 예식은 간격이 안 맞으므로 날짜별로 직접 고칠 수 있습니다. */
+const SCHED=[
+  {k:'order',  t:'식순 정해서 알려주기',           who:'couple', weeks:4},
+  {k:'people', t:'주례·축가·축사 정해서 알려주기',  who:'couple', weeks:3},
+  {k:'draft1', t:'1차 대본 보내드리기',            who:'mc',     weeks:2},
+  {k:'final',  t:'최종 대본 보내드리기',           who:'mc',     days:10},
+  {k:'check',  t:'마지막으로 함께 점검하기',        who:'mc',     days:1},
+];
+const DOW=['일','월','화','수','목','금','토'];
+function ymd(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function autoSchedDate(dateStr,item){
+  if(!dateStr) return '';
+  const d=new Date(dateStr+'T00:00:00');
+  if(isNaN(d)) return '';
+  if(item.weeks!=null){
+    d.setDate(d.getDate()-item.weeks*7);
+    d.setDate(d.getDate()+((7-d.getDay())%7)); /* 그 주의 일요일로 (이미 일요일이면 그대로) */
+  } else d.setDate(d.getDate()-item.days);
+  return ymd(d);
+}
+function schedList(w){
+  const ov=w.schedule||{};
+  return SCHED.map(it=>{
+    const date=ov[it.k]||autoSchedDate(w.date,it);
+    const d=date?new Date(date+'T00:00:00'):null;
+    return {k:it.k,t:it.t,who:it.who,date,
+      label:d&&!isNaN(d)?`${d.getMonth()+1}/${d.getDate()} (${DOW[d.getDay()]})`:'',
+      edited:!!ov[it.k]};
+  });
+}
+/* 카톡·DM으로 그대로 보낼 수 있는 글 */
+function schedText(w){
+  const rows=schedList(w).filter(r=>r.date);
+  if(!rows.length) return '';
+  const mine=rows.filter(r=>r.who==='couple'), ours=rows.filter(r=>r.who==='mc');
+  return ['[예식 준비 일정]','',
+    '두 분이 해주실 일은 두 가지입니다.',
+    ...mine.map(r=>`· ${r.label}까지  ${r.t}`),
+    '',
+    '나머지는 제가 준비해서 보내드립니다.',
+    ...ours.map(r=>`· ${r.label}  ${r.t}`),
+    '',
+    '날짜는 여유 있게 잡아둔 것이니 조금 늦어져도 괜찮습니다.',
+    '주례·축가·축사는 천천히 정하셔도 되고, 정해지는 대로 알려주시면 됩니다.'].join('\n');
+}
+function schedHTML(){
+  const w=cur(), rows=schedList(w);
+  if(!w.date) return `<div class="hint">예식일을 먼저 넣으면 일정이 자동으로 잡힙니다.</div>`;
+  return `${rows.map(r=>`<div class="row sched-row">
+      <div class="f"><label>${esc(r.t)} <span class="who ${r.who}">${r.who==='couple'?'신랑신부':'사회자'}</span></label>
+        <input type="date" data-sched="${r.k}" value="${esc(r.date)}"></div>
+      <div class="f sched-when"><label>&nbsp;</label><div class="sched-label">${esc(r.label)}${r.edited?' · 직접 지정':''}</div></div>
+    </div>`).join('')}
+    <div class="row" style="gap:8px">
+      <button class="btn" id="btnSchedCopy" style="flex:1">일정 글 복사</button>
+      <button class="btn ghost" id="btnSchedReset" style="flex:1">자동 날짜로 되돌리기</button>
+    </div>
+    <div class="hint">신랑신부에게는 사전 질문지 첫 화면과 "두 분의 이야기"에 함께 보입니다.</div>`;
+}
 function stepDone(k,on){
   const w=cur(); w.steps=w.steps||{};
   if(on){ if(!w.steps[k]) w.steps[k]=new Date().toISOString(); }
@@ -1066,6 +1133,10 @@ ${retentionHTML(w)}
     ${txt('연회장 층','floor','지하 1층')}
   </div>
   ${area('예식 메모','memo','신랑신부가 들려준 이야기, 주의할 점 등','사전 질문지 답변을 여기에 모아둘 수 있습니다. 대본에는 나가지 않습니다.')}
+</div></details>
+
+<details class="group" id="g-sched" ${op('g-sched')}><summary>진행 일정</summary><div class="gbody">
+  ${schedHTML()}
 </div></details>
 
 <details class="group" id="g-order" ${op('g-order')}><summary>식순 구성</summary><div class="gbody">
@@ -1261,6 +1332,9 @@ function wipeContact(w,quiet){
 document.getElementById('form').addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.fmt==='phone') t.value=fmtPhone(t.value);
+  if(t.dataset.sched){ const w=cur(); w.schedule=w.schedule||{};
+    if(t.value) w.schedule[t.dataset.sched]=t.value; else delete w.schedule[t.dataset.sched];
+    save(); clearTimeout(window._rs); window._rs=setTimeout(renderForm,400); return; }
   if(t.dataset.k){ const w=cur(); w[t.dataset.k]=t.value; save();
     /* 사회자가 직접 받아 적은 연락처도 동의 출처를 남겨둡니다 */
     if((t.dataset.k==='phone'||t.dataset.k==='kakao')&&t.value&&!w.consentAt) w.consentSrc=w.consentSrc||'manual';
@@ -1274,6 +1348,12 @@ document.getElementById('form').addEventListener('change',e=>{
   if(t.dataset.secon){ setSec(t.dataset.secon,'on',t.checked); }
 });
 document.getElementById('form').addEventListener('click',e=>{
+  if(e.target.id==='btnSchedCopy'){ copyText(schedText(cur())); return; }
+  if(e.target.id==='btnSchedReset'){
+    const w=cur();
+    if(w.schedule&&Object.keys(w.schedule).length&&!confirm('직접 지정한 날짜를 지우고 예식일 기준 자동 날짜로 되돌립니다.')) return;
+    delete w.schedule; save(); renderForm(); toast('자동 날짜로 되돌렸습니다.'); return;
+  }
   if(e.target.id==='btnWipeContact'||e.target.id==='btnWipeExpired'){
     const w=cur();
     if(confirm('연락처와 카카오톡 ID, 동의 기록을 지웁니다.\n대본과 나머지 내용은 그대로 남습니다. 지울까요?')) wipeContact(w);
@@ -1708,6 +1788,7 @@ function askConfig(){
   return {
     id:w.id, bride:w.bride, groom:w.groom, mc:w.mcName, dateLabel:dateShort(w),
     date:w.date, time:w.time, venue:w.venue, floor:w.floor,
+    sched:schedList(w).filter(r=>r.date).map(r=>({t:r.t,who:r.who,label:r.label})),
     def:{on,music,candleParent:w.candleParent,
       brideTwoStep:w.brideTwoStep?'문 뒤에서 등장 후 입장':'한 번에 입장',
       brideEscort:w.brideEscort,
@@ -2054,7 +2135,8 @@ async function pushJourney(){
     id:w.id, code:w.youngaeCode, bride:w.bride, groom:w.groom, date:w.date, time:w.time,
     email:w.email||'', steps:w.steps||{}, archiveSentence:w.archiveSentence||'',
     archiveScene:w.archiveScene||'', archiveClosing:w.archiveClosing||'', reviewLink:reviewLink(),
-    sentencePicks:w.sentencePicks||[]
+    sentencePicks:w.sentencePicks||[],
+    sched:schedList(w).filter(r=>r.date).map(r=>({t:r.t,who:r.who,label:r.label}))
   };
   const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
     body:JSON.stringify({type:'journey',id:w.id,data:payload,token:adminToken()})});

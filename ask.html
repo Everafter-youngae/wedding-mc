@@ -82,6 +82,16 @@ header p{font-size:15px;color:var(--ink2);margin:16px 0 0;word-break:keep-all}
 .pick.col{flex-direction:column}
 .pick.col button{min-height:52px}
 .opt{color:var(--ink3);font-weight:400}
+.sched{margin:26px 0 4px;text-align:left;border:1px solid var(--line);border-radius:12px;background:#fff;padding:18px 18px 16px}
+.sched-h{margin:0 0 14px;font-size:12px;letter-spacing:.1em;color:var(--ink3);font-weight:600}
+.sched-sub{margin:0 0 9px;font-size:14px;font-weight:700;color:var(--wine);word-break:keep-all;line-height:1.5}
+.sched-sub.soft{margin-top:18px;color:var(--ink2);font-weight:600;font-size:13px}
+.sched ul{list-style:none;margin:0;padding:0}
+.sched li{display:flex;gap:10px;align-items:baseline;font-size:14px;line-height:1.6;padding:5px 0;word-break:keep-all}
+.sched li b{flex:none;min-width:64px;color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+.sched-ours li{font-size:13px;color:var(--ink2)}
+.sched-ours li b{color:var(--ink2);font-weight:600}
+.sched-note{margin:16px 0 0;padding-top:13px;border-top:1px solid var(--line2);font-size:12.5px;color:var(--ink3);line-height:1.65;word-break:keep-all}
 .privacy{margin-top:18px;border:1px solid var(--line);border-radius:12px;background:#FAFBFC;padding:16px}
 .privacy .ph{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:12px}
 .privacy .ph b{color:var(--wine)}
@@ -276,9 +286,28 @@ function intro(){
     <div class="rule"></div>
     <p class="lead">두 분의 이야기를 담아,<br>오래 기억될 하루를 함께 준비하고 있습니다.</p>
     <p class="lines"><span>아래 질문은 더 두 분다운 결혼식을 만들기 위해 여쭤보는 내용입니다.</span><span>정답은 없습니다.</span><span>아는 내용만 답해주셔도 충분합니다.</span></p>
+    ${schedHTML()}
     <button class="go" id="goStart">시작</button>
   </div>`;
   $('#goStart').onclick=()=>{ VIEW='card'; IDX=0; paint(); window.scrollTo(0,0); };
+}
+
+/* 준비 일정 · 사회자가 예식일에서 잡아 보내준 날짜입니다.
+   다섯 항목 중 두 분이 해주실 일은 둘뿐이라, 그걸 먼저 보이게 나눕니다. */
+function schedHTML(){
+  const rows=(CFG.sched||[]).filter(r=>r&&r.label);
+  if(!rows.length) return '';
+  const mine=rows.filter(r=>r.who==='couple'), ours=rows.filter(r=>r.who==='mc');
+  return `<div class="sched">
+    <p class="sched-h">준비 일정</p>
+    ${mine.length?`<p class="sched-sub">두 분이 해주실 일은 ${mine.length===2?'두':mine.length} 가지입니다</p>
+      <ul class="sched-mine">${mine.map(r=>
+        `<li><b>${esc(r.label)}</b><span>${esc(r.t)}</span></li>`).join('')}</ul>`:''}
+    ${ours.length?`<p class="sched-sub soft">나머지는 사회자가 준비해서 보내드립니다</p>
+      <ul class="sched-ours">${ours.map(r=>
+        `<li><b>${esc(r.label)}</b><span>${esc(r.t)}</span></li>`).join('')}</ul>`:''}
+    <p class="sched-note">여유 있게 잡아둔 날짜입니다. 조금 늦어져도 괜찮으니 편하게 준비해 주세요.</p>
+  </div>`;
 }
 
 function screens(){
