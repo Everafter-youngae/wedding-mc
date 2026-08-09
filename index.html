@@ -112,6 +112,13 @@ select.sel{border:1px solid var(--line);background:var(--card);border-radius:8px
 .row{display:flex;gap:12px}
 .row>*{flex:1;min-width:0}
 .hint{font-size:12px;color:var(--ink3);margin-top:6px;line-height:1.5}
+.linklike{border:0;background:none;padding:0;font:inherit;color:var(--ink3);text-decoration:underline;cursor:pointer}
+.linklike:hover{color:var(--wine)}
+.retain-warn{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 14px;padding:14px 16px;
+  border:1px solid var(--wine);border-radius:10px;background:var(--wine-soft);font-size:13px;line-height:1.55;word-break:keep-all}
+.retain-warn b{color:var(--wine);flex:none}
+.retain-warn span{color:var(--ink2);flex:1;min-width:200px}
+.retain-warn .btn{flex:none}
 .check{display:flex;align-items:center;gap:10px;font-size:14px;padding:8px 0;cursor:pointer;min-height:40px}
 .check input{width:15px;height:15px;accent-color:var(--wine);margin:0}
 .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -477,6 +484,7 @@ function blank(){
     id:'w'+Date.now().toString(36),
     groom:'', bride:'', date:'', time:'',
     youngaeCode:'', email:'', journeyNameCheck:'',
+    phone:'', kakao:'', consentAt:'', consentVer:'', consentSrc:'',
     archiveSentence:'', archiveScene:'', archiveClosing:'', archiveSentAt:'',
     sentencePicks:[],
     venue:'', floor:'', mcName:'',
@@ -887,7 +895,8 @@ async function load(){
   DB.print=Object.assign({mode:'read',pt:15,pageBreak:true,program:true,cover:true,orient:'landscape',cols:false},DB.print||{});
   DB.notes=DB.notes||{dmReply:DEFAULT_DM_REPLY,faq:[]};
   // 새로 추가된 섹션 보정
-  DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.sentencePicks=w.sentencePicks||[]; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+  DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
+    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.sentencePicks=w.sentencePicks||[]; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
   maybeNudgeBackup();
@@ -1034,6 +1043,7 @@ function renderForm(){
 
   pane.innerHTML=`
 ${flowHTML()}
+${retentionHTML(w)}
 <details class="group" id="g-basic" ${op('g-basic')}><summary>기본 정보</summary><div class="gbody">
   <div class="row">
     <div class="f"><label>신부</label><input type="text" data-k="bride" value="${esc(w.bride)}" placeholder="김민주"></div>
@@ -1046,6 +1056,10 @@ ${flowHTML()}
   <div class="row">
     <div class="f"><label>영애 코드</label><input type="text" data-k="youngaeCode" value="${esc(w.youngaeCode||'')}" placeholder="2608_01"><div class="hint">처음 만든 뒤에는 고정됩니다.</div></div>
     <div class="f"><label>받는 이메일</label><input type="text" data-k="email" value="${esc(w.email||'')}" placeholder="couple@example.com"><div class="hint">Everafter 편지를 보낼 주소입니다.</div></div>
+  </div>
+  <div class="row">
+    <div class="f"><label>연락처</label><input type="tel" data-k="phone" data-fmt="phone" maxlength="13" value="${esc(w.phone||'')}" placeholder="010-0000-0000"><div class="hint">${consentHint(w)}</div></div>
+    <div class="f"><label>카카오톡 ID · 오픈채팅</label><input type="text" data-k="kakao" value="${esc(w.kakao||'')}" placeholder="선택"><div class="hint">${w.phone||w.kakao?`<button type="button" class="linklike" id="btnWipeContact">이 예식의 연락처 지우기</button>`:'&nbsp;'}</div></div>
   </div>
   <div class="row">
     ${txt('예식장','venue','○○컨벤션 3층 그랜드홀')}
@@ -1183,11 +1197,59 @@ function renderTop(){
 function renderAll(){ renderTop(); renderForm(); renderPreview(); if(DB.print) applyPrintClass(); }
 
 /* =========================================================
+   5-b. 연락처 · 개인정보 보관
+   수집 동의 문구(ask.html PRIVACY_VER)와 짝을 이룹니다.
+   보유 기간: 수집일 ~ 예식일 1년 후. 지나면 연락처만 지우고 대본은 남깁니다.
+   ========================================================= */
+const RETAIN_YEARS=1;
+function retainUntil(w){
+  if(!w.date) return '';
+  const d=new Date(w.date+'T00:00:00');
+  if(isNaN(d)) return '';
+  d.setFullYear(d.getFullYear()+RETAIN_YEARS);
+  /* toISOString은 UTC로 밀려 하루가 어긋나므로 현지 날짜 그대로 씁니다 */
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function contactExpired(w){
+  const u=retainUntil(w);
+  return !!(u && (w.phone||w.kakao) && todayStr()>u);
+}
+function consentHint(w){
+  if(w.consentAt){
+    const d=new Date(w.consentAt);
+    const when=isNaN(d)?esc(w.consentAt):`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+    return `수집 동의 완료 · ${when}${w.consentVer?` (v${esc(w.consentVer)})`:''}`;
+  }
+  if(w.phone||w.kakao) return '<b style="color:var(--wine)">동의 기록 없음</b> · 질문지로 받으면 자동 기록됩니다';
+  return '두 분 중 한 분 것이면 충분합니다.';
+}
+function retentionHTML(w){
+  if(!contactExpired(w)) return '';
+  return `<div class="retain-warn">
+    <b>보관 기간이 지난 연락처가 있습니다.</b>
+    <span>예식일(${esc(w.date)}) 기준 ${RETAIN_YEARS}년이 지나 ${esc(retainUntil(w))}까지가 보관 기간이었습니다. 안내한 대로 지워주세요.</span>
+    <button class="btn" id="btnWipeExpired">연락처 지우기</button>
+  </div>`;
+}
+function wipeContact(w,quiet){
+  w.phone=''; w.kakao=''; w.consentAt=''; w.consentVer=''; w.consentSrc='';
+  save(); renderForm();
+  if(!quiet) toast('연락처를 지웠습니다. 대본과 나머지 기록은 그대로 있습니다.');
+}
+
+/* =========================================================
    6. 이벤트
    ========================================================= */
 document.getElementById('form').addEventListener('input',e=>{
   const t=e.target;
+  if(t.dataset.fmt==='phone'){
+    const d=t.value.replace(/\D/g,'').slice(0,11);
+    t.value=d.length>7?`${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`
+      :(d.length>3?`${d.slice(0,3)}-${d.slice(3)}`:d);
+  }
   if(t.dataset.k){ const w=cur(); w[t.dataset.k]=t.value; save();
+    /* 사회자가 직접 받아 적은 연락처도 동의 출처를 남겨둡니다 */
+    if((t.dataset.k==='phone'||t.dataset.k==='kakao')&&t.value&&!w.consentAt) w.consentSrc=w.consentSrc||'manual';
     clearTimeout(window._rp); window._rp=setTimeout(()=>{renderPreview();renderTop();},200); }
   if(t.dataset.sk){ const w=cur(); w.sections[t.dataset.sk][t.dataset.sf]=t.value; save();
     clearTimeout(window._rp); window._rp=setTimeout(renderPreview,200); }
@@ -1198,6 +1260,11 @@ document.getElementById('form').addEventListener('change',e=>{
   if(t.dataset.secon){ setSec(t.dataset.secon,'on',t.checked); }
 });
 document.getElementById('form').addEventListener('click',e=>{
+  if(e.target.id==='btnWipeContact'||e.target.id==='btnWipeExpired'){
+    const w=cur();
+    if(confirm('연락처와 카카오톡 ID, 동의 기록을 지웁니다.\n대본과 나머지 내용은 그대로 남습니다. 지울까요?')) wipeContact(w);
+    return;
+  }
   const b=e.target.closest('[data-seg]');
   if(b){ set(b.dataset.seg,b.dataset.v); }
   const fs=e.target.closest('[data-step]');
@@ -1499,7 +1566,17 @@ function createWeddingFromInquiry(inq){
   const m=String(inq.date||'').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
   if(m) w.date=`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
   w.venue=inq.venue||'';
-  w.memo=`[홈페이지 문의]\n이름: ${inq.names||''}\n날짜: ${inq.date||''}\n장소: ${inq.venue||''}\n연락처: ${inq.contactInfo||''}\n메시지: ${inq.message||'(없음)'}`;
+  /* 연락처는 메모에 묻어두지 않고 전용 칸으로 넣습니다 — 매번 찾아 옮기지 않도록.
+     문의 폼에서 온 값은 형식이 제각각이라, 번호처럼 보이면 연락처로 자동 분리합니다. */
+  const ci=String(inq.contactInfo||'').trim();
+  const digits=ci.replace(/\D/g,'');
+  if(digits.length>=10&&digits.length<=11){
+    w.phone=digits.length===11?`${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`
+      :`${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+  } else if(ci) w.kakao=ci;
+  if(ci&&inq.consentAt){ w.consentAt=inq.consentAt; w.consentVer=inq.consentVer||''; w.consentSrc='inquiry'; }
+  else if(ci) w.consentSrc='inquiry';
+  w.memo=`[홈페이지 문의]\n이름: ${inq.names||''}\n날짜: ${inq.date||''}\n장소: ${inq.venue||''}\n메시지: ${inq.message||'(없음)'}`;
   DB.list.push(w); DB.cur=w.id; save();
   return w;
 }
@@ -2314,6 +2391,16 @@ function diffOf(res){
     const nv=res.basic[k]; if(nv==null||nv==='') return;
     if(String(w[k]||'')!==String(nv)) out.push({t:FIELD_LABEL[k]||k,now:w[k],val:nv,apply:()=>{w[k]=nv;}});
   });
+  /* 연락처는 동의 기록과 함께 들어옵니다 — 동의 없이 온 값은 반영하지 않습니다 */
+  const ct=res.contact||{}, cs=res.consent;
+  if(cs&&cs.agreed){
+    if(ct.phone&&String(w.phone||'')!==String(ct.phone))
+      out.push({t:'연락처',now:w.phone,val:ct.phone,
+        apply:()=>{ w.phone=ct.phone; w.consentAt=cs.at||''; w.consentVer=cs.ver||''; w.consentSrc='ask'; }});
+    if(ct.kakao&&String(w.kakao||'')!==String(ct.kakao))
+      out.push({t:'카카오톡 ID',now:w.kakao,val:ct.kakao,
+        apply:()=>{ w.kakao=ct.kakao; w.consentAt=cs.at||''; w.consentVer=cs.ver||''; w.consentSrc='ask'; }});
+  }
   Object.keys(res.opts||{}).forEach(k=>{
     const m=OPT_MAP[k]; if(!m) return;
     let nv=res.opts[k]; if(nv==null||nv==='') return;
