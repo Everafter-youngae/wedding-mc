@@ -328,6 +328,11 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   .topbar,.pane-l,.tools,.toast,.stagemode,.modal,.edited-flag,
   #dashboard,.mob-tabs,.savebar,.lockscreen{display:none!important}
   .wrap{display:block!important}
+  /* 인쇄에서는 미디어쿼리가 화면이 아니라 용지 폭으로 평가됩니다. A4 세로는 약 793px
+     이라 모바일용 @media(max-width:960px) 규칙이 함께 걸립니다. .wrap 에는 tab-form
+     이 늘 붙어 있어서 그 안의 ".wrap.tab-form .pane-r{display:none}" 때문에 대본이
+     통째로 사라지고 빈 장만 나왔습니다. 인쇄에서는 탭 상태와 무관하게 대본을 보입니다. */
+  .pane-r{display:block!important}
   .pane-r{padding:0}
   .sheet{border:0;border-radius:0;max-width:none;background:#fff}
   .sheet-head{padding:0 0 18px;border-bottom:2px solid #000}
@@ -2357,10 +2362,13 @@ async function checkRemoteUpdates(){
   list.forEach(b=>{
     const d=b&&b.data;
     if(!d||!d.id||d.deletedAt) return;
+    /* 이 기기에 이미 있는 예식만 다룹니다. 시트에는 예전에 "시트에서 불러오기"로
+       사본을 만들며 생긴 줄이 여럿 쌓여 있을 수 있는데, 그것까지 권하면 누를 때마다
+       예식이 하나씩 늘어납니다. 이 기기에 없는 예식을 되살리는 일은 기존
+       "시트에서 불러오기"가 맡습니다. */
     const local=DB.list.find(x=>x.id===d.id);
-    if(local&&(local.deletedAt||sameWedding(local,d))) return;
-    diffs.push({ts:b.ts,title:b.title,data:d,has:!!local,
-      localAt:local?(local.updatedAt||''):''});
+    if(!local||local.deletedAt||sameWedding(local,d)) return;
+    diffs.push({ts:b.ts,title:b.title,data:d,localAt:local.updatedAt||''});
   });
   SYNC_DIFFS=diffs;
   if(diffs.length&&document.getElementById('dashboard').style.display==='block') renderDashboard();
@@ -2378,10 +2386,11 @@ function drawSync(){
   const when=t=>t?new Date(t).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'기록 없음';
   openModal('다른 기기에서 고친 내용',
     `<div class="pv-note" style="margin-bottom:14px">구글 시트에 있는 내용이 이 기기와 다릅니다.
-       <b>가져오기</b>를 누르면 이 기기의 해당 예식이 시트 내용으로 바뀝니다. 되돌릴 수 없으니
-       이 기기에서 방금 고친 것이 있다면 먼저 백업 파일로 내려받아 두세요.</div>
+       <b>가져오기</b>를 누르면 이 기기의 해당 예식이 시트 내용으로 <b>제자리에서</b> 바뀝니다
+       (사본이 생기지 않습니다). 되돌릴 수 없으니 이 기기에서 방금 고친 것이 있다면
+       먼저 백업 파일로 내려받아 두세요.</div>
      ${SYNC_DIFFS.map((d,i)=>`<div class="opt"><span class="lbl">${esc(d.title||'제목 없음')}
-       <span class="sub">시트 ${esc(when(d.ts))} · 이 기기 ${esc(when(d.localAt))}${d.has?'':' · 이 기기에 없는 예식'}</span></span>
+       <span class="sub">시트 ${esc(when(d.ts))} · 이 기기 ${esc(when(d.localAt))}</span></span>
        <button class="btn" data-pull="${i}">가져오기</button></div>`).join('')}`,
     `<button class="btn" id="sClose">닫기</button>
      <button class="btn primary" id="sAll">전부 가져오기</button>`);
