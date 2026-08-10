@@ -228,6 +228,8 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dash-title{font-family:var(--serif);font-size:20px;margin:0 0 14px;letter-spacing:-.02em}
 .dash-inquiry-banner{display:block;width:100%;max-width:720px;text-align:left;margin:0 0 16px;padding:14px 18px;border-radius:12px;border:1px solid var(--wine);background:var(--wine-soft);color:var(--wine);font-weight:700;font-size:14px;cursor:pointer}
 .dash-inquiry-banner:hover{background:var(--wine);color:#fff}
+.dash-inquiry-banner.sync{border-color:var(--gold);background:#FBF6EA;color:#8A6D1F}
+.dash-inquiry-banner.sync:hover{background:var(--gold);color:#fff}
 .dash-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,200px));justify-content:start;gap:10px;margin-bottom:22px}
 .dash-quick .qbtn{display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);text-decoration:none;color:var(--ink);font-weight:700;font-size:14px;min-height:auto;text-align:left}
 .dash-quick .qbtn:hover{border-color:var(--ink3)}
@@ -321,8 +323,11 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 /* ---------- print ---------- */
 @media print{
   body{background:#fff}
-  .topbar,.pane-l,.tools,.toast,.stagemode,.modal,.edited-flag{display:none!important}
-  .wrap{display:block}
+  /* 화면 보이기/숨기기를 JS 인라인 style 로 다루므로, 인쇄 때는 !important 로 눌러야
+     합니다. 그러지 않으면 대시보드에서 인쇄할 때 대본 대신 달력이 찍히거나 빈 장이 나옵니다. */
+  .topbar,.pane-l,.tools,.toast,.stagemode,.modal,.edited-flag,
+  #dashboard,.mob-tabs,.savebar,.lockscreen{display:none!important}
+  .wrap{display:block!important}
   .pane-r{padding:0}
   .sheet{border:0;border-radius:0;max-width:none;background:#fff}
   .sheet-head{padding:0 0 18px;border-bottom:2px solid #000}
@@ -854,6 +859,8 @@ function setStatus(s){
 
 function save(){
   dirty=true;
+  /* 어느 쪽이 최신인지 다른 기기에서 판단할 수 있도록 수정 시각을 남깁니다 */
+  const w0=cur(); if(w0) w0.updatedAt=new Date().toISOString();
   try{ scheduleBackup(); }catch(e){}
   if(storageOK===false){
     // 일시적인 문제일 수 있으므로 20초마다 한 번씩 다시 시도합니다.
@@ -910,6 +917,7 @@ async function load(){
   maybeCheckNewReplies();
   showDashboard();
   maybeCheckNewInquiries();
+  checkRemoteUpdates();
 }
 
 function set(k,v){ const w=cur(); w[k]=v; save(); renderAll(); }
@@ -1496,6 +1504,10 @@ function applyPrintClass(){
 }
 document.getElementById('btnPrint').onclick=()=>{
   const p=DB.print;
+  /* 대시보드에서 눌렀다면 대본 화면을 먼저 그려둡니다.
+     그러지 않으면 .wrap 이 비어 있어 빈 PDF가 나옵니다. */
+  const dash=document.getElementById('dashboard');
+  if(dash&&dash.style.display!=='none') showEditor();
   const draw=()=>{
     openModal('PDF 만들기',
       `<div class="opt"><span class="lbl">용도
@@ -2006,6 +2018,7 @@ function renderDashboard(){
   el.innerHTML=`
     <h1 class="dash-title">Everafter 대시보드</h1>
     ${INQUIRY_COUNT>0?`<button class="dash-inquiry-banner" id="dInquiry">📨 홈페이지로 새 문의 ${INQUIRY_COUNT}건이 왔어요 — 확인하기 →</button>`:''}
+    ${SYNC_DIFFS.length?`<button class="dash-inquiry-banner sync" id="dSync">🔄 다른 기기에서 고친 예식이 ${SYNC_DIFFS.length}건 있어요 — 가져오기 →</button>`:''}
     <div class="dash-quick">
       <button class="qbtn primary" id="dNew"><span class="ic">➕</span>새 예식</button>
       <button class="qbtn" id="dNotesBtn"><span class="ic">📋</span>사전 준비</button>
@@ -2035,6 +2048,7 @@ function renderDashboard(){
   document.getElementById('dNotesBtn').onclick=drawNotes;
   document.getElementById('dCard').onclick=drawCard;
   if(document.getElementById('dInquiry')) document.getElementById('dInquiry').onclick=drawInquiries;
+  if(document.getElementById('dSync')) document.getElementById('dSync').onclick=drawSync;
   document.getElementById('dPrev').onclick=()=>{ DASH_MONTH=new Date(y,m-1,1); renderDashboard(); };
   document.getElementById('dNext').onclick=()=>{ DASH_MONTH=new Date(y,m+1,1); renderDashboard(); };
   document.getElementById('dMemo').oninput=e=>{ DB.notes.memo=e.target.value; save(); };
@@ -2285,21 +2299,35 @@ function openLetterPreview(w){
 }
 
 /* ---------- 구글 시트 자동 백업 ---------- */
-let bkTimer=null, lastBackup='';
+let bkTimer=null;
+const bkLast={};            /* 예식별 마지막으로 올린 내용 */
+const bkPending=new Set();  /* 올려야 할 예식 목록 */
+/* 예전에는 8초 뒤 "그 시점의 현재 예식"을 올렸습니다. 그래서 A를 고치고 8초 안에
+   B로 옮기면 A 대신 B가 올라가고, A의 수정은 시트에 영영 반영되지 않았습니다.
+   이제 고친 예식을 목록에 담아두고 한꺼번에 올립니다. */
 function scheduleBackup(){
   if(!(DB.conn||{}).gs) return;
+  if(DB.cur) bkPending.add(DB.cur);
   clearTimeout(bkTimer);
-  bkTimer=setTimeout(async()=>{
-    const w=cur(); if(!w) return;
-    const payload=JSON.stringify(w);
-    if(payload===lastBackup) return;
+  bkTimer=setTimeout(flushBackups,8000);
+}
+async function flushBackups(){
+  if(!(DB.conn||{}).gs) return;
+  const ids=[...bkPending]; bkPending.clear();
+  for(const id of ids){
+    const w=DB.list.find(x=>x.id===id);
+    if(!w) continue;
+    /* updatedAt 만 달라진 것으로는 다시 올리지 않습니다 */
+    const payload=JSON.stringify(Object.assign({},w,{updatedAt:''}));
+    if(payload===bkLast[id]) continue;
     try{
       const r=await fetch(DB.conn.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
         body:JSON.stringify({type:'backup',id:w.id,title:titleOf(w),data:w,token:adminToken()})});
       const j=await r.json();
-      if(j.ok){ lastBackup=payload; setStatus('cloud'); }
-    }catch(e){ /* 다음 변경 때 다시 시도 */ }
-  },8000);
+      if(j.ok){ bkLast[id]=payload; setStatus('cloud'); }
+      else bkPending.add(id);
+    }catch(e){ bkPending.add(id); /* 다음 변경 때 다시 시도 */ }
+  }
 }
 
 async function fetchBackups(){
@@ -2309,6 +2337,62 @@ async function fetchBackups(){
   const j=await r.json();
   if(!j.ok) throw new Error(authErr_(j.error,'불러오지 못했습니다.'));
   return j.backups||[];
+}
+
+/* ---------- 다른 기기에서 고친 내용 확인 ----------
+   저장은 기기마다 따로(localStorage)라, PC에서 고쳐도 휴대폰을 열면 예전 내용이
+   보입니다. 열 때 시트를 한 번 훑어 내용이 다른 예식이 있으면 알려주고, 누르면
+   그 예식만 최신으로 바꿉니다. 자동으로 덮어쓰지는 않습니다 — 어느 쪽이 최신인지
+   기기가 확실히 알 수 없고, 잘못 덮으면 되돌릴 수 없기 때문입니다. */
+let SYNC_DIFFS=[];
+function sameWedding(a,b){
+  const strip=w=>JSON.stringify(Object.assign({},w,{updatedAt:''}));
+  return strip(a)===strip(b);
+}
+async function checkRemoteUpdates(){
+  if(!(DB.conn||{}).gs||!adminToken()) return;
+  let list;
+  try{ list=await fetchBackups(); }catch(e){ return; }
+  const diffs=[];
+  list.forEach(b=>{
+    const d=b&&b.data;
+    if(!d||!d.id||d.deletedAt) return;
+    const local=DB.list.find(x=>x.id===d.id);
+    if(local&&(local.deletedAt||sameWedding(local,d))) return;
+    diffs.push({ts:b.ts,title:b.title,data:d,has:!!local,
+      localAt:local?(local.updatedAt||''):''});
+  });
+  SYNC_DIFFS=diffs;
+  if(diffs.length&&document.getElementById('dashboard').style.display==='block') renderDashboard();
+}
+function pullRemote(d){
+  const w=JSON.parse(JSON.stringify(d.data));
+  SEC_DEFS.forEach(s=>{ if(!w.sections[s.key]) w.sections[s.key]={on:!s.off,cue:s.cue,music:'',text:null}; });
+  const i=DB.list.findIndex(x=>x.id===w.id);
+  if(i>-1) DB.list[i]=w; else DB.list.push(w);
+  SYNC_DIFFS=SYNC_DIFFS.filter(x=>x.data.id!==w.id);
+  save();
+}
+function drawSync(){
+  if(!SYNC_DIFFS.length){ closeModal(); toast('모두 최신입니다.'); renderDashboard(); return; }
+  const when=t=>t?new Date(t).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'기록 없음';
+  openModal('다른 기기에서 고친 내용',
+    `<div class="pv-note" style="margin-bottom:14px">구글 시트에 있는 내용이 이 기기와 다릅니다.
+       <b>가져오기</b>를 누르면 이 기기의 해당 예식이 시트 내용으로 바뀝니다. 되돌릴 수 없으니
+       이 기기에서 방금 고친 것이 있다면 먼저 백업 파일로 내려받아 두세요.</div>
+     ${SYNC_DIFFS.map((d,i)=>`<div class="opt"><span class="lbl">${esc(d.title||'제목 없음')}
+       <span class="sub">시트 ${esc(when(d.ts))} · 이 기기 ${esc(when(d.localAt))}${d.has?'':' · 이 기기에 없는 예식'}</span></span>
+       <button class="btn" data-pull="${i}">가져오기</button></div>`).join('')}`,
+    `<button class="btn" id="sClose">닫기</button>
+     <button class="btn primary" id="sAll">전부 가져오기</button>`);
+  document.getElementById('sClose').onclick=closeModal;
+  document.getElementById('sAll').onclick=()=>{
+    if(!confirm('시트에 있는 내용으로 전부 바꿉니다. 되돌릴 수 없습니다. 계속할까요?')) return;
+    [...SYNC_DIFFS].forEach(pullRemote); closeModal(); renderAll(); renderDashboard(); toast('최신 내용으로 바꿨습니다.');
+  };
+  document.querySelectorAll('[data-pull]').forEach(b=>b.onclick=()=>{
+    pullRemote(SYNC_DIFFS[+b.dataset.pull]); drawSync(); renderAll(); toast('가져왔습니다.');
+  });
 }
 
 document.getElementById('btnCloud').onclick=async()=>{
