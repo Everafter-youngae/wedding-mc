@@ -1684,31 +1684,73 @@ function exportAllJson(){
   toast(`전체 예식 ${DB.list.length}건을 백업했습니다.`);
   renderForm();
 }
+/* 예전에는 이미 있는 예식을 무조건 건너뛰었습니다. 내려받아 둔 파일이 최종본인데
+   기기 쪽이 꼬였을 때는 그게 정반대로 동작해서 아무것도 고쳐지지 않았습니다.
+   이제 파일을 어떻게 쓸지 고르게 합니다. */
 function importAllJson(f){
   if(!f) return;
   const r=new FileReader();
   r.onload=()=>{
+    let incoming;
     try{
       const parsed=JSON.parse(r.result);
-      const incoming=(parsed&&parsed.db&&Array.isArray(parsed.db.list))?parsed.db:parsed;
+      incoming=(parsed&&parsed.db&&Array.isArray(parsed.db.list))?parsed.db:parsed;
       if(!incoming||!Array.isArray(incoming.list)||!incoming.list.length) throw new Error('empty');
-      if(DB.list.length===1&&isBlankWedding(DB.list[0])){ DB.list=[]; DB.cur=null; }
-      let added=0, skipped=0;
-      incoming.list.forEach(w=>{
-        if(!w||!w.id){ skipped++; return; }
-        if(DB.list.some(x=>x.id===w.id)){ skipped++; return; }
-        w.sections=w.sections||{};
-        SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; });
-        DB.list.push(w); added++;
-      });
-      if(incoming.conn && !DB.conn) DB.conn=incoming.conn;
-      if(!cur()) DB.cur=DB.list.length?DB.list[0].id:null;
-      if(!DB.list.length){ const w=blank(); DB.list=[w]; DB.cur=w.id; }
-      save(); renderAll();
-      toast(`${added}건을 불러왔습니다.${skipped?` (이미 있거나 형식이 다른 ${skipped}건은 건너뜀)`:''}`);
-    }catch(e){ toast('파일을 읽지 못했습니다. 전체 백업 파일(.json)인지 확인해 주세요.'); }
+    }catch(e){ toast('파일을 읽지 못했습니다. 전체 백업 파일(.json)인지 확인해 주세요.',4200); return; }
+    const ids=new Set(incoming.list.filter(w=>w&&w.id).map(w=>w.id));
+    const mine=DB.list.filter(w=>!w.deletedAt);
+    const both=mine.filter(w=>ids.has(w.id)).length;
+    const onlyHere=mine.filter(w=>!ids.has(w.id)).length;
+    openModal('백업 파일 불러오기',
+      `<div class="pv-note" style="margin-bottom:14px">
+         파일에 <b>${incoming.list.length}건</b>이 들어 있습니다.
+         그중 <b>${both}건</b>은 이 기기에도 있고, 이 기기에만 있는 예식이 <b>${onlyHere}건</b>입니다.<br>
+         되돌릴 수 없으니, 지금 기기 상태가 아깝다면 먼저 <b>전체 예식 백업 파일 저장</b>을 눌러 두세요.</div>
+       <div class="opt"><span class="lbl">파일 내용으로 덮어쓰기 <b>(권장)</b>
+         <span class="sub">같은 예식은 파일 내용으로 바꾸고, 이 기기에만 있는 ${onlyHere}건은 그대로 둡니다.</span></span>
+         <button class="btn primary" data-imp="replace">이걸로</button></div>
+       <div class="opt"><span class="lbl">이 파일 상태로 완전히 되돌리기
+         <span class="sub">파일에 없는 ${onlyHere}건은 휴지통으로 보냅니다. 파일이 확실한 최종본일 때만 쓰세요.</span></span>
+         <button class="btn" data-imp="exact">이걸로</button></div>
+       <div class="opt"><span class="lbl">새로운 것만 추가
+         <span class="sub">이 기기에 없는 예식만 가져옵니다. 기존 내용은 건드리지 않습니다.</span></span>
+         <button class="btn quiet" data-imp="add">이걸로</button></div>`,
+      `<button class="btn" id="impClose">취소</button>`);
+    document.getElementById('impClose').onclick=closeModal;
+    document.querySelectorAll('[data-imp]').forEach(b=>b.onclick=()=>applyImport(incoming,b.dataset.imp));
   };
   r.readAsText(f);
+}
+function applyImport(incoming,mode){
+  if(mode!=='add'&&!confirm(mode==='exact'
+    ? '이 기기를 파일 상태로 완전히 되돌립니다.\n파일에 없는 예식은 휴지통으로 갑니다. 계속할까요?'
+    : '같은 예식을 파일 내용으로 덮어씁니다.\n되돌릴 수 없습니다. 계속할까요?')) return;
+  if(DB.list.length===1&&isBlankWedding(DB.list[0])){ DB.list=[]; DB.cur=null; }
+  let put=0,add=0,trash=0;
+  incoming.list.forEach(src=>{
+    if(!src||!src.id) return;
+    const w=JSON.parse(JSON.stringify(src));
+    w.sections=w.sections||{};
+    SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; });
+    const at=DB.list.findIndex(x=>x.id===w.id);
+    if(at>-1){ if(mode==='add') return; DB.list[at]=w; put++; }
+    else { DB.list.push(w); add++; }
+  });
+  if(mode==='exact'){
+    const keep=new Set(incoming.list.filter(w=>w&&w.id).map(w=>w.id));
+    /* 지우지 않고 휴지통으로 보냅니다 — 잘못 골랐을 때 되살릴 수 있어야 합니다 */
+    DB.list.forEach(w=>{ if(!keep.has(w.id)&&!w.deletedAt){ w.deletedAt=new Date().toISOString(); trash++; } });
+  }
+  if(incoming.conn&&!(DB.conn||{}).token) DB.conn=Object.assign(DB.conn||{},incoming.conn);
+  if(incoming.notes&&!DB.notes) DB.notes=incoming.notes;
+  if(!cur()||cur().deletedAt){ const f=DB.list.find(w=>!w.deletedAt); DB.cur=f?f.id:null; }
+  if(!DB.list.some(w=>!w.deletedAt)){ const w=blank(); DB.list.push(w); DB.cur=w.id; }
+  /* 시트도 이 상태로 맞춰 둡니다. 안 그러면 다음에 열 때 예전 시트 내용이 최신으로 보입니다. */
+  if(mode!=='add') DB.list.forEach(w=>{ if(!w.deletedAt) bkPending.add(w.id); });
+  save(); renderAll(); closeModal(); showDashboard();
+  try{ flushBackups(); }catch(e){}
+  const parts=[put?`${put}건 덮어씀`:'',add?`${add}건 새로 추가`:'',trash?`${trash}건 휴지통`:''].filter(Boolean);
+  toast(parts.length?parts.join(' · '):'바뀐 내용이 없습니다.',4600);
 }
 function maybeNudgeBackup(){
   let iso=null; try{ iso=localStorage.getItem('mc-last-full-backup'); }catch(e){}
