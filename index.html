@@ -187,6 +187,9 @@ table.pgm-t td.n{color:var(--ink2);font-size:14px}
 }
 .script .stage{color:var(--wine);font-size:14px;background:var(--wine-soft);border-radius:3px;padding:1px 5px}
 .script .kw{font-weight:700}
+/* 대본 한 줄. 무대 모드(.sm-body .inner)도 같은 scriptHTML 을 쓰므로 범위를 좁히지 않습니다 */
+.ln{display:block}
+.ln:empty{height:1em}
 .blk .tools{margin-top:12px;display:flex;gap:6px;opacity:0;transition:opacity .12s}
 .blk:hover .tools,.blk:focus-within .tools{opacity:1}
 .tools button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 12px;font-size:12px;color:var(--ink2)}
@@ -362,7 +365,13 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
     font-size:var(--readpt,15pt);line-height:2.0;
     orphans:3;widows:3;
   }
-  body.pm-read .script .brk{background:#999;opacity:1;width:.8pt}
+  /* 호흡 구분(/) 표시. 화면에서는 배경색으로 그린 얇은 막대인데, 크롬은 "배경 그래픽"을
+     끄면 배경을 인쇄하지 않아 통째로 사라졌습니다. 테두리는 그 설정과 무관하게 찍히므로
+     테두리로 그리고, currentColor 를 써서 밝은 종이에서도 어두운 배경에서도 보이게 합니다. */
+  .script .brk{background:transparent!important;width:0!important;
+    border-left:1.1pt solid currentColor;opacity:.5;height:.95em;margin:0 .4em}
+  /* 한 문장이 페이지·단 중간에서 잘리지 않게 합니다 */
+  .script .ln{break-inside:avoid;page-break-inside:avoid}
   body.pm-read .script .stage{background:#F0F0F0;color:#000;border:.5pt solid #ccc;font-size:.85em}
   body.pm-read.pb-on .blk{page-break-after:always}
   body.pm-read.pb-on .blk:last-child{page-break-after:auto}
@@ -373,6 +382,27 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   body.pm-read .pgm{page-break-after:always}
   body.hide-pgm .pgm{display:none}
   body.hide-head .sheet-head{display:none}
+
+  /* --- 어두운 배경(무대 모드처럼) ---
+     print-color-adjust:exact 가 있어야 크롬이 "배경 그래픽" 설정과 무관하게 검은 바탕을
+     찍습니다. 이게 없으면 흰 종이에 흰 글씨가 되어 아무것도 안 보입니다.
+     여백까지 검게 채우려고 @page margin 을 0 으로 두므로(applyPrintClass), 글이 종이
+     가장자리에 붙지 않도록 안쪽 여백을 여기서 줍니다. */
+  body.pm-dark{background:#0F1115!important;color:#F2F3F5!important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body.pm-dark *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body.pm-dark .pane-r{padding:13mm 15mm!important}
+  body.pm-dark .sheet,body.pm-dark .pgm,body.pm-dark .blk,
+  body.pm-dark .blk .cue,body.pm-dark .blk .body{background:#0F1115!important;color:#F2F3F5!important}
+  body.pm-dark .sheet-head{border-bottom-color:#F2F3F5!important}
+  body.pm-dark .blk{border-color:#39404A!important}
+  body.pm-dark .blk .cue{border-bottom-color:#F2F3F5!important}
+  body.pm-dark .blk .cue .num,body.pm-dark .blk .cue .time,
+  body.pm-dark .blk .cue .memo{color:#AEB6C0!important}
+  body.pm-dark .blk .cue .tag{background:transparent!important;color:#F2F3F5!important;border-color:#39404A!important}
+  body.pm-dark .script .stage{background:#1C222B!important;color:#E7C88A!important;border-color:#39404A!important}
+  body.pm-dark .script .kw{color:#fff!important}
+  body.pm-dark .pgm,body.pm-dark .pgm *{color:#F2F3F5!important;border-color:#39404A!important}
 }
 .lockscreen{position:fixed;inset:0;z-index:200;background:var(--paper);padding:20px}
 .lockscreen:not([hidden]){display:flex;align-items:center;justify-content:center}
@@ -911,7 +941,7 @@ async function load(){
   purgeOldTrash();
   if(!DB.list.some(w=>!w.deletedAt)){ const w=blank(); DB.list.push(w); DB.cur=w.id; }
   if(!cur()||cur().deletedAt) DB.cur=DB.list.find(w=>!w.deletedAt).id;
-  DB.print=Object.assign({mode:'read',pt:15,pageBreak:true,program:true,cover:true,orient:'landscape',cols:false},DB.print||{});
+  DB.print=Object.assign({mode:'read',pt:15,pageBreak:true,program:true,cover:true,orient:'landscape',cols:false,dark:false},DB.print||{});
   DB.notes=DB.notes||{dmReply:DEFAULT_DM_REPLY,faq:[]};
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
@@ -1228,10 +1258,13 @@ function fmtTime(sec){
   return m?`약 ${m}분 ${s?s+'초':''}`.trim():`약 ${s}초`;
 }
 function scriptHTML(t){
-  return esc(t)
+  const marked=esc(t)
     .replace(/\(([^)]*)\)/g,'<span class="stage">($1)</span>')
     .replace(/\s\/\s/g,'<span class="brk"></span>')
     .replace(/『([^』]*)』/g,'<span class="kw">$1</span>');
+  /* 줄마다 감싸둡니다. 통짜 텍스트로 두면 인쇄할 때 한 문장이 페이지나 단 중간에서
+     잘려 앞뒤가 따로 놉니다. 줄을 블록으로 만들어 두면 통째로 다음 장으로 넘깁니다. */
+  return marked.split('\n').map(l=>`<span class="ln">${l}</span>`).join('');
 }
 
 let editingKey=null;
@@ -1502,10 +1535,14 @@ function applyPrintClass(){
   b.classList.toggle('hide-head',!p.cover);
   b.classList.toggle('pm-land',p.orient!=='portrait');
   b.classList.toggle('cols-on',p.orient==='landscape'&&p.cols&&p.mode==='read');
+  b.classList.toggle('pm-dark',!!p.dark);
   b.style.setProperty('--readpt',p.pt+'pt');
   let st=document.getElementById('pageStyle');
   if(!st){ st=document.createElement('style'); st.id='pageStyle'; document.head.appendChild(st); }
-  st.textContent='@page{size:A4 '+(p.orient||'landscape')+';margin:'+(p.orient==='landscape'?'12mm 14mm':'14mm 15mm')+'}';
+  /* 어두운 배경일 때는 종이 여백까지 검게 채워야 아이패드에서 흰 테두리가 생기지 않습니다.
+     여백을 0 으로 두고 안쪽 여백은 인쇄 CSS의 .pane-r 에서 줍니다. */
+  const margin=p.dark?'0':(p.orient==='landscape'?'12mm 14mm':'14mm 15mm');
+  st.textContent='@page{size:A4 '+(p.orient||'landscape')+';margin:'+margin+'}';
 }
 document.getElementById('btnPrint').onclick=()=>{
   const p=DB.print;
@@ -1536,11 +1573,14 @@ document.getElementById('btnPrint').onclick=()=>{
        <div class="opt"><span class="lbl">순서마다 새 페이지에서 시작
          <span class="sub">한 화면에 한 순서만 보여서 넘기기 좋습니다.</span></span>
          <input type="checkbox" id="pb" ${p.pageBreak?'checked':''}></div>
+       <div class="opt"><span class="lbl">어두운 배경 (무대 모드처럼)
+         <span class="sub">검은 바탕에 흰 글씨로 뽑습니다. 어두운 예식장에서 아이패드로 볼 때 편합니다.</span></span>
+         <input type="checkbox" id="dk" ${p.dark?'checked':''}></div>
        <div class="opt"><span class="lbl">표지 포함</span><input type="checkbox" id="cv" ${p.cover?'checked':''}></div>
        <div class="opt"><span class="lbl">식순표 포함</span><input type="checkbox" id="pg" ${p.program?'checked':''}></div>
        <div class="pv-note"><b>아이패드로 옮기는 방법</b><br>
          ① 아래 <b>인쇄 창 열기</b> → 대상을 <b>PDF로 저장</b>, 용지 방향 확인<br>
-         ② 인쇄 창의 <b>옵션 더보기 → 머리글 및 바닥글</b> 체크를 <b>해제</b>하세요. 날짜·파일경로·쪽번호가 사라집니다<br>
+         ② 인쇄 창의 <b>옵션 더보기 → 머리글 및 바닥글</b> 체크를 <b>해제</b>하세요. 날짜·파일경로·쪽번호가 사라집니다${p.dark?' <b>(어두운 배경일 때는 특히 꼭 해제하세요 — 검은 바탕 위에 검은 글씨로 찍힙니다)</b>':''}<br>
          ③ 저장한 PDF를 아이클라우드 드라이브나 카톡 나에게 보내기로 옮긴 뒤, 북 앱 또는 굿노트에서 열기<br>
          ④ 굿노트에 넣으면 당일 현장에서 형광펜·메모를 바로 얹을 수 있습니다.</div>`,
       `<button class="btn" id="pClose">닫기</button>
@@ -1552,6 +1592,7 @@ document.getElementById('btnPrint').onclick=()=>{
     const pt=document.getElementById('pt');
     pt.oninput=()=>{p.pt=+pt.value;document.getElementById('ptv').textContent=p.pt+'pt';applyPrintClass();save();};
     document.getElementById('pb').onchange=e=>{p.pageBreak=e.target.checked;applyPrintClass();save();};
+    document.getElementById('dk').onchange=e=>{p.dark=e.target.checked;applyPrintClass();save();draw();};
     document.getElementById('cv').onchange=e=>{p.cover=e.target.checked;applyPrintClass();save();};
     document.getElementById('pg').onchange=e=>{p.program=e.target.checked;applyPrintClass();save();};
     document.getElementById('pClose').onclick=closeModal;
