@@ -2500,21 +2500,42 @@ document.getElementById('btnCloud').onclick=async()=>{
       `<button class="btn primary" id="bClose">닫기</button>`);
     document.getElementById('bClose').onclick=closeModal; return;
   }
+  /* 최신이 위로 오게 정렬합니다. 예전에는 시트 순서 그대로여서 어느 것이 최신인지
+     알기 어려웠고, 옛 줄을 눌러 예전 상태로 되돌아가는 일이 있었습니다. */
+  list=list.slice().sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+  const when=t=>new Date(t).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
   openModal('구글 시트에서 불러오기',
-    `<div class="pv-note" style="margin-bottom:14px">브라우저 데이터가 지워져도 이 목록에서 되살릴 수 있습니다.
-      이미 있는 예식은 덮어쓰지 않고 새로 추가됩니다.</div>
-     ${list.map((b,i)=>`<div class="opt"><span class="lbl">${esc(b.title||'제목 없음')}
-       <span class="sub">저장 ${new Date(b.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span></span>
-       <button class="btn" data-restore="${i}">불러오기</button></div>`).join('')}`,
+    `<div class="pv-note" style="margin-bottom:14px">최신이 위에 있습니다.
+      이미 이 기기에 있는 예식은 <b>제자리에서 덮어씁니다</b> — 사본을 만들면 같은 예식이
+      여러 개로 갈라져 어느 것이 최신인지 알 수 없게 되기 때문입니다.
+      정말 따로 하나 더 두고 싶을 때만 <b>사본</b>을 쓰세요.</div>
+     ${list.map((b,i)=>{
+       const has=DB.list.some(x=>x.id===(b.data||{}).id&&!x.deletedAt);
+       return `<div class="opt"><span class="lbl">${esc(b.title||'제목 없음')}
+         <span class="sub">저장 ${esc(when(b.ts))}${has?' · 이 기기에 있는 예식':' · 이 기기에 없음'}</span></span>
+         <span style="display:flex;gap:6px;flex:none">
+           <button class="btn" data-restore="${i}">${has?'덮어쓰기':'불러오기'}</button>
+           ${has?`<button class="btn quiet" data-copy="${i}">사본</button>`:''}
+         </span></div>`;
+     }).join('')}`,
     `<button class="btn primary" id="bClose">닫기</button>`);
   document.getElementById('bClose').onclick=closeModal;
-  document.querySelectorAll('[data-restore]').forEach(btn=>btn.onclick=()=>{
-    const w=JSON.parse(JSON.stringify(list[+btn.dataset.restore].data));
-    if(DB.list.some(x=>x.id===w.id)) w.id='w'+Date.now().toString(36);
+  const put=(i,asCopy)=>{
+    const w=JSON.parse(JSON.stringify(list[i].data));
     SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; });
-    DB.list.push(w); DB.cur=w.id; save(); closeModal(); showEditor();
-    toast('불러왔습니다.');
-  });
+    const at=DB.list.findIndex(x=>x.id===w.id);
+    if(asCopy||at<0){
+      if(at>-1) w.id='w'+Date.now().toString(36);
+      DB.list.push(w);
+    } else {
+      if(!confirm('이 기기의 해당 예식을 시트 내용으로 덮어씁니다.\n되돌릴 수 없습니다. 계속할까요?')) return;
+      DB.list[at]=w;
+    }
+    DB.cur=w.id; save(); closeModal(); showEditor();
+    toast(asCopy?'사본으로 추가했습니다.':'불러왔습니다.');
+  };
+  document.querySelectorAll('[data-restore]').forEach(b=>b.onclick=()=>put(+b.dataset.restore,false));
+  document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>put(+b.dataset.copy,true));
 };
 
 /* ---------- 편지 답장 모아보기 (공개 동의한 것만) ---------- */
