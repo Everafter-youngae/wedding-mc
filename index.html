@@ -207,7 +207,9 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ---------- stage mode ---------- */
-.stagemode{position:fixed;inset:0;background:#0F1115;color:#F2F3F5;z-index:100;display:none;flex-direction:column}
+/* touch-action:pan-y — 위아래로 넘기는 것만 두고 두 손가락 확대·두 번 톡 확대를 막습니다.
+   (iOS 의 확대 제스처는 script 쪽 stageOn 에서 따로 막습니다) */
+.stagemode{position:fixed;inset:0;background:#0F1115;color:#F2F3F5;z-index:100;display:none;flex-direction:column;touch-action:pan-y}
 .stagemode.on{display:flex}
 .sm-top{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid #262A33;flex-wrap:wrap}
 .sm-top .step{font-size:12px;color:#8D95A3;letter-spacing:.1em;font-variant-numeric:tabular-nums}
@@ -1831,7 +1833,18 @@ function smRender(){
   document.querySelector('.sm-body').scrollTop=0;
   document.getElementById('smNext').textContent = smIdx===l.length-1?'끝':'다음 →';
 }
-document.getElementById('btnStage').onclick=()=>{ smIdx=0; document.getElementById('stage').classList.add('on'); smRender(); };
+/* 예식 중에 화면을 잘못 건드려 확대되면 보던 자리를 놓칩니다. 무대 모드일 때만
+   확대를 막습니다 — 다른 화면에서는 작은 글씨를 키워 봐야 할 수 있으니 그대로 둡니다.
+   iOS 는 viewport 의 user-scalable=no 를 무시하므로 확대 제스처를 직접 막습니다. */
+const noZoom=e=>e.preventDefault();
+const ZOOM_EVENTS=['gesturestart','gesturechange','gestureend'];
+function stageOn(on){
+  document.getElementById('stage').classList.toggle('on',on);
+  ZOOM_EVENTS.forEach(g=>on
+    ? document.addEventListener(g,noZoom,{passive:false})
+    : document.removeEventListener(g,noZoom));
+}
+document.getElementById('btnStage').onclick=()=>{ smIdx=0; stageOn(true); smRender(); };
 document.getElementById('btnLock').onclick=()=>{
   localStorage.removeItem(AUTH_UNTIL_KEY);
   document.getElementById('lockScreen').hidden=false;
@@ -1860,14 +1873,14 @@ document.getElementById('mobTabs').addEventListener('click',e=>{
   wrap.classList.toggle('tab-preview',b.dataset.mtab==='preview');
   window.scrollTo(0,0);
 });
-document.getElementById('smClose').onclick=()=>document.getElementById('stage').classList.remove('on');
+document.getElementById('smClose').onclick=()=>stageOn(false);
 document.getElementById('smPrev').onclick=()=>{ smIdx--; smRender(); };
-document.getElementById('smNext').onclick=()=>{ if(smIdx===smList().length-1){ document.getElementById('stage').classList.remove('on'); return;} smIdx++; smRender(); };
+document.getElementById('smNext').onclick=()=>{ if(smIdx===smList().length-1){ stageOn(false); return;} smIdx++; smRender(); };
 document.addEventListener('keydown',e=>{
   if(!document.getElementById('stage').classList.contains('on')) return;
   if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); smIdx++; smRender(); }
   if(e.key==='ArrowLeft'){ smIdx--; smRender(); }
-  if(e.key==='Escape') document.getElementById('stage').classList.remove('on');
+  if(e.key==='Escape') stageOn(false);
 });
 
 /* =========================================================
