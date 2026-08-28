@@ -1918,7 +1918,11 @@ function connForm(){
   return `<div class="f" style="border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--wine-soft);margin-bottom:16px">
       <label style="margin-bottom:6px">다른 기기에서 쓰기</label>
       <div class="hint" style="margin:0 0 10px">아래 코드를 복사해 새 기기의 첫 화면에서 붙여넣으면, 주소·토큰·번호가 한 번에 옮겨지고 예식 자료도 자동으로 내려받습니다. <b>토큰이 들어 있으니 남에게 보내지 마세요.</b></div>
-      <button type="button" class="btn" id="cCopySetup" style="width:100%">설정 코드 복사</button></div>
+      <div class="row" style="gap:8px">
+        <button type="button" class="btn" id="cCopySetup" style="flex:1">설정 코드 복사</button>
+        <button type="button" class="btn" id="cPasteSetup" style="flex:1">설정 코드 붙여넣기</button>
+      </div>
+      <div class="hint" style="margin:8px 0 0">이미 잠금이 풀린 기기에서도 <b>붙여넣기</b>로 설정을 받아올 수 있습니다.</div></div>
     <div class="f"><label>응답 폼 주소 (ask.html을 올린 주소)</label>
       <input type="text" id="cAsk" value="${esc(c.ask||'')}" placeholder="https://내주소.netlify.app/ask.html"></div>
     <div class="f"><label>고객 이야기 주소 (story.html을 올린 주소)</label>
@@ -2911,6 +2915,19 @@ document.addEventListener('click',e=>{
   if(e.target&&e.target.id==='cCopySetup'){
     copyText(setupCode());
     toast('설정 코드를 복사했습니다. 새 기기 첫 화면에서 붙여넣으세요.',4200);
+  }
+  /* 잠금이 이미 풀린 기기에서는 잠금 화면을 볼 일이 없으므로 여기서도 받을 수 있게 합니다 */
+  if(e.target&&e.target.id==='cPasteSetup'){
+    const code=prompt('쓰던 기기에서 복사한 설정 코드를 붙여넣어 주세요.');
+    if(code===null) return;
+    try{
+      applySetupCode(code);
+      toast('설정을 받았습니다. 예식 자료를 내려받는 중…');
+      pullAllFromSheet()
+        .then(n=>{ renderAll(); renderDashboard();
+          toast(n?`예식 ${n}건을 가져왔습니다.`:'설정만 받았습니다. 새로 가져올 예식은 없습니다.',4200); })
+        .catch(e2=>toast(authErr_(e2.message,'자료를 내려받지 못했습니다.'),5000));
+    }catch(err){ toast(err&&err.message?err.message:String(err),5000); }
   }
 });
 
