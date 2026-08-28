@@ -943,6 +943,9 @@ async function load(){
   if(!cur()||cur().deletedAt) DB.cur=DB.list.find(w=>!w.deletedAt).id;
   DB.print=Object.assign({mode:'read',pt:15,pageBreak:true,program:true,cover:true,orient:'landscape',cols:false,dark:false},DB.print||{});
   DB.notes=DB.notes||{dmReply:DEFAULT_DM_REPLY,faq:[]};
+  /* 주소는 이미 공개된 값이라 기본으로 채워둡니다 — 새 기기에서 입력할 칸이 하나 줄어듭니다 */
+  DB.conn=DB.conn||{};
+  if(!DB.conn.gs) DB.conn.gs=DEFAULT_GS;
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
     w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
@@ -1912,7 +1915,11 @@ async function ensureLinkKey(w){
 }
 function connForm(){
   const c=DB.conn||{};
-  return `<div class="f"><label>응답 폼 주소 (ask.html을 올린 주소)</label>
+  return `<div class="f" style="border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--wine-soft);margin-bottom:16px">
+      <label style="margin-bottom:6px">다른 기기에서 쓰기</label>
+      <div class="hint" style="margin:0 0 10px">아래 코드를 복사해 새 기기의 첫 화면에서 붙여넣으면, 주소·토큰·번호가 한 번에 옮겨지고 예식 자료도 자동으로 내려받습니다. <b>토큰이 들어 있으니 남에게 보내지 마세요.</b></div>
+      <button type="button" class="btn" id="cCopySetup" style="width:100%">설정 코드 복사</button></div>
+    <div class="f"><label>응답 폼 주소 (ask.html을 올린 주소)</label>
       <input type="text" id="cAsk" value="${esc(c.ask||'')}" placeholder="https://내주소.netlify.app/ask.html"></div>
     <div class="f"><label>고객 이야기 주소 (story.html을 올린 주소)</label>
       <input type="text" id="cJourney" value="${esc(c.journey||'')}" placeholder="https://everafter-youngae.github.io/wedding-mc/story.html"></div>
@@ -2855,6 +2862,58 @@ document.getElementById('btnInbox').onclick=async()=>{
    우회할 수 있지만, 링크만 아는 사람이나 같은 컴퓨터를 쓰는 다른
    사람이 예식 정보를 무심코 열어보는 것은 막아줍니다.
    ========================================================= */
+/* ===== 설정 옮기기 =========================================
+   새 기기·새 브라우저에서 열면 저장소가 비어 있어 주소·토큰을 다시 넣어야 했습니다.
+   주소는 이미 공개된 값(shared.js 에 들어 있어 고객 페이지가 씁니다)이라 아래에
+   기본값으로 둡니다. 남는 비밀은 관리자 토큰 하나이고, 그것만 '설정 코드'로 한 번
+   옮기면 됩니다. 코드에는 토큰이 들어 있으므로 남에게 보내면 안 됩니다. */
+const DEFAULT_GS='https://script.google.com/macros/s/AKfycbyULnOlwGCrwEjeqgocZhZjh8pMazeaEvl8H78vd7RV61aX9HKq0a6tS_0KWZcf7Ufjhg/exec';
+const SETUP_PREFIX='EVERAFTER-SETUP:';
+function setupCode(){
+  const c=DB.conn||{};
+  const body={v:1,gs:c.gs||'',ask:c.ask||'',journey:c.journey||'',token:c.token||'',
+    inquiryGs:c.inquiryGs||'',homepage:c.homepage||'',longLink:!!c.longLink,
+    pin:localStorage.getItem(AUTH_KEY)||''};
+  return SETUP_PREFIX+btoa(unescape(encodeURIComponent(JSON.stringify(body))));
+}
+function applySetupCode(code){
+  const raw=String(code||'').trim().replace(/\s+/g,'');
+  if(!raw.startsWith(SETUP_PREFIX)) throw new Error('설정 코드가 아닙니다. 코드 전체를 복사해 붙여넣어 주세요.');
+  let o;
+  try{ o=JSON.parse(decodeURIComponent(escape(atob(raw.slice(SETUP_PREFIX.length))))); }
+  catch(e){ throw new Error('코드가 중간에 잘린 것 같습니다. 다시 복사해 주세요.'); }
+  if(!o||!o.token) throw new Error('코드에 관리자 토큰이 없습니다.');
+  DB.conn=Object.assign(DB.conn||{},{
+    gs:o.gs||DEFAULT_GS, ask:o.ask||'', journey:o.journey||'', token:o.token,
+    inquiryGs:o.inquiryGs||'', homepage:o.homepage||'', longLink:!!o.longLink});
+  if(o.pin) localStorage.setItem(AUTH_KEY,o.pin);
+  save();
+  return o;
+}
+/* 설정만 받아온 기기에는 예식이 하나도 없습니다. 시트에 있는 것을 그대로 내려받습니다. */
+async function pullAllFromSheet(){
+  const list=await fetchBackups();
+  let added=0;
+  list.forEach(b=>{
+    const d=b&&b.data;
+    if(!d||!d.id||d.deletedAt) return;
+    if(DB.list.some(x=>x.id===d.id)) return;
+    const w=JSON.parse(JSON.stringify(d));
+    SEC_DEFS.forEach(s=>{ if(!w.sections[s.key]) w.sections[s.key]={on:!s.off,cue:s.cue,music:'',text:null}; });
+    DB.list.push(w); added++;
+  });
+  if(added){ const first=DB.list.find(w=>!w.deletedAt); if(first) DB.cur=first.id; save(); }
+  return added;
+}
+
+/* 설정 화면은 두 곳에서 그려지므로 문서 단위로 한 번만 걸어둡니다 */
+document.addEventListener('click',e=>{
+  if(e.target&&e.target.id==='cCopySetup'){
+    copyText(setupCode());
+    toast('설정 코드를 복사했습니다. 새 기기 첫 화면에서 붙여넣으세요.',4200);
+  }
+});
+
 const AUTH_KEY='mc-auth-hash', AUTH_UNTIL_KEY='mc-auth-until', AUTH_TTL=12*3600*1000;
 function pinHash(s){
   s=String(s);
@@ -2876,7 +2935,8 @@ function lockBody(mode,msg){
     <input type="password" id="lockPw" inputmode="numeric" placeholder="${setup?'새 번호 (4자리 이상)':'번호'}" autocomplete="off">
     <button class="btn primary" id="lockGo">${setup?'설정하고 시작하기':'확인'}</button>
     <div class="err" id="lockErr">${msg?esc(msg):''}</div>
-    ${setup?'':'<a href="#" id="lockForgot" style="font-size:12px;color:var(--ink3)">번호를 잊으셨나요? 번호만 초기화</a>'}
+    ${setup?'<a href="#" id="lockSetupCode" style="font-size:12px;color:var(--wine);font-weight:600">쓰던 기기가 있나요? 설정 코드로 한 번에 옮기기</a>'
+           :'<a href="#" id="lockForgot" style="font-size:12px;color:var(--ink3)">번호를 잊으셨나요? 번호만 초기화</a>'}
     <div class="hint">같은 컴퓨터를 쓰는 다른 사람이 예식 정보를 함부로 열어보지 못하도록 막는 화면입니다.<br>번호는 이 브라우저에만 저장되며, 저장된 예식 자료와는 별개입니다.</div>`;
   const go=()=>{
    try{
@@ -2904,7 +2964,40 @@ function lockBody(mode,msg){
     localStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_UNTIL_KEY);
     lockBody('setup');
   };
+  const codeLink=document.getElementById('lockSetupCode');
+  if(codeLink) codeLink.onclick=e=>{ e.preventDefault(); lockSetupForm(); };
   const first=document.getElementById('lockPw'); if(first) first.focus();
+}
+/* 쓰던 기기에서 만든 설정 코드를 붙여넣는 화면 */
+function lockSetupForm(msg){
+  const el=document.getElementById('lockBody');
+  el.innerHTML=`
+    <p style="color:var(--ink2);font-size:14px;margin:0 0 14px;line-height:1.6">
+      쓰던 기기에서 <b>응답 링크 → 설정 코드 복사</b>를 누른 뒤, 여기에 붙여넣어 주세요.<br>
+      주소·토큰·번호가 한 번에 옮겨지고 예식 자료도 자동으로 내려받습니다.</p>
+    <textarea id="lockCode" placeholder="EVERAFTER-SETUP:…" autocomplete="off"
+      style="width:100%;min-height:96px;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px;word-break:break-all"></textarea>
+    <button class="btn primary" id="lockCodeGo">이 코드로 시작하기</button>
+    <div class="err" id="lockErr">${msg?esc(msg):''}</div>
+    <a href="#" id="lockBackPin" style="font-size:12px;color:var(--ink3)">코드 없이 새로 시작하기</a>
+    <div class="hint">설정 코드에는 관리자 토큰이 들어 있습니다. 남에게 보내지 마세요.</div>`;
+  document.getElementById('lockBackPin').onclick=e=>{ e.preventDefault(); lockBody('setup'); };
+  document.getElementById('lockCodeGo').onclick=async()=>{
+    const btn=document.getElementById('lockCodeGo');
+    try{
+      applySetupCode(document.getElementById('lockCode').value);
+      btn.disabled=true; btn.textContent='자료를 내려받는 중…';
+      localStorage.setItem(AUTH_UNTIL_KEY,String(Date.now()+AUTH_TTL));
+      let n=0;
+      try{ n=await pullAllFromSheet(); }catch(e){ /* 자료는 나중에 시트에서 불러오면 됩니다 */ }
+      unlock();
+      toast(n?`설정을 옮기고 예식 ${n}건을 가져왔습니다.`:'설정을 옮겼습니다. 자료는 "시트에서 불러오기"로 가져오세요.',4200);
+    }catch(err){
+      btn.disabled=false; btn.textContent='이 코드로 시작하기';
+      lockSetupForm(err&&err.message?err.message:String(err));
+    }
+  };
+  document.getElementById('lockCode').focus();
 }
 function initAuth(){
   if(authValid()){ load(); return; }
