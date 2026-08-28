@@ -1612,10 +1612,26 @@ document.getElementById('btnCopy').onclick=()=>{
   }).join('\n\n──────────────────\n\n');
   copyText(`${titleOf(w)} 사회자 대본\n\n${out}`);
 };
-function copyText(t){
-  navigator.clipboard.writeText(t).then(()=>toast('복사했습니다.'),
-    ()=>{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy'); ta.remove(); toast('복사했습니다.'); });
+/* 예전에는 대체 경로가 실패해도 무조건 "복사했습니다"라고 알렸습니다. 휴대폰에서
+   조용히 실패하면 사용자는 복사된 줄 알고 엉뚱한 것을 붙여넣게 됩니다. 이제
+   실제 성공 여부를 확인하고, 안 되면 안 됐다고 알립니다. */
+function copyFallback(t){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=t; ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0,t.length);
+    const ok=document.execCommand('copy');
+    ta.remove();
+    return ok;
+  }catch(e){ return false; }
+}
+function copyText(t,okMsg){
+  const done=()=>toast(okMsg||'복사했습니다.');
+  const fail=()=>{ if(copyFallback(t)) done(); else toast('복사가 되지 않았습니다. 화면의 글을 직접 선택해 복사해 주세요.',5000); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done,fail);
+  else fail();
 }
 function exportJson(){
   const b=new Blob([JSON.stringify(cur(),null,2)],{type:'application/json'});
@@ -2881,11 +2897,18 @@ function setupCode(){
   return SETUP_PREFIX+btoa(unescape(encodeURIComponent(JSON.stringify(body))));
 }
 function applySetupCode(code){
-  const raw=String(code||'').trim().replace(/\s+/g,'');
-  if(!raw.startsWith(SETUP_PREFIX)) throw new Error('설정 코드가 아닙니다. 코드 전체를 복사해 붙여넣어 주세요.');
-  let o;
-  try{ o=JSON.parse(decodeURIComponent(escape(atob(raw.slice(SETUP_PREFIX.length))))); }
-  catch(e){ throw new Error('코드가 중간에 잘린 것 같습니다. 다시 복사해 주세요.'); }
+  let raw=String(code||'').trim().replace(/\s+/g,'');
+  if(!raw) throw new Error('붙여넣은 내용이 없습니다.');
+  /* 접두어(EVERAFTER-SETUP:)가 붙어 있으면 떼고, 없어도 그냥 풀어봅니다.
+     앞부분만 빠뜨리고 붙여넣는 일이 잦은데 그때마다 막으면 방법이 없습니다. */
+  const at=raw.indexOf(SETUP_PREFIX);
+  if(at>-1) raw=raw.slice(at+SETUP_PREFIX.length);
+  let o=null;
+  try{ o=JSON.parse(decodeURIComponent(escape(atob(raw)))); }catch(e){ o=null; }
+  if(!o||typeof o!=='object'){
+    throw new Error('설정 코드가 아닙니다. 붙여넣은 내용이 "'+raw.slice(0,14)+'…" 로 시작하는데, '
+      +'"EVERAFTER-SETUP:" 부터 끝까지 통째로 복사해 주세요.');
+  }
   if(!o||!o.token) throw new Error('코드에 관리자 토큰이 없습니다.');
   DB.conn=Object.assign(DB.conn||{},{
     gs:o.gs||DEFAULT_GS, ask:o.ask||'', journey:o.journey||'', token:o.token,
@@ -2912,9 +2935,24 @@ async function pullAllFromSheet(){
 
 /* 설정 화면은 두 곳에서 그려지므로 문서 단위로 한 번만 걸어둡니다 */
 document.addEventListener('click',e=>{
+  /* 복사 버튼이 휴대폰에서 조용히 실패하는 일이 있어, 코드를 화면에도 보여줍니다.
+     버튼이 안 먹으면 글을 직접 길게 눌러 복사할 수 있습니다. */
   if(e.target&&e.target.id==='cCopySetup'){
-    copyText(setupCode());
-    toast('설정 코드를 복사했습니다. 새 기기 첫 화면에서 붙여넣으세요.',4200);
+    const code=setupCode();
+    openModal('설정 코드',
+      `<div class="pv-note" style="margin-bottom:12px">새 기기에서 <b>응답 링크 → 설정 코드 붙여넣기</b>(또는 잠금 화면의 링크)에 아래 글을 통째로 넣으세요.
+         <b>EVERAFTER-SETUP: 부터 맨 끝까지</b> 전부 필요합니다.<br>
+         복사 버튼이 안 먹으면 아래 칸을 길게 눌러 직접 복사하셔도 됩니다.</div>
+       <textarea id="setupCodeBox" readonly style="width:100%;min-height:150px;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:12px;word-break:break-all">${esc(code)}</textarea>
+       <div class="hint" style="margin-top:10px">이 코드에는 관리자 토큰이 들어 있습니다. 남에게 보내지 마세요.</div>`,
+      `<button class="btn" id="scClose">닫기</button>
+       <button class="btn primary" id="scCopy">복사</button>`);
+    document.getElementById('scClose').onclick=closeModal;
+    document.getElementById('scCopy').onclick=()=>{
+      const ta=document.getElementById('setupCodeBox');
+      ta.focus(); ta.select(); ta.setSelectionRange(0,code.length);
+      copyText(code,'설정 코드를 복사했습니다.');
+    };
   }
   /* 잠금이 이미 풀린 기기에서는 잠금 화면을 볼 일이 없으므로 여기서도 받을 수 있게 합니다 */
   if(e.target&&e.target.id==='cPasteSetup'){
