@@ -1640,13 +1640,21 @@ function exportJson(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download=`${titleOf(cur()).replace(/[\/\\:*?"<>|]/g,'')}.json`; a.click();
 }
+/* 버튼이 둘("이 대본만" / "전체")인데 파일 형식이 달라, 반대쪽을 고르면 읽지 못했습니다.
+   이제 어느 버튼을 눌러도 파일 모양을 보고 알아서 처리합니다. */
 function importJson(f){
   if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ try{ const w=JSON.parse(r.result); w.id='w'+Date.now().toString(36);
-      SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; });
-      DB.list.push(w); DB.cur=w.id; save(); renderAll(); toast('불러왔습니다.');
-    }catch(e){ toast('파일을 읽지 못했습니다. 이 앱에서 저장한 .json 파일인지 확인해 주세요.'); } };
+  r.onload=()=>{
+    let o;
+    try{ o=JSON.parse(r.result); }
+    catch(e){ toast('파일을 읽지 못했습니다. 이 앱에서 저장한 .json 파일인지 확인해 주세요.',4200); return; }
+    const inc=(o&&o.db&&Array.isArray(o.db.list))?o.db
+             :(Array.isArray(o&&o.list)?o
+             :((o&&o.id&&o.sections)?{list:[o]}:null));   /* 예식 하나만 담긴 예전 형식 */
+    if(!inc||!inc.list.length){ toast('예식 자료가 들어 있지 않은 파일입니다.',4200); return; }
+    startImport(inc);
+  };
   r.readAsText(f);
 }
 
@@ -1696,7 +1704,13 @@ function importAllJson(f){
       const parsed=JSON.parse(r.result);
       incoming=(parsed&&parsed.db&&Array.isArray(parsed.db.list))?parsed.db:parsed;
       if(!incoming||!Array.isArray(incoming.list)||!incoming.list.length) throw new Error('empty');
-    }catch(e){ toast('파일을 읽지 못했습니다. 전체 백업 파일(.json)인지 확인해 주세요.',4200); return; }
+    }catch(e){ toast('파일을 읽지 못했습니다. 이 앱에서 저장한 .json 파일인지 확인해 주세요.',4200); return; }
+    startImport(incoming);
+  };
+  r.readAsText(f);
+}
+function startImport(incoming){
+  {
     const ids=new Set(incoming.list.filter(w=>w&&w.id).map(w=>w.id));
     const mine=DB.list.filter(w=>!w.deletedAt);
     const both=mine.filter(w=>ids.has(w.id)).length;
@@ -1718,8 +1732,7 @@ function importAllJson(f){
       `<button class="btn" id="impClose">취소</button>`);
     document.getElementById('impClose').onclick=closeModal;
     document.querySelectorAll('[data-imp]').forEach(b=>b.onclick=()=>applyImport(incoming,b.dataset.imp));
-  };
-  r.readAsText(f);
+  }
 }
 function applyImport(incoming,mode){
   if(mode!=='add'&&!confirm(mode==='exact'
