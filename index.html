@@ -2935,8 +2935,8 @@ function lockBody(mode,msg){
     <input type="password" id="lockPw" inputmode="numeric" placeholder="${setup?'새 번호 (4자리 이상)':'번호'}" autocomplete="off">
     <button class="btn primary" id="lockGo">${setup?'설정하고 시작하기':'확인'}</button>
     <div class="err" id="lockErr">${msg?esc(msg):''}</div>
-    ${setup?'<a href="#" id="lockSetupCode" style="font-size:12px;color:var(--wine);font-weight:600">쓰던 기기가 있나요? 설정 코드로 한 번에 옮기기</a>'
-           :'<a href="#" id="lockForgot" style="font-size:12px;color:var(--ink3)">번호를 잊으셨나요? 번호만 초기화</a>'}
+    ${setup?'':'<a href="#" id="lockForgot" style="font-size:12px;color:var(--ink3)">번호를 잊으셨나요? 번호만 초기화</a>'}
+    <a href="#" id="lockSetupCode" style="font-size:12px;color:var(--wine);font-weight:600;margin-top:6px;display:inline-block">쓰던 기기가 있나요? 설정 코드로 한 번에 옮기기</a>
     <div class="hint">같은 컴퓨터를 쓰는 다른 사람이 예식 정보를 함부로 열어보지 못하도록 막는 화면입니다.<br>번호는 이 브라우저에만 저장되며, 저장된 예식 자료와는 별개입니다.</div>`;
   const go=()=>{
    try{
