@@ -280,6 +280,12 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dbadge{flex:none;font-size:11px;font-weight:600;border-radius:6px;padding:3px 7px;background:var(--line2);color:var(--ink2)}
 .dbadge.dday{background:var(--wine-soft);color:var(--wine)}
 .dbadge.warn{background:#FDF1DC;color:#8A6212}
+.conn-fold{border:1px solid var(--line);border-radius:10px;background:var(--card);margin-top:20px}
+.conn-fold>summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:12.5px;color:var(--ink2);font-weight:600}
+.conn-fold>summary::-webkit-details-marker{display:none}
+.conn-fold>summary::before{content:'⚙  '}
+.conn-fold[open]>summary{border-bottom:1px solid var(--line)}
+.conn-fold-body{padding:14px}
 .dash-sub{font-size:11.5px;color:var(--ink3);font-weight:600;margin:14px 0 8px}
 .dash-row-wrap{position:relative}
 .dash-row-wrap .dash-row{padding-right:42px}
@@ -475,10 +481,15 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   </div>
   <div class="tb-div"></div>
   <div class="tb-group">
-    <button class="btn" id="btnLink">응답 링크</button>
-    <button class="btn" id="btnSend">대본 보내기</button>
+    <button class="btn mob-more" id="btnCard" title="처음 문의 주신 분께 — 소개·진행·비용이 담긴 한 장짜리 명함">① 첫 안내</button>
+    <button class="btn" id="btnLink" title="신랑신부에게 사전 질문지(설문) 링크를 보냅니다">② 사전 질문</button>
+    <button class="btn" id="btnSend" title="1차·2차·최종 대본 검토 링크를 보냅니다">③ 대본 보내기</button>
+    <button class="btn mob-more" id="btnLetter" title="예식이 끝난 뒤 Everafter 편지를 메일로 보냅니다">④ 마지막 편지</button>
+  </div>
+  <div class="tb-div"></div>
+  <div class="tb-group">
     <button class="btn" id="btnInbox">응답 확인<span id="inboxDot" style="display:none;margin-left:5px;color:var(--wine)">●</span></button>
-    <button class="btn mob-more" id="btnJourney">두 분의 이야기</button>
+    <button class="btn mob-more" id="btnJourney" title="영애 코드로 열 수 있는 고객 화면 링크 · 예식 마침 표시">이야기 링크</button>
     <button class="btn mob-more" id="btnReplies" title="공개해도 좋다고 답해주신 Everafter 편지 답장만 모아봅니다">편지 답장<span id="repliesDot" style="display:none;margin-left:5px;color:var(--wine)">●</span></button>
   </div>
   <div class="tb-div"></div>
@@ -1031,16 +1042,16 @@ function toastUndo(msg,label,fn,ms){
 
 /* ---------- 진행 단계 ---------- */
 const FLOW=[
-  {k:'s1',t:'사전 질문지 발송',   hint:'상단 <b>응답 링크</b>에서 보내세요.'},
-  {k:'s2',t:'1차 대본 발송',      hint:'<b>대본 보내기</b>에서 1차 검토본으로 보내세요.'},
+  {k:'s1',t:'사전 질문지 발송',   hint:'상단 <b>② 사전 질문</b>에서 보내세요.'},
+  {k:'s2',t:'1차 대본 발송',      hint:'<b>③ 대본 보내기</b>에서 1차 검토본으로 보내세요.'},
   {k:'s3',t:'1차 피드백 수신',    hint:'<b>응답 확인</b>에서 받은 의견을 반영하세요.'},
-  {k:'s4',t:'2차 대본 발송',      hint:'<b>대본 보내기</b>에서 2차 검토본으로 보내세요.'},
+  {k:'s4',t:'2차 대본 발송',      hint:'<b>③ 대본 보내기</b>에서 2차 검토본으로 보내세요.'},
   {k:'s5',t:'2차 피드백 수신',    hint:'<b>응답 확인</b>에서 받은 의견을 반영하세요.'},
-  {k:'s6',t:'최종 대본 발송',     hint:'<b>대본 보내기</b>에서 최종본으로 보내세요.'},
+  {k:'s6',t:'최종 대본 발송',     hint:'<b>③ 대본 보내기</b>에서 최종본으로 보내세요.'},
   {k:'s7',t:'최종 컨펌',          hint:'컨펌을 받으면 눌러 두세요.'},
   {k:'s8',t:'예식 마침',          hint:'예식이 끝난 뒤 눌러 주세요. 고객 화면에 편지와 답장 영역이 열립니다.'},
   {k:'s9',t:'편지에 답장 수신',   hint:'고객이 후기를 남기면 자동으로 표시됩니다.'},
-  {k:'s10',t:'Everafter 편지 발송',hint:'<b>두 분의 이야기</b>에서 편지를 확인하고 메일로 보내세요.'},
+  {k:'s10',t:'Everafter 편지 발송',hint:'<b>④ 마지막 편지</b>에서 확인하고 메일로 보내세요.'},
 ];
 /* ---------- 진행 일정 ----------
    예식일에서 자동으로 계산합니다. 신랑신부가 해주실 일은 주말에 상의하고
@@ -1847,7 +1858,7 @@ async function maybeCheckNewReplies(){
 let INQUIRY_COUNT=0;
 async function fetchInquiries(){
   const gs=(DB.conn||{}).inquiryGs;
-  if(!gs) throw new Error('문의 폼 스크립트 주소가 아직 없습니다. 응답 링크 설정에서 넣어 주세요.');
+  if(!gs) throw new Error('문의 폼 스크립트 주소가 아직 없습니다. ② 사전 질문 → 연결 설정에서 넣어 주세요.');
   const r=await fetch(gs+(gs.includes('?')?'&':'?')+'inquiries=1&token='+encodeURIComponent(adminToken()));
   const j=await r.json();
   if(!j.ok) throw new Error(authErr_(j.error,'불러오지 못했습니다.'));
@@ -1969,8 +1980,10 @@ document.getElementById('btnLock').onclick=()=>{
 };
 /* ---------- 모바일: 더보기 메뉴 · 입력/대본 탭 ---------- */
 document.getElementById('btnMore').onclick=()=>{
-  const items=[['btnNew','새 예식'],['btnDup','복제'],['btnCloud','시트에서 불러오기'],['btnDel','삭제'],
-    ['btnTrash','휴지통'],['btnNotes','사전 준비'],['btnJourney','두 분의 이야기'],['btnReplies','편지 답장'],['btnCopy','텍스트 복사'],['btnPrint','PDF 만들기'],
+  const items=[['btnCard','① 첫 안내 (명함)'],['btnLink','② 사전 질문'],['btnSend','③ 대본 보내기'],['btnLetter','④ 마지막 편지'],
+    ['btnJourney','이야기 링크 (영애 코드)'],['btnReplies','편지 답장'],
+    ['btnNew','새 예식'],['btnDup','복제'],['btnCloud','시트에서 불러오기'],['btnDel','삭제'],
+    ['btnTrash','휴지통'],['btnNotes','사전 준비'],['btnCopy','텍스트 복사'],['btnPrint','PDF 만들기'],
     ['btnStage','무대 모드'],['btnLock','잠금']];
   openModal('더보기',
     `<div style="display:flex;flex-direction:column;gap:8px">${items.map(([id,label])=>
@@ -2001,7 +2014,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* =========================================================
-   9. 응답 링크 · 응답 확인
+   9. 고객 순서대로 보내기 · 응답 확인
    ========================================================= */
 const b64=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_');
 const unb64=s=>decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
@@ -2031,7 +2044,7 @@ function askLink(){
   const w=cur();
   return base+'#'+w.id+(w.linkKey?('.'+w.linkKey):'')+(c.longLink?('~'+gsId(c.gs)):'');
 }
-function authErr_(e,fallback){ return e==='unauthorized'?'관리자 토큰이 맞지 않습니다. 응답 링크에서 확인해 주세요.':(e||fallback); }
+function authErr_(e,fallback){ return e==='unauthorized'?'관리자 토큰이 맞지 않습니다. ② 사전 질문 → 연결 설정에서 확인해 주세요.':(e||fallback); }
 async function pushConfig(){
   const c=DB.conn||{};
   if(!c.gs) throw new Error('앱스 스크립트 주소가 아직 없습니다.');
@@ -2088,6 +2101,12 @@ function connForm(){
       링크에 앱스 스크립트 주소 포함 (링크가 길어집니다)</label>
     <div class="hint">평소에는 꺼두세요. ask.html·review.html 파일 안에 주소가 들어 있어 짧은 링크로도 열립니다.
       파일을 새로 받아 올리지 않은 경우에만 켜세요.</div>`;
+}
+/* 주소·토큰은 한 번 넣으면 손댈 일이 거의 없습니다. 평소 화면에서는 접어 둡니다. */
+function connFold(open){
+  return `<details class="conn-fold"${open?' open':''}>
+    <summary>연결 설정 · 주소와 토큰${open?'':' (평소엔 열지 않아도 됩니다)'}</summary>
+    <div class="conn-fold-body">${connForm()}</div></details>`;
 }
 function saveConn(){
   DB.conn=Object.assign(DB.conn||{},{
@@ -2164,15 +2183,16 @@ const cardMsg=link=>`Everafter 명함을 보내드려요. 🌷
 아래 링크에서 편하게 둘러봐 주세요.
 
 ${link}`;
+document.getElementById('btnCard').onclick=()=>drawCard();
 function drawCard(){
   const link=cardLink();
   const noHome=!((DB.conn||{}).homepage||'').trim();
-  openModal('명함 보내기',
+  openModal('① 첫 안내 · 명함 보내기',
     `<div class="f"><label>명함 주소</label>
       <textarea id="cardLnk" style="width:100%;min-height:56px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(link)}</textarea></div>
      <div class="pv-note">처음 문의 주신 분께 보내는 한 장짜리 소개입니다.
        소개 · 진행 과정 · 비용 · 문의가 이 안에서 모두 이어집니다.
-       ${noHome?'<br><br>지금은 기본 주소를 쓰고 있습니다. <b>응답 링크</b>에서 <b>홈페이지(스튜디오) 주소</b>를 넣으시면 그 주소를 기준으로 만들어집니다.':''}</div>
+       ${noHome?'<br><br>지금은 기본 주소를 쓰고 있습니다. <b>② 사전 질문 → 연결 설정</b>에서 <b>홈페이지(스튜디오) 주소</b>를 넣으시면 그 주소를 기준으로 만들어집니다.':''}</div>
      <a class="btn ghost" href="${esc(link)}" target="_blank" rel="noopener"
         style="display:flex;align-items:center;justify-content:center;width:100%;margin-top:12px;text-decoration:none">명함 열어보기 ↗</a>`,
     `<button class="btn" id="cardCopy">링크만 복사</button>
@@ -2252,7 +2272,7 @@ function renderDashboard(){
     <div class="dash-quick">
       <button class="qbtn primary" id="dNew"><span class="ic">➕</span>새 예식</button>
       <button class="qbtn" id="dNotesBtn"><span class="ic">📋</span>사전 준비</button>
-      <button class="qbtn" id="dCard"><span class="ic">💌</span>명함 보내기</button>
+      <button class="qbtn" id="dCard"><span class="ic">💌</span>① 첫 안내 명함</button>
       ${home?`<a class="qbtn" href="${esc(home)}" target="_blank" rel="noopener"><span class="ic">🏠</span>홈페이지 보기 ↗</a>`:''}
     </div>
     <div class="dash-stats">
@@ -2349,17 +2369,16 @@ document.getElementById('btnLink').onclick=async()=>{
   await ensureLinkKey(cur());
   const c=DB.conn||{};
   const ready=c.ask&&c.gs;
-  openModal('응답 링크 보내기',
-    connForm()+
-    `<div class="f" style="margin-top:16px"><label>신랑신부에게 보낼 링크</label>
+  openModal('② 사전 질문 보내기',
+    `<div class="f"><label>신랑신부에게 보낼 링크</label>
       <textarea id="lnk" style="width:100%;min-height:60px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(askLink())}</textarea></div>
      <div class="pv-note" id="lWarn" style="display:none;color:var(--wine);font-weight:500">
-       ⚠ 주소가 아직 완전하지 않습니다. 위 두 칸을 확인해 주세요.<br>
+       ⚠ 주소가 아직 완전하지 않습니다. 아래 <b>연결 설정</b>을 열어 확인해 주세요.<br>
        앱스 스크립트 주소는 <b>https://script.google.com/macros/s/…/exec</b> 형태로 <b>/exec</b>까지 들어가야 합니다.
      </div>
      <div class="pv-note" id="lNote">${ready
        ? '복사를 누르면 지금 대본 설정이 구글 시트로 올라가고, 신랑신부는 링크를 열 때 그 설정을 받아 봅니다. 대본을 고쳤다면 다시 복사만 눌러 주세요. 링크 자체는 바뀌지 않습니다.'
-       : '위 두 주소를 먼저 채워야 링크가 완성됩니다. 함께 드린 <b>설치 안내</b> 문서의 순서대로 하시면 됩니다.'}</div>`,
+       : '아래 <b>연결 설정</b>에서 주소를 먼저 채워야 링크가 완성됩니다.'}</div>`+connFold(!ready),
     `<button class="btn" id="lCopy">링크만 복사</button>
      <button class="btn primary" id="lMsg">카톡 메시지까지 복사</button>`);
   const warn=()=>{
@@ -2516,7 +2535,7 @@ document.getElementById('btnJourney').onclick=async()=>{
   await ensureLinkKey(cur());
   const w=cur(); ensureYoungaeCode(w); const state=publicJourneyState(w);
   const code=w.youngaeCode||'예식일을 입력해 주세요';
-  openModal('두 분의 이야기',
+  openModal('이야기 링크 · 영애 코드',
     `<div class="pv-note"><b>${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')}</b><br>영애 ${esc(code)}<br><br>현재 장면 · <b>${esc(state[1])}</b></div>
      <div class="f" style="margin-top:16px"><label>고객 이야기 링크</label><textarea id="jlnk" style="width:100%;min-height:64px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(journeyLink())}</textarea></div>
      <div class="pv-note">복사를 누르면 지금 화면 정보가 함께 올라갑니다. 링크 자체는 바뀌지 않습니다.<br>예식 후에는 같은 링크에서 Everafter 편지를 읽고, <b>편지에 답하기</b>로 후기를 남길 수 있습니다.</div>
@@ -2568,9 +2587,22 @@ document.getElementById('btnJourney').onclick=async()=>{
   };
   document.getElementById('jSentences').onclick=()=>openSentencePicker(w);
 };
+/* ④ 마지막 편지 — 예전에는 '두 분의 이야기' 안까지 들어가야 보낼 수 있었습니다 */
+document.getElementById('btnLetter').onclick=async()=>{
+  await ensureLinkKey(cur());
+  const w=cur(); ensureYoungaeCode(w);
+  if(!emailValid(w.email)){
+    await document.getElementById('btnJourney').onclick();   /* 창이 다 그려진 뒤에 칸을 잡아야 합니다 */
+    toast('받는 이메일을 먼저 넣어 주세요.',2600);
+    const el=document.getElementById('jEmail'); if(el) el.focus();
+    return;
+  }
+  if(!(w.steps||{}).s8) toast('아직 “예식 마침”을 표시하지 않았습니다. 이야기 링크에서 먼저 눌러 주세요.',3200);
+  openLetterPreview(w);
+};
 function emailValid(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email||''); }
 function openLetterPreview(w){
-  openModal('Everafter 편지 미리보기',
+  openModal('④ 마지막 편지 · 미리보기',
     `<div class="pv-note" style="margin-bottom:14px">받는 주소 · <b>${esc(w.email)}</b><br>아래 내용 그대로 메일로 발송됩니다.</div>
      <div style="border:1px solid var(--line);border-radius:12px;padding:22px;background:#FFFEFB">
        <div style="font-size:14px;font-weight:600;margin-bottom:14px">${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')} 두 분께</div>
@@ -2620,7 +2652,7 @@ async function flushBackups(){
 
 async function fetchBackups(){
   const gs=(DB.conn||{}).gs;
-  if(!gs) throw new Error('앱스 스크립트 주소가 아직 없습니다. 응답 링크에서 먼저 설정해 주세요.');
+  if(!gs) throw new Error('앱스 스크립트 주소가 아직 없습니다. ② 사전 질문 → 연결 설정에서 먼저 넣어 주세요.');
   const r=await fetch(gs+(gs.includes('?')?'&':'?')+'backups=1&token='+encodeURIComponent(adminToken()));
   const j=await r.json();
   if(!j.ok) throw new Error(authErr_(j.error,'불러오지 못했습니다.'));
@@ -2743,7 +2775,7 @@ document.getElementById('btnCloud').onclick=async()=>{
 /* ---------- 편지 답장 모아보기 (공개 동의한 것만) ---------- */
 async function fetchReplies(){
   const gs=(DB.conn||{}).gs;
-  if(!gs) throw new Error('앱스 스크립트 주소가 아직 없습니다. 응답 링크에서 먼저 설정해 주세요.');
+  if(!gs) throw new Error('앱스 스크립트 주소가 아직 없습니다. ② 사전 질문 → 연결 설정에서 먼저 넣어 주세요.');
   const r=await fetch(gs+(gs.includes('?')?'&':'?')+'replies=1&token='+encodeURIComponent(adminToken()));
   const j=await r.json();
   if(!j.ok) throw new Error(authErr_(j.error,'불러오지 못했습니다.'));
@@ -2790,7 +2822,7 @@ document.getElementById('btnReplies').onclick=async()=>{
 /* ---------- 식전 · 식후 SNS 문장 배정 ---------- */
 async function fetchSentenceDb(){
   const gs=(DB.conn||{}).gs;
-  if(!gs) throw new Error('앱스 스크립트 주소가 아직 없습니다. 응답 링크에서 먼저 설정해 주세요.');
+  if(!gs) throw new Error('앱스 스크립트 주소가 아직 없습니다. ② 사전 질문 → 연결 설정에서 먼저 넣어 주세요.');
   const r=await fetch(gs+(gs.includes('?')?'&':'?')+'sentenceDb=1&token='+encodeURIComponent(adminToken()));
   const j=await r.json();
   if(!j.ok) throw new Error(authErr_(j.error,'문장 목록을 불러오지 못했습니다.'));
@@ -2868,11 +2900,11 @@ document.getElementById('btnSend').onclick=async()=>{
   const w=cur(), p=DB.print||{};
   const rounds=['1차 검토본','2차 검토본','최종본'];
   const draw=()=>{
-    openModal('대본 보내기',
+    openModal('③ 대본 보내기',
       `<div class="opt"><span class="lbl">회차
          <span class="sub">신랑신부 화면 상단에 표시됩니다.</span></span>
          <div class="seg" style="width:230px">
-           ${rounds.map(r=>`<button data-rd="${r}" aria-pressed="${(DB.round||rounds[0])===r}">${r.replace(' 검토본','차').replace('최종본','최종')}</button>`).join('')}
+           ${rounds.map(r=>`<button data-rd="${r}" aria-pressed="${(DB.round||rounds[0])===r}">${r.replace(' 검토본','').replace('최종본','최종')}</button>`).join('')}
          </div></div>
        <div class="f" style="margin-top:16px"><label>보낼 링크</label>
          <textarea id="rlnk" style="width:100%;min-height:56px;border:1px solid var(--line);border-radius:9px;padding:11px;font-size:12.5px;word-break:break-all">${esc(reviewLink())}</textarea></div>
@@ -3054,7 +3086,7 @@ function renderInbox(items,idx,wide){
       <select id="iSel" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px">
       ${items.map((r,i)=>`<option value="${i}" ${i===(idx||0)?'selected':''}>${r.type==='review'?'[대본검토'+(r.round?' '+r.round:'')+'] ':'[사전응답] '}${esc(r.name||'이름 없음')} · ${new Date(r.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</option>`).join('')}
       </select></div>`:''}
-     ${WIDE?`<div class="pv-note" style="margin-bottom:10px;color:var(--wine)">이 예식으로 표시된 응답이 없어 <b>시트에 있는 모든 예식의 응답</b>을 최신순으로 보여드립니다.<br>대부분 방금 받은 응답이 맨 위에 있으니 이름으로 찾아 맞는 것을 골라주세요.<br>이 화면이 자주 뜬다면 예식을 <b>복제</b>했거나 응답 링크를 다시 만들며 예식 ID가 바뀌었을 수 있습니다.</div>`:''}
+     ${WIDE?`<div class="pv-note" style="margin-bottom:10px;color:var(--wine)">이 예식으로 표시된 응답이 없어 <b>시트에 있는 모든 예식의 응답</b>을 최신순으로 보여드립니다.<br>대부분 방금 받은 응답이 맨 위에 있으니 이름으로 찾아 맞는 것을 골라주세요.<br>이 화면이 자주 뜬다면 예식을 <b>복제</b>했거나 사전 질문 링크를 다시 만들며 예식 ID가 바뀌었을 수 있습니다.</div>`:''}
      ${res.type==='review'?(()=>{
         const ns=Object.values(res.notes||{});
         const ok=ns.filter(x=>x.v==='ok').length, fx=ns.filter(x=>x.v==='fix').length;
@@ -3090,7 +3122,7 @@ document.getElementById('btnInbox').onclick=async()=>{
   try{ const r=await fetchResponses(); renderInbox(r.items,0,r.wide); }
   catch(e){
     openModal('받은 응답',
-      connForm()+
+      connFold(true)+
       `<div class="pv-note" style="margin-top:14px">${esc(e.message)}<br><br>
         신랑신부가 코드를 보내온 경우에는 아래에 붙여넣으세요.</div>
        <div class="f"><label>응답 코드 붙여넣기</label>
@@ -3176,7 +3208,7 @@ document.addEventListener('click',e=>{
   if(e.target&&e.target.id==='cCopySetup'){
     const code=setupCode();
     openModal('설정 코드',
-      `<div class="pv-note" style="margin-bottom:12px">새 기기에서 <b>응답 링크 → 설정 코드 붙여넣기</b>(또는 잠금 화면의 링크)에 아래 글을 통째로 넣으세요.
+      `<div class="pv-note" style="margin-bottom:12px">새 기기에서 <b>② 사전 질문 → 연결 설정 → 설정 코드 붙여넣기</b>(또는 잠금 화면의 링크)에 아래 글을 통째로 넣으세요.
          <b>EVERAFTER-SETUP: 부터 맨 끝까지</b> 전부 필요합니다.<br>
          복사 버튼이 안 먹으면 아래 칸을 길게 눌러 직접 복사하셔도 됩니다.</div>
        <textarea id="setupCodeBox" readonly style="width:100%;min-height:150px;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:12px;word-break:break-all">${esc(code)}</textarea>
@@ -3264,7 +3296,7 @@ function lockSetupForm(msg){
   const el=document.getElementById('lockBody');
   el.innerHTML=`
     <p style="color:var(--ink2);font-size:14px;margin:0 0 14px;line-height:1.6">
-      쓰던 기기에서 <b>응답 링크 → 설정 코드 복사</b>를 누른 뒤, 여기에 붙여넣어 주세요.<br>
+      쓰던 기기에서 <b>② 사전 질문 → 연결 설정 → 설정 코드 복사</b>를 누른 뒤, 여기에 붙여넣어 주세요.<br>
       주소·토큰·번호가 한 번에 옮겨지고 예식 자료도 자동으로 내려받습니다.</p>
     <textarea id="lockCode" placeholder="EVERAFTER-SETUP:…" autocomplete="off"
       style="width:100%;min-height:96px;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px;word-break:break-all"></textarea>
