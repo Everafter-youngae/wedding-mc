@@ -205,6 +205,8 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
   opacity:0;pointer-events:none;transition:all .2s;z-index:99;
 }
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-btn{margin-left:12px;border:1px solid rgba(255,255,255,.45);background:none;color:#fff;border-radius:7px;padding:5px 11px;font-size:13px;font-family:inherit;cursor:pointer}
+.toast-btn:hover{background:rgba(255,255,255,.15)}
 
 /* ---------- stage mode ---------- */
 /* touch-action:pan-y — 위아래로 넘기는 것만 두고 두 손가락 확대·두 번 톡 확대를 막습니다.
@@ -265,13 +267,19 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dcell.has{cursor:pointer;border-color:var(--wine);background:var(--wine-soft)}
 .dcell.has:hover{filter:brightness(.97)}
 .dcell.has.done{border-color:var(--line);background:var(--line2)}
-.dcell.has.done .dwed{color:var(--ink2)}
 .dcell.today .dnum{color:var(--wine);font-weight:700}
 .dnum{font-size:11px;color:var(--ink3)}
-.dwed{font-size:10px;color:var(--wine);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dwed{display:block;width:100%;text-align:left;border:0;background:none;padding:0;font-family:inherit;cursor:pointer;font-size:10px;color:var(--wine);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dwed:hover,.dwed:focus-visible{text-decoration:underline}
+.dcell.done .dwed{color:var(--ink2)}
 .dash-list h3,.dash-memo h3{font-size:13px;margin:0 0 10px;letter-spacing:-.01em;color:var(--ink2);font-weight:700}
 .dash-row{display:flex;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;padding:11px 14px;background:var(--card);margin-bottom:8px;font-size:13.5px}
+.dash-row{align-items:center}
 .dash-row b{color:var(--wine);font-weight:700;min-width:72px;flex:none}
+.dash-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dbadge{flex:none;font-size:11px;font-weight:600;border-radius:6px;padding:3px 7px;background:var(--line2);color:var(--ink2)}
+.dbadge.dday{background:var(--wine-soft);color:var(--wine)}
+.dbadge.warn{background:#FDF1DC;color:#8A6212}
 .dash-sub{font-size:11.5px;color:var(--ink3);font-weight:600;margin:14px 0 8px}
 .dash-row-wrap{position:relative}
 .dash-row-wrap .dash-row{padding-right:42px}
@@ -280,6 +288,10 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dash-memo{margin-top:22px}
 .dash-memo textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:14px;line-height:1.65;resize:vertical;background:var(--card);font-family:inherit}
 .dash-memo textarea:focus{border-color:var(--wine);outline:none}
+/* 두 칸으로 갈라지되 목록 칸이 좁은 구간 — 단계 배지보다 두 분 이름이 먼저입니다 */
+@media (min-width:861px) and (max-width:1120px){
+  .dash-list .dbadge:not(.dday){display:none}
+}
 @media (max-width:860px){
   .dash-body{grid-template-columns:1fr}
   .dash-stats{grid-template-columns:repeat(2,1fr)}
@@ -549,6 +561,16 @@ const SEC_DEFS = [
   {key:'closing',  title:'폐식사',           dur:15,  cue:'촬영 안내 · 연회장 위치'},
 ];
 
+function fixDate(v){
+  const d=String(v||'').trim();
+  if(!d||okDate(d)) return d;
+  let m=d.match(/^(\d{4})-(\d{2})-(\d{2})T/)                    // 2026-08-29T00:00:00.000Z
+     || d.match(/^(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})\.?$/)   // 2026.8.29 · 2026/08/29
+     || d.match(/^(\d{4})(\d{2})(\d{2})$/);                      // 20260829
+  if(!m) return d;                                               /* 알아볼 수 없으면 그대로 둡니다 */
+  const out=`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  return okDate(out)?out:d;
+}
 function blank(){
   const secs={};
   SEC_DEFS.forEach(d=>secs[d.key]={on:!d.off,cue:d.cue,music:'',text:null});
@@ -971,6 +993,9 @@ async function load(){
   /* 주소는 이미 공개된 값이라 기본으로 채워둡니다 — 새 기기에서 입력할 칸이 하나 줄어듭니다 */
   DB.conn=DB.conn||{};
   if(!DB.conn.gs) DB.conn.gs=DEFAULT_GS;
+  /* 시트/백업을 거치며 형식이 바뀐 날짜를 되돌립니다. 형태가 분명한 것만 손대고,
+     알아볼 수 없는 값은 그대로 두어 대시보드에서 '날짜 확인 필요'로 보이게 합니다. */
+  DB.list.forEach(w=>{ w.date=fixDate(w.date); });
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
     w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
@@ -988,8 +1013,19 @@ function setSec(key,k,v){ const w=cur(); w.sections[key][k]=v; save(); renderAll
 
 function toast(msg,ms){
   const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('on');
+  t.textContent=msg; t.style.pointerEvents='none'; t.classList.add('on');
   clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),ms||1900);
+}
+/* 되돌릴 수 있는 일에는 토스트에 버튼을 함께 띄웁니다 — 잘못 눌러도 한 번에 복구 */
+function toastUndo(msg,label,fn,ms){
+  const t=document.getElementById('toast');
+  t.innerHTML=`<span></span><button class="toast-btn" id="toastUndoBtn"></button>`;
+  t.firstChild.textContent=msg;
+  const b=document.getElementById('toastUndoBtn'); b.textContent=label;
+  t.style.pointerEvents='auto'; t.classList.add('on');
+  const close=()=>{ t.classList.remove('on'); t.style.pointerEvents='none'; };
+  b.onclick=()=>{ close(); fn(); };
+  clearTimeout(toast._t); toast._t=setTimeout(close,ms||6000);
 }
 
 
@@ -2148,7 +2184,25 @@ function drawCard(){
 
 /* ---------- 대시보드 (메인 화면 · 예식 등록 전에도 항상 볼 수 있음) ---------- */
 let DASH_MONTH=new Date();
-function dashRowHTML(w){ return `<button class="dash-row" data-id="${esc(w.id)}"><b>${esc(dateShort(w)||'날짜 미정')}</b> ${esc(w.bride||'신부')} ♡ ${esc(w.groom||'신랑')}</button>`; }
+/* 시트를 거쳐 들어온 날짜가 가끔 깨져 있습니다(예: 202509-08-08).
+   그대로 두면 연도 집계·정렬·완료/예정 판정이 전부 어긋나므로 걸러 씁니다. */
+function okDate(d){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d||'')) return false;
+  const [y,m,dd]=d.split('-').map(Number);
+  return m>=1&&m<=12&&dd>=1&&dd<=new Date(y,m,0).getDate();
+}
+function dday(date,today){
+  const n=Math.round((new Date(date+'T00:00:00')-new Date(today+'T00:00:00'))/86400000);
+  return n===0?'오늘':(n>0?`D-${n}`:`D+${-n}`);
+}
+function nextStepOf(w){ const st=w.steps||{}; const f=FLOW.slice(0,7).find(x=>!st[x.k]); return f?f.t:'최종 컨펌 완료'; }
+function delRow(w,badge){
+  return `<div class="dash-row-wrap">${dashRowHTML(w,badge)}<button class="dash-del" data-del="${esc(w.id)}" title="휴지통으로 옮기기" aria-label="휴지통으로 옮기기">✕</button></div>`;
+}
+function dashRowHTML(w,badge){
+  const label=w.date?(okDate(w.date)?dateShort(w):'날짜 확인 필요'):'날짜 미정';
+  return `<button class="dash-row" data-id="${esc(w.id)}"><b>${esc(label)}</b><span class="nm">${esc(w.bride||'신부')} ♡ ${esc(w.groom||'신랑')}</span>${badge||''}</button>`;
+}
 function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function enterWedding(id){ DB.cur=id; save(); showEditor(); }
 function showDashboard(){
@@ -2170,7 +2224,7 @@ function renderDashboard(){
   const daysInMonth=new Date(y,m+1,0).getDate();
   const today=todayStr();
   const byDate={};
-  DB.list.filter(w=>!w.deletedAt&&w.date).forEach(w=>{ (byDate[w.date]=byDate[w.date]||[]).push(w); });
+  DB.list.filter(w=>!w.deletedAt&&okDate(w.date)).forEach(w=>{ (byDate[w.date]=byDate[w.date]||[]).push(w); });
   const cells=[];
   for(let i=0;i<startDow;i++) cells.push('<div class="dcell empty"></div>');
   for(let d=1;d<=daysInMonth;d++){
@@ -2178,15 +2232,17 @@ function renderDashboard(){
     const weds=byDate[dateStr]||[];
     cells.push(`<div class="dcell ${weds.length?'has':''} ${weds.length&&dateStr<today?'done':''} ${dateStr===today?'today':''}" ${weds.length?`data-date="${esc(dateStr)}"`:''}>
       <span class="dnum">${d}</span>
-      ${weds.map(w=>`<span class="dwed">${esc((w.bride||'신부'))}·${esc((w.groom||'신랑'))}</span>`).join('')}
+      ${weds.map(w=>`<button class="dwed" data-id="${esc(w.id)}">${esc((w.bride||'신부'))}·${esc((w.groom||'신랑'))}</button>`).join('')}
     </div>`);
   }
   const alive=DB.list.filter(w=>!w.deletedAt);
-  const upcoming=alive.filter(w=>w.date&&w.date>=today).sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
+  const dated=alive.filter(w=>okDate(w.date));
+  const upcoming=dated.filter(w=>w.date>=today).sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
   const undated=alive.filter(w=>!w.date);
-  const yearAll=alive.filter(w=>w.date&&w.date.slice(0,4)===String(y));
+  const badDate=alive.filter(w=>w.date&&!okDate(w.date));
+  const yearAll=dated.filter(w=>w.date.slice(0,4)===String(y));
   const yDone=yearAll.filter(w=>w.date<today).length, yUp=yearAll.length-yDone;
-  const yMonth=alive.filter(w=>w.date&&w.date.slice(0,7)===`${y}-${String(m+1).padStart(2,'0')}`).length;
+  const yMonth=dated.filter(w=>w.date.slice(0,7)===`${y}-${String(m+1).padStart(2,'0')}`).length;
   const isThisMonth=(y===+today.slice(0,4)&&m===+today.slice(5,7)-1);
   const home=(DB.conn||{}).homepage;
   el.innerHTML=`
@@ -2209,7 +2265,12 @@ function renderDashboard(){
       <div class="dash-cal">
         <div class="dash-cal-head">
           <button class="btn ghost" id="dPrev">← 이전 달</button>
-          <div class="dash-cal-now"><h2>${y}년 ${m+1}월</h2>${isThisMonth?'':'<button class="btn ghost" id="dToday">오늘</button>'}</div>
+          <div class="dash-cal-now">
+            <button class="btn quiet" id="dPrevY" title="이전 해">«</button>
+            <h2>${y}년 ${m+1}월</h2>
+            <button class="btn quiet" id="dNextY" title="다음 해">»</button>
+            ${isThisMonth?'':'<button class="btn ghost" id="dToday">오늘</button>'}
+          </div>
           <button class="btn ghost" id="dNext">다음 달 →</button>
         </div>
         <div class="dash-grid dow">${['일','월','화','수','목','금','토'].map(x=>`<div>${x}</div>`).join('')}</div>
@@ -2217,9 +2278,10 @@ function renderDashboard(){
       </div>
       <div class="dash-list">
         <h3>다가오는 예식</h3>
-        ${upcoming.length?upcoming.map(dashRowHTML).join('')
+        ${upcoming.length?upcoming.map(w=>dashRowHTML(w,`<span class="dbadge dday">${esc(dday(w.date,today))}</span><span class="dbadge">${esc(nextStepOf(w))}</span>`)).join('')
           :'<p class="hint">예정된 예식이 없습니다. "+ 새 예식"으로 시작해 보세요.</p>'}
-        ${undated.length?`<p class="dash-sub">날짜 미정</p>${undated.map(w=>`<div class="dash-row-wrap">${dashRowHTML(w)}<button class="dash-del" data-del="${esc(w.id)}" title="휴지통으로 옮기기" aria-label="휴지통으로 옮기기">✕</button></div>`).join('')}`:''}
+        ${undated.length?`<p class="dash-sub">날짜 미정</p>${undated.map(w=>delRow(w)).join('')}`:''}
+        ${badDate.length?`<p class="dash-sub">날짜 확인 필요</p>${badDate.map(w=>delRow(w,`<span class="dbadge warn">${esc(w.date)}</span>`)).join('')}`:''}
         <div class="dash-memo"><h3>메모</h3>
           <textarea id="dMemo" placeholder="생각나는 것들을 편하게 적어두세요.">${esc(DB.notes.memo||'')}</textarea>
         </div>
@@ -2232,33 +2294,54 @@ function renderDashboard(){
   if(document.getElementById('dSync')) document.getElementById('dSync').onclick=drawSync;
   document.getElementById('dPrev').onclick=()=>{ DASH_MONTH=new Date(y,m-1,1); renderDashboard(); };
   document.getElementById('dNext').onclick=()=>{ DASH_MONTH=new Date(y,m+1,1); renderDashboard(); };
+  document.getElementById('dPrevY').onclick=()=>{ DASH_MONTH=new Date(y-1,m,1); renderDashboard(); };
+  document.getElementById('dNextY').onclick=()=>{ DASH_MONTH=new Date(y+1,m,1); renderDashboard(); };
   if(document.getElementById('dToday')) document.getElementById('dToday').onclick=()=>{ DASH_MONTH=new Date(); renderDashboard(); };
   document.getElementById('dMemo').oninput=e=>{ DB.notes.memo=e.target.value; save(); };
-  document.querySelectorAll('.dcell.has').forEach(c=>c.onclick=()=>enterWedding(byDate[c.dataset.date][0].id));
-  document.querySelectorAll('.dash-row').forEach(r=>r.onclick=()=>enterWedding(r.dataset.id));
-  document.getElementById('dDone').onclick=drawPast;
-  document.querySelectorAll('.dash-del').forEach(b=>b.onclick=()=>{
+  /* 열려 있는 창(지난 예식 등)에도 같은 클래스가 있어, 반드시 대시보드 안에서만 찾습니다 */
+  el.querySelectorAll('.dcell.has').forEach(c=>c.onclick=()=>enterWedding(byDate[c.dataset.date][0].id));
+  el.querySelectorAll('.dwed').forEach(b=>b.onclick=e=>{ e.stopPropagation(); enterWedding(b.dataset.id); });
+  el.querySelectorAll('.dash-row').forEach(r=>r.onclick=()=>enterWedding(r.dataset.id));
+  document.getElementById('dDone').onclick=()=>drawPast(y);
+  el.querySelectorAll('.dash-del').forEach(b=>b.onclick=()=>{
     const w=DB.list.find(x=>x.id===b.dataset.del); if(!w) return;
     if(!confirm(`"${titleOf(w)}" 예식을 휴지통으로 옮길까요?\n30일 안에는 휴지통에서 되살릴 수 있습니다.`)) return;
-    trashWedding(w); renderDashboard(); toast('휴지통으로 옮겼습니다. 되살리려면 예식 화면의 휴지통을 열어 주세요.',2600);
+    const prevCur=DB.cur;
+    trashWedding(w); renderDashboard();
+    toastUndo('휴지통으로 옮겼습니다.','되돌리기',()=>{
+      delete w.deletedAt; DB.cur=prevCur; save(); renderDashboard(); toast('되돌렸습니다.');
+    });
   });
 }
-/* 지난 예식은 오른쪽 목록을 채우는 대신 '완료' 카드에서 모아 봅니다 */
-function drawPast(){
+/* 지난 예식은 오른쪽 목록을 채우는 대신 '완료' 카드에서 모아 봅니다.
+   카드 숫자가 그 해 기준이므로 창도 같은 해로 열고, 아래 버튼으로 전체를 폅니다. */
+function drawPast(year){
   const today=todayStr();
-  const past=DB.list.filter(w=>!w.deletedAt&&w.date&&w.date<today).sort((a,b)=>a.date<b.date?1:(a.date>b.date?-1:0));
+  const all=DB.list.filter(w=>!w.deletedAt&&okDate(w.date)&&w.date<today).sort((a,b)=>a.date<b.date?1:(a.date>b.date?-1:0));
+  const past=year?all.filter(w=>w.date.slice(0,4)===String(year)):all;
+  const moreBtn=(year&&all.length>past.length)?`<button class="btn" id="pAll">지난 예식 전체 보기 (${all.length}건)</button>`:'';
+  const bind=()=>{
+    document.getElementById('pClose').onclick=closeModal;
+    if(document.getElementById('pAll')) document.getElementById('pAll').onclick=()=>drawPast(null);
+    document.querySelectorAll('#mBody .past-list .dash-row').forEach(r=>r.onclick=()=>{ closeModal(); enterWedding(r.dataset.id); });
+  };
   if(!past.length){
-    openModal('지난 예식','<div class="pv-note">아직 지난 예식이 없습니다.</div>','<button class="btn primary" id="pClose">닫기</button>');
-    document.getElementById('pClose').onclick=closeModal; return;
+    openModal(year?`${year}년 지난 예식`:'지난 예식',
+      `<div class="pv-note">${year?esc(year+'년에는 끝난 예식이 없습니다.'):'아직 지난 예식이 없습니다.'}</div>`,
+      `${moreBtn}<button class="btn primary" id="pClose">닫기</button>`);
+    bind(); return;
   }
   let lastY='';
   const rows=past.map(w=>{
     const yy=w.date.slice(0,4), head=yy!==lastY?`<h4 class="past-y">${esc(yy)}년</h4>`:''; lastY=yy;
-    return head+dashRowHTML(w);
+    /* 예식 뒤에 남는 일 — 편지를 아직 안 보낸 예식이 눈에 띄어야 합니다 */
+    const badge=(w.steps||{}).s10?'':'<span class="dbadge warn">편지 미발송</span>';
+    return head+dashRowHTML(w,badge);
   }).join('');
-  openModal(`지난 예식 ${past.length}건`,`<p class="dash-sub" style="margin-top:0">끝난 예식을 최근 순서대로 모두 모았습니다. 눌러서 그때 대본을 다시 열 수 있습니다.</p><div class="past-list">${rows}</div>`,'<button class="btn primary" id="pClose">닫기</button>');
-  document.getElementById('pClose').onclick=closeModal;
-  document.querySelectorAll('.past-list .dash-row').forEach(r=>r.onclick=()=>{ closeModal(); enterWedding(r.dataset.id); });
+  openModal(year?`${year}년 지난 예식 ${past.length}건`:`지난 예식 ${past.length}건`,
+    `<p class="dash-sub" style="margin-top:0">끝난 순서대로 모았습니다. 눌러서 그때 대본을 다시 열 수 있습니다.</p><div class="past-list">${rows}</div>`,
+    `${moreBtn}<button class="btn primary" id="pClose">닫기</button>`);
+  bind();
 }
 document.getElementById('btnDash').onclick=showDashboard;
 
