@@ -256,6 +256,10 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dash-list h3,.dash-memo h3{font-size:13px;margin:0 0 10px;letter-spacing:-.01em;color:var(--ink2);font-weight:700}
 .dash-row{display:flex;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;padding:11px 14px;background:var(--card);margin-bottom:8px;font-size:13.5px}
 .dash-row b{color:var(--wine);font-weight:700;min-width:72px;flex:none}
+.dash-past-h{margin-top:20px!important}
+.dash-past-h span{color:var(--ink2);font-weight:600;opacity:.6}
+.dash-list .dash-past-h ~ .dash-row{opacity:.72}
+.dash-more{width:100%;border:1px dashed var(--line);border-radius:8px;padding:9px;background:none;color:var(--ink2);font-size:12.5px;margin-bottom:8px}
 .dash-memo{margin-top:22px}
 .dash-memo textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:14px;line-height:1.65;resize:vertical;background:var(--card);font-family:inherit}
 .dash-memo textarea:focus{border-color:var(--wine);outline:none}
@@ -2121,7 +2125,7 @@ function drawCard(){
 }
 
 /* ---------- 대시보드 (메인 화면 · 예식 등록 전에도 항상 볼 수 있음) ---------- */
-let DASH_MONTH=new Date();
+let DASH_MONTH=new Date(), DASH_PAST_ALL=false;
 function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function enterWedding(id){ DB.cur=id; save(); showEditor(); }
 function showDashboard(){
@@ -2154,7 +2158,12 @@ function renderDashboard(){
       ${weds.map(w=>`<span class="dwed">${esc((w.bride||'신부'))}·${esc((w.groom||'신랑'))}</span>`).join('')}
     </div>`);
   }
-  const upcoming=DB.list.filter(w=>!w.deletedAt&&w.date&&w.date>=today).sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
+  const alive=DB.list.filter(w=>!w.deletedAt);
+  const upcoming=alive.filter(w=>w.date&&w.date>=today).sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0))
+    .concat(alive.filter(w=>!w.date));
+  const past=alive.filter(w=>w.date&&w.date<today).sort((a,b)=>a.date<b.date?1:(a.date>b.date?-1:0));
+  const pastShown=DASH_PAST_ALL?past:past.slice(0,5);
+  const dashRow=w=>`<button class="dash-row" data-id="${esc(w.id)}"><b>${esc(dateShort(w)||'날짜 미정')}</b> ${esc(w.bride||'신부')} ♡ ${esc(w.groom||'신랑')}</button>`;
   const home=(DB.conn||{}).homepage;
   el.innerHTML=`
     <h1 class="dash-title">Everafter 대시보드</h1>
@@ -2178,8 +2187,11 @@ function renderDashboard(){
       </div>
       <div class="dash-list">
         <h3>다가오는 예식</h3>
-        ${upcoming.length?upcoming.map(w=>`<button class="dash-row" data-id="${esc(w.id)}"><b>${esc(dateShort(w)||'날짜 미정')}</b> ${esc(w.bride||'신부')} ♡ ${esc(w.groom||'신랑')}</button>`).join('')
+        ${upcoming.length?upcoming.map(dashRow).join('')
           :'<p class="hint">예정된 예식이 없습니다. "+ 새 예식"으로 시작해 보세요.</p>'}
+        ${past.length?`<h3 class="dash-past-h">지난 예식 <span>${past.length}</span></h3>
+          ${pastShown.map(dashRow).join('')}
+          ${past.length>pastShown.length||DASH_PAST_ALL?`<button class="dash-more" id="dPastMore">${DASH_PAST_ALL?'접기':`지난 예식 ${past.length}건 모두 보기 →`}</button>`:''}`:''}
         <div class="dash-memo"><h3>메모</h3>
           <textarea id="dMemo" placeholder="생각나는 것들을 편하게 적어두세요.">${esc(DB.notes.memo||'')}</textarea>
         </div>
@@ -2195,6 +2207,7 @@ function renderDashboard(){
   document.getElementById('dMemo').oninput=e=>{ DB.notes.memo=e.target.value; save(); };
   document.querySelectorAll('.dcell.has').forEach(c=>c.onclick=()=>enterWedding(byDate[c.dataset.date][0].id));
   document.querySelectorAll('.dash-row').forEach(r=>r.onclick=()=>enterWedding(r.dataset.id));
+  if(document.getElementById('dPastMore')) document.getElementById('dPastMore').onclick=()=>{ DASH_PAST_ALL=!DASH_PAST_ALL; renderDashboard(); };
 }
 document.getElementById('btnDash').onclick=showDashboard;
 
