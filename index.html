@@ -273,6 +273,10 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dash-row{display:flex;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-radius:8px;padding:11px 14px;background:var(--card);margin-bottom:8px;font-size:13.5px}
 .dash-row b{color:var(--wine);font-weight:700;min-width:72px;flex:none}
 .dash-sub{font-size:11.5px;color:var(--ink3);font-weight:600;margin:14px 0 8px}
+.dash-row-wrap{position:relative}
+.dash-row-wrap .dash-row{padding-right:42px}
+.dash-del{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:30px;height:30px;padding:0;border:0;border-radius:8px;background:none;color:var(--ink3);font-size:13px;line-height:1;cursor:pointer}
+.dash-del:hover{background:var(--wine-soft);color:var(--wine)}
 .dash-memo{margin-top:22px}
 .dash-memo textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:14px;line-height:1.65;resize:vertical;background:var(--card);font-family:inherit}
 .dash-memo textarea:focus{border-color:var(--wine);outline:none}
@@ -1486,14 +1490,17 @@ document.getElementById('btnDup').onclick=()=>{
   const w=JSON.parse(JSON.stringify(cur())); w.id='w'+Date.now().toString(36);
   DB.list.push(w); DB.cur=w.id; save(); showEditor(); toast('복제했습니다. 이름과 날짜를 바꿔 주세요.');
 };
+function trashWedding(w){
+  w.deletedAt=new Date().toISOString();
+  const remain=DB.list.filter(x=>!x.deletedAt);
+  if(!remain.length){ const nw=blank(); DB.list.push(nw); DB.cur=nw.id; }
+  else if(DB.cur===w.id||!remain.some(x=>x.id===DB.cur)) DB.cur=remain[0].id;
+  save();
+}
 document.getElementById('btnDel').onclick=()=>{
   const w=cur();
   if(!confirm(`"${titleOf(w)}" 예식을 휴지통으로 옮길까요?\n30일 안에는 휴지통에서 복구할 수 있습니다.`)) return;
-  w.deletedAt=new Date().toISOString();
-  const remain=DB.list.filter(x=>!x.deletedAt);
-  if(remain.length) DB.cur=remain[0].id;
-  else { const nw=blank(); DB.list.push(nw); DB.cur=nw.id; }
-  save(); renderAll(); toast('휴지통으로 옮겼습니다.');
+  trashWedding(w); renderAll(); toast('휴지통으로 옮겼습니다.');
 };
 /* ---------- 휴지통 ---------- */
 function purgeOldTrash(){
@@ -2212,7 +2219,7 @@ function renderDashboard(){
         <h3>다가오는 예식</h3>
         ${upcoming.length?upcoming.map(dashRowHTML).join('')
           :'<p class="hint">예정된 예식이 없습니다. "+ 새 예식"으로 시작해 보세요.</p>'}
-        ${undated.length?`<p class="dash-sub">날짜 미정</p>${undated.map(dashRowHTML).join('')}`:''}
+        ${undated.length?`<p class="dash-sub">날짜 미정</p>${undated.map(w=>`<div class="dash-row-wrap">${dashRowHTML(w)}<button class="dash-del" data-del="${esc(w.id)}" title="휴지통으로 옮기기" aria-label="휴지통으로 옮기기">✕</button></div>`).join('')}`:''}
         <div class="dash-memo"><h3>메모</h3>
           <textarea id="dMemo" placeholder="생각나는 것들을 편하게 적어두세요.">${esc(DB.notes.memo||'')}</textarea>
         </div>
@@ -2230,6 +2237,11 @@ function renderDashboard(){
   document.querySelectorAll('.dcell.has').forEach(c=>c.onclick=()=>enterWedding(byDate[c.dataset.date][0].id));
   document.querySelectorAll('.dash-row').forEach(r=>r.onclick=()=>enterWedding(r.dataset.id));
   document.getElementById('dDone').onclick=drawPast;
+  document.querySelectorAll('.dash-del').forEach(b=>b.onclick=()=>{
+    const w=DB.list.find(x=>x.id===b.dataset.del); if(!w) return;
+    if(!confirm(`"${titleOf(w)}" 예식을 휴지통으로 옮길까요?\n30일 안에는 휴지통에서 되살릴 수 있습니다.`)) return;
+    trashWedding(w); renderDashboard(); toast('휴지통으로 옮겼습니다. 되살리려면 예식 화면의 휴지통을 열어 주세요.',2600);
+  });
 }
 /* 지난 예식은 오른쪽 목록을 채우는 대신 '완료' 카드에서 모아 봅니다 */
 function drawPast(){
