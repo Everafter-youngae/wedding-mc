@@ -240,7 +240,14 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dash-quick .qbtn:hover{border-color:var(--ink3)}
 .dash-quick .qbtn .ic{font-size:19px;line-height:1}
 .dash-quick .qbtn.primary{background:var(--wine);border-color:var(--wine);color:#fff}
+.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 20px}
+.dstat{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:12px 14px;text-align:left}
+.dstat b{display:block;font-size:22px;line-height:1.1;letter-spacing:-.02em;color:var(--ink)}
+.dstat span{display:block;margin-top:4px;font-size:11.5px;color:var(--ink3);font-weight:600}
+.dstat.done b{color:var(--ink2)}
+.dstat.up b{color:var(--wine)}
 .dash-body{display:grid;grid-template-columns:1.35fr 1fr;gap:26px;align-items:start}
+.dash-cal-now{display:flex;align-items:center;gap:8px}
 .dash-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px}
 .dash-cal-head h2{font-size:15px;margin:0;letter-spacing:-.02em;font-weight:700}
 .dash-cal-head .btn{padding:6px 11px;font-size:12.5px;min-height:32px}
@@ -250,6 +257,8 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dcell.empty{border-color:transparent;background:transparent}
 .dcell.has{cursor:pointer;border-color:var(--wine);background:var(--wine-soft)}
 .dcell.has:hover{filter:brightness(.97)}
+.dcell.has.done{border-color:var(--line);background:var(--line2)}
+.dcell.has.done .dwed{color:var(--ink2)}
 .dcell.today .dnum{color:var(--wine);font-weight:700}
 .dnum{font-size:11px;color:var(--ink3)}
 .dwed{font-size:10px;color:var(--wine);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -265,6 +274,8 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dash-memo textarea:focus{border-color:var(--wine);outline:none}
 @media (max-width:860px){
   .dash-body{grid-template-columns:1fr}
+  .dash-stats{grid-template-columns:repeat(2,1fr)}
+  .dstat b{font-size:19px}
   .dash-memo textarea{min-height:140px}
 }
 @media (max-width:640px){
@@ -2153,7 +2164,7 @@ function renderDashboard(){
   for(let d=1;d<=daysInMonth;d++){
     const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const weds=byDate[dateStr]||[];
-    cells.push(`<div class="dcell ${weds.length?'has':''} ${dateStr===today?'today':''}" ${weds.length?`data-date="${esc(dateStr)}"`:''}>
+    cells.push(`<div class="dcell ${weds.length?'has':''} ${weds.length&&dateStr<today?'done':''} ${dateStr===today?'today':''}" ${weds.length?`data-date="${esc(dateStr)}"`:''}>
       <span class="dnum">${d}</span>
       ${weds.map(w=>`<span class="dwed">${esc((w.bride||'신부'))}·${esc((w.groom||'신랑'))}</span>`).join('')}
     </div>`);
@@ -2164,6 +2175,10 @@ function renderDashboard(){
   const past=alive.filter(w=>w.date&&w.date<today).sort((a,b)=>a.date<b.date?1:(a.date>b.date?-1:0));
   const pastShown=DASH_PAST_ALL?past:past.slice(0,5);
   const dashRow=w=>`<button class="dash-row" data-id="${esc(w.id)}"><b>${esc(dateShort(w)||'날짜 미정')}</b> ${esc(w.bride||'신부')} ♡ ${esc(w.groom||'신랑')}</button>`;
+  const yearAll=alive.filter(w=>w.date&&w.date.slice(0,4)===String(y));
+  const yDone=yearAll.filter(w=>w.date<today).length, yUp=yearAll.length-yDone;
+  const yMonth=alive.filter(w=>w.date&&w.date.slice(0,7)===`${y}-${String(m+1).padStart(2,'0')}`).length;
+  const isThisMonth=(y===+today.slice(0,4)&&m===+today.slice(5,7)-1);
   const home=(DB.conn||{}).homepage;
   el.innerHTML=`
     <h1 class="dash-title">Everafter 대시보드</h1>
@@ -2175,11 +2190,17 @@ function renderDashboard(){
       <button class="qbtn" id="dCard"><span class="ic">💌</span>명함 보내기</button>
       ${home?`<a class="qbtn" href="${esc(home)}" target="_blank" rel="noopener"><span class="ic">🏠</span>홈페이지 보기 ↗</a>`:''}
     </div>
+    <div class="dash-stats">
+      <div class="dstat"><b>${yearAll.length}</b><span>${y}년 예식</span></div>
+      <div class="dstat done"><b>${yDone}</b><span>완료</span></div>
+      <div class="dstat up"><b>${yUp}</b><span>예정</span></div>
+      <div class="dstat"><b>${yMonth}</b><span>${m+1}월</span></div>
+    </div>
     <div class="dash-body">
       <div class="dash-cal">
         <div class="dash-cal-head">
           <button class="btn ghost" id="dPrev">← 이전 달</button>
-          <h2>${y}년 ${m+1}월</h2>
+          <div class="dash-cal-now"><h2>${y}년 ${m+1}월</h2>${isThisMonth?'':'<button class="btn ghost" id="dToday">오늘</button>'}</div>
           <button class="btn ghost" id="dNext">다음 달 →</button>
         </div>
         <div class="dash-grid dow">${['일','월','화','수','목','금','토'].map(x=>`<div>${x}</div>`).join('')}</div>
@@ -2204,6 +2225,7 @@ function renderDashboard(){
   if(document.getElementById('dSync')) document.getElementById('dSync').onclick=drawSync;
   document.getElementById('dPrev').onclick=()=>{ DASH_MONTH=new Date(y,m-1,1); renderDashboard(); };
   document.getElementById('dNext').onclick=()=>{ DASH_MONTH=new Date(y,m+1,1); renderDashboard(); };
+  if(document.getElementById('dToday')) document.getElementById('dToday').onclick=()=>{ DASH_MONTH=new Date(); renderDashboard(); };
   document.getElementById('dMemo').oninput=e=>{ DB.notes.memo=e.target.value; save(); };
   document.querySelectorAll('.dcell.has').forEach(c=>c.onclick=()=>enterWedding(byDate[c.dataset.date][0].id));
   document.querySelectorAll('.dash-row').forEach(r=>r.onclick=()=>enterWedding(r.dataset.id));
