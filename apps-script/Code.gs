@@ -362,13 +362,27 @@ function doPost(e) {
           '</div>' +
         '</div>';
 
-      MailApp.sendEmail({
-        to: email,
-        subject: subject,
-        body: plainBody,
-        htmlBody: htmlBody,
-        name: 'Everafter'
-      });
+      /* 메일은 스크립트 소유자 계정으로 나갑니다. 권한 승인이 풀렸거나 하루 한도를
+         넘기면 여기서 막히는데, 그냥 두면 빌더에는 영문 예외가 그대로 떠서
+         무슨 일인지 알 수 없습니다. 무엇을 해야 하는지로 바꿔 돌려줍니다. */
+      try {
+        MailApp.sendEmail({
+          to: email,
+          subject: subject,
+          body: plainBody,
+          htmlBody: htmlBody,
+          name: 'Everafter'
+        });
+      } catch (mailErr) {
+        var m = String(mailErr);
+        if (/permission|권한|Authorization|승인/i.test(m)) {
+          throw new Error('메일 보낼 권한이 풀렸습니다. 앱스 스크립트 편집기에서 authorizeMail 함수를 한 번 실행해 권한을 다시 허용해 주세요. (' + m + ')');
+        }
+        if (/too many times|한도|quota|초과/i.test(m)) {
+          throw new Error('오늘 보낼 수 있는 메일 수를 다 썼습니다. 내일 다시 보내주세요. (' + m + ')');
+        }
+        throw new Error('메일을 보내지 못했습니다. ' + m);
+      }
 
       jd.steps = jd.steps || {};
       if (!jd.steps.s10) jd.steps.s10 = new Date().toISOString();
@@ -618,6 +632,14 @@ function doGet(e) {
   } catch (err) {
     return json_({ ok: false, error: String(err) });
   }
+}
+
+/* 편집기에서 이 함수를 한 번 실행하면 메일 권한 승인 창이 뜹니다.
+   남은 하루 발송 가능 수도 함께 알려주므로, 한도 초과인지도 바로 알 수 있습니다. */
+function authorizeMail() {
+  var left = MailApp.getRemainingDailyQuota();
+  Logger.log('오늘 더 보낼 수 있는 메일: ' + left + '통');
+  return left;
 }
 
 function escapeHtml_(value) {
