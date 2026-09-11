@@ -51,3 +51,12 @@ Before pushing, verify the change actually works — for anything touching `inde
 - All dynamic HTML is built via template literals through a local `esc()` helper (`&<>"'` escaping) — always run user-supplied or backend-supplied strings through `esc()` before interpolating into `innerHTML`, matching the existing pattern in every page.
 - `og:image` / Open Graph tags are hand-maintained per page for KakaoTalk link previews (see `README.txt` for the KakaoTalk cache-busting caveat: it ignores everything after `#` in previews, so preview copy must stay generic/shared rather than personalized).
 - Section/question schemas (`SEC_DEFS` in `index.html`, `STORY`/`SECS` in `ask.html`, section rendering in `review.html`) are hand-kept in sync by key (e.g. `preshow`, `candle`, `groom`, `speech`, `song`, `march`...) across files — if you add/rename a section key in one file, check whether the same key is read or written in the others before assuming it's isolated.
+
+## 브랜드 기준
+
+**`~/workspace/studio/BRAND.md` 가 모든 디자인 판단의 최우선 기준입니다.**
+이 레포의 화면(대본 빌더 · 질문지 · 여정 · 기록)도 브랜드 사이트와 같은
+시스템을 공유합니다. 기능이 달라도 같은 브랜드가 만든 경험으로 느껴져야
+합니다. 색을 고르기 전에 그 문서의 "읽히는 글자의 규칙"을 확인하세요 —
+시그니처인 Banana/Sky, Ivory/Sky 조합은 대비가 2.2~2.6:1 이라 본문에
+쓸 수 없습니다.
