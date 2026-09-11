@@ -8,7 +8,7 @@
    ~배포ID 가 있으면 그 배포ID를 대신 쓰기 때문입니다. 이 파일은
    ~배포ID 가 없는 "짧은 링크"를 열 때만 쓰이는 기본값입니다.
    ============================================================ */
-const GS_URL = 'https://script.google.com/macros/s/AKfycbyULnOlwGCrwEjeqgocZhZjh8pMazeaEvl8H78vd7RV61aX9HKq0a6tS_0KWZcf7Ufjhg/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbw6HINEV4aWui9p0LC4xAIHRgAs1p2qOCUoL78uRnNS-FKq4k4xCae8-BUScR4j1I7OSg/exec';
 
 
 /* ===== 로딩 화면 (봉투 애니메이션) ==========================
