@@ -168,6 +168,18 @@ function getJourneyById_(id) {
   return null;
 }
 
+/* 대표 문장은 여러 문장이 이어져 오는 일이 많습니다. 줄을 나눠 적었으면 그대로,
+   한 줄로 길게 오면 문장 끝에서 나눕니다 — 화면·편지지와 같은 규칙입니다. */
+function quoteLines_(t) {
+  var v = String(t || '').trim();
+  if (!v) return [];
+  if (v.indexOf('\n') >= 0) {
+    return v.split('\n').map(function (l) { return l.trim(); }).filter(String);
+  }
+  if (v.length < 40) return [v];
+  return v.replace(/([.!?])\s*(?=\S)/g, '$1\n').split('\n');
+}
+
 function saveJourney_(id, data) {
   data = data || {};
   data.id = String(id);
@@ -311,36 +323,43 @@ function doPost(e) {
       if (!journeyFound) throw new Error('journey not found');
       var jd = journeyFound.data;
 
-      var names = [jd.bride, jd.groom].filter(String).join(' · ') || '두 분';
-      var subject = names + ' 두 분께, Everafter 편지를 보냅니다.';
-      var representative = jd.archiveSentence || '두 분의 오래 기억될 하루를 함께할 수 있어 기뻤습니다.';
+      var names = [jd.bride, jd.groom].filter(String).join(' \u00b7 ') || '\ub450 \ubd84';
+      var subject = names + ' \ub450 \ubd84\uaed8, Everafter \ud3b8\uc9c0\ub97c \ubcf4\ub0c5\ub2c8\ub2e4.';
+      var quote = quoteLines_(jd.archiveSentence || '\ub450 \ubd84\uc758 \uc624\ub798 \uae30\uc5b5\ub420 \ud558\ub8e8\ub97c \ud568\uaed8\ud560 \uc218 \uc788\uc5b4 \uae30\ube42\uc2b5\ub2c8\ub2e4.');
 
       var plainBody =
         names + ' 두 분께\n\n' +
         '두 분의 오래 기억될 하루를 한 편의 편지로 남겼습니다.\n\n' +
-        '“' + representative + '”\n\n' +
+        '“' + quote.join('\n') + '”\n\n' +
         '영애, 오래 사랑한다는 마음을 담아\n' +
         '두 분의 앞으로를 조용히 응원하겠습니다.\n\n' +
         (journeyUrl ? 'Everafter 편지 열어보기\n' + journeyUrl + '\n\n' : '') +
-        'Everafter · 永愛\n' +
+        'EVERAFTER · 永愛\n' +
         '오래 기억될 하루를 함께 만듭니다.';
 
+      /* BRAND.md — Ivory 바탕 · Charcoal 글자 · Sky 버튼(글자는 Charcoal). 금색·serif는 쓰지 않습니다. */
+      var FONT = "'Apple SD Gothic Neo','Malgun Gothic',Arial,sans-serif";
       var buttonHtml = journeyUrl
-        ? '<p style="margin:30px 0"><a href="' + escapeHtml_(journeyUrl) + '" style="display:inline-block;background:#8A2540;color:#fff;text-decoration:none;padding:14px 24px;border-radius:999px;font-weight:700">Everafter 편지 열어보기</a></p>'
+        ? '<p style="margin:32px 0 0"><a href="' + escapeHtml_(journeyUrl) + '" style="display:inline-block;background:#64AAC3;color:#222222;text-decoration:none;padding:14px 26px;border-radius:8px;font-weight:800;font-size:15px;font-family:' + FONT + '">Everafter 편지 열어보기</a></p>'
         : '';
 
       var htmlBody =
-        '<div style="max-width:600px;margin:0 auto;padding:36px 24px;background:#F4F1EB;color:#25231F;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.9">' +
-          '<div style="font-size:15px;letter-spacing:.14em;text-align:center;margin-bottom:36px">EVERAFTER · 永愛</div>' +
-          '<div style="background:#fff;border:1px solid #E3DDD3;border-radius:18px;padding:34px 28px">' +
-            '<p style="margin:0 0 24px;font-weight:700">' + escapeHtml_(names) + ' 두 분께</p>' +
-            '<p>두 분의 오래 기억될 하루를 한 편의 편지로 남겼습니다.</p>' +
-            '<p style="font-family:Georgia,serif;font-size:21px;color:#8A2540;text-align:center;margin:30px 0">“' + escapeHtml_(representative) + '”</p>' +
-            '<p>영애, 오래 사랑한다는 마음을 담아<br>두 분의 앞으로를 조용히 응원하겠습니다.</p>' +
-            buttonHtml +
-            '<p style="margin-top:32px">Everafter · 永愛</p>' +
+        '<div style="margin:0;padding:34px 18px;background:#FFFDF5;color:#222222;font-family:' + FONT + ';line-height:1.9">' +
+          '<div style="max-width:600px;margin:0 auto">' +
+            '<div style="text-align:center;padding:6px 0 32px">' +
+              '<div style="font-size:22px;font-weight:800;letter-spacing:-.01em;color:#222222">EVERAFTER</div>' +
+              '<div style="font-size:10px;font-weight:700;letter-spacing:.34em;color:#5C5B55;margin-top:8px">Y O U N G A E</div>' +
+            '</div>' +
+            '<div style="background:#FFF8E4;border:1px solid #E6E1D2;border-radius:6px;padding:34px 26px">' +
+              '<div style="font-size:16px;font-weight:700;margin:0 0 22px">' + escapeHtml_(names) + ' 두 분께</div>' +
+              '<p style="margin:0 0 26px;font-size:15px">두 분의 오래 기억될 하루를 한 편의 편지로 남겼습니다.</p>' +
+              '<p style="margin:0 0 28px;font-size:17px;font-weight:700;color:#357289;line-height:1.85;word-break:keep-all">“' + quote.map(escapeHtml_).join('<br>') + '”</p>' +
+              '<p style="margin:0;font-size:15px">영애, 오래 사랑한다는 마음을 담아<br>두 분의 앞으로를 조용히 응원하겠습니다.</p>' +
+              buttonHtml +
+              '<div style="margin-top:36px;font-size:11px;font-weight:800;letter-spacing:.2em;color:#222222">E V E R A F T E R &nbsp;·&nbsp; 永 愛</div>' +
+            '</div>' +
+            '<p style="text-align:center;color:#87857D;font-size:12px;margin:22px 0 0">오래 기억될 하루를 함께 만듭니다.</p>' +
           '</div>' +
-          '<p style="text-align:center;color:#777;font-size:12px;margin-top:24px">오래 기억될 하루를 함께 만듭니다.</p>' +
         '</div>';
 
       MailApp.sendEmail({
