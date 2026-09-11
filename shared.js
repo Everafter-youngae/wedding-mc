@@ -102,3 +102,102 @@ function noticeHTML(title, body, action) {
   style.textContent = LOADER_CSS;
   document.head.appendChild(style);
 })();
+
+
+/* ===== Everafter 편지 ==========================================
+   편지 글과 '편지지' 그림을 사회자 도구(index.html)와 고객 화면(story.html)이
+   함께 씁니다. 예전에는 같은 글과 같은 그림이 두 파일에 따로 있어서, 한쪽만
+   고쳐지면 사회자가 보는 편지와 고객이 받는 편지가 달라졌습니다.
+   여기 한 곳만 고치면 두 화면과 저장용 이미지가 함께 바뀝니다.
+   ============================================================== */
+function eaOkDate(d){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d||'')) return false;
+  const [y,m,dd]=String(d).split('-').map(Number);
+  return m>=1&&m<=12&&dd>=1&&dd<=new Date(y,m,0).getDate();
+}
+function eaLetterDate(date){
+  if(!eaOkDate(date)) return '';
+  const [y,m,d]=String(date).split('-').map(Number);
+  return `${y}년 ${m}월 ${d}일`;
+}
+/* 대표 문장은 여러 문장이 이어지는 일이 많습니다. 줄을 나눠 적었으면 그대로,
+   한 줄로 길게 적혔으면 문장 끝에서 나눠 읽기 쉽게 보여줍니다. */
+function eaQuoteText(t){
+  const v=String(t||'').trim();
+  if(!v) return '';
+  if(v.indexOf('\n')>=0) return v.split('\n').map(l=>l.trim()).filter(Boolean).join('\n');
+  return v.length<40?v:v.replace(/([.!?])\s*(?=\S)/g,'$1\n');
+}
+/* 사회자가 직접 고쳐 쓴 본문이 있으면 그 글이 편지가 됩니다 */
+function eaLetterText(w){
+  if(String((w||{}).archiveBody||'').trim()) return String(w.archiveBody).trim();
+  return `두 분의 이야기를 처음 들었던 날부터 오늘에 이르기까지 여러 문장을 함께 쓰고 다듬었습니다.\n\n그렇게 준비한 문장들이 두 분의 하루 속에서 웃음이 되고, 한 장면의 기억이 되었기를 바랍니다.\n\n${(w||{}).archiveScene||'예식은 끝났지만 그날 나눈 마음은 두 분이 함께 살아갈 시간 속에서 오래 이어질 거예요.'}\n\n영애, 오래 사랑한다는 마음을 담아 두 분의 앞으로를 조용히 응원하겠습니다.\n\n${(w||{}).archiveClosing||'두 분의 오래 기억될 하루를 함께할 수 있어 기뻤습니다.'}`;
+}
+function eaDrawLetter(w){
+  /* BRAND.md — Ivory 종이 · Charcoal 글자 · Sky는 한 곳에만. 금색·장식·도장은 쓰지 않습니다. */
+  const W=1080, P=112, F='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  const IVORY='#FFFDF5', INK='#222222', INK2='#5C5B55', SKY='#357289', RULE='rgba(34,34,34,.075)';
+  const c=document.createElement('canvas'); c.width=W; c.height=10;
+  let x=c.getContext('2d');
+  /* 줄바꿈은 화면 글과 같게 어절 단위로 — 한 어절이 한 줄보다 길 때만 글자에서 끊습니다 */
+  const wrap=(text,font,maxW)=>{
+    x.font=font; const out=[];
+    String(text).split('\n').forEach(para=>{
+      if(!para.trim()){ out.push(''); return; }
+      let line='';
+      para.trim().split(/\s+/).forEach(word=>{
+        const t=line?line+' '+word:word;
+        if(x.measureText(t).width<=maxW){ line=t; return; }
+        if(line){ out.push(line); line=''; }
+        if(x.measureText(word).width<=maxW){ line=word; return; }
+        let part='';
+        for(const ch of word){
+          if(x.measureText(part+ch).width<=maxW) part+=ch;
+          else { out.push(part); part=ch; }
+        }
+        line=part;
+      });
+      if(line) out.push(line);
+    });
+    return out;
+  };
+  const IW=W-P*2, LH=62;
+  const names=`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분께`;
+  const sentence=eaQuoteText(w.archiveSentence);
+  const qS=sentence.length>150?28:(sentence.length>80?31:34), qLH=qS+20;
+  const sLines=sentence?wrap('“'+sentence+'”',`700 ${qS}px `+F,IW):[];
+  const nLines=wrap(names,'800 46px '+F,IW);
+  const bLines=wrap(eaLetterText(w),'30px '+F,IW);
+  const dt=eaLetterDate(w.date);
+  const topH=118+30+80+nLines.length*58+(dt?46:0)+40;
+  const H=topH+(sLines.length?sLines.length*qLH+46:0)+bLines.length*LH+130;
+  c.height=H; x=c.getContext('2d');
+
+  x.fillStyle=IVORY; x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(34,34,34,.022)';
+  for(let i=0;i<Math.round(W*H/1100);i++) x.fillRect(Math.random()*W,Math.random()*H,1.5,1.5);
+
+  x.textAlign='left'; let y=118;
+  x.fillStyle=INK; x.font='800 34px '+F; x.fillText('EVERAFTER', P, y); y+=30;
+  x.fillStyle=INK2; x.font='700 15px '+F; x.fillText('Y O U N G A E', P+2, y); y+=80;
+  x.fillStyle=INK; x.font='800 46px '+F;
+  nLines.forEach(l=>{ x.fillText(l,P,y); y+=58; });
+  if(dt){ x.fillStyle=INK2; x.font='26px '+F; x.fillText(dt,P,y+8); y+=46; }
+  y+=40;
+  if(sLines.length){
+    x.fillStyle=SKY; x.font=`700 ${qS}px `+F;
+    sLines.forEach(l=>{ x.fillText(l,P,y+qS); y+=qLH; });
+    y+=46;
+  }
+  /* 괘선은 빈 줄에도 이어 그어야 편지지처럼 보입니다 */
+  bLines.forEach(l=>{
+    x.strokeStyle=RULE; x.lineWidth=1;
+    x.beginPath(); x.moveTo(P,y+LH-14); x.lineTo(W-P,y+LH-14); x.stroke();
+    if(l){ x.fillStyle=INK; x.font='30px '+F; x.fillText(l,P,y+LH-26); }
+    y+=LH;
+  });
+  y+=66;
+  x.textAlign='right'; x.fillStyle=INK; x.font='800 20px '+F;
+  x.fillText('E V E R A F T E R   ·   永 愛', W-P, y);
+  return c;
+}
