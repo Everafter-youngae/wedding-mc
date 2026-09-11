@@ -7,7 +7,8 @@
 
 <style>
 :root{
-  --paper:#FFFDF5;
+  --paper:#FFFFFF;         /* 바탕은 흰색. 아이보리를 넓은 면에 깔면 눈이 피로합니다 */
+  --paper-soft:#FFF8E4;    /* 연노랑은 강조할 자리에만 */
   --card:#FFFFFF;
   --ink:#222222;
   --ink2:#5C5B55;
@@ -273,6 +274,7 @@ textarea.edit{width:100%;border:1px solid var(--wine);border-radius:8px;padding:
 .dcell.has{cursor:pointer;border-color:var(--wine);background:var(--wine-soft)}
 .dcell.has:hover{filter:brightness(.97)}
 .dcell.has.done{border-color:var(--line);background:var(--line2)}
+.dcell.today{background:var(--paper-soft)}
 .dcell.today .dnum{color:var(--wine);font-weight:700}
 .dnum{font-size:11px;color:var(--ink3)}
 .dwed{display:block;width:100%;text-align:left;border:0;background:none;padding:0;font-family:inherit;cursor:pointer;font-size:10px;color:var(--wine);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
