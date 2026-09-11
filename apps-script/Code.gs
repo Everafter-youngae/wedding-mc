@@ -366,7 +366,7 @@ function doPost(e) {
          넘기면 여기서 막히는데, 그냥 두면 빌더에는 영문 예외가 그대로 떠서
          무슨 일인지 알 수 없습니다. 무엇을 해야 하는지로 바꿔 돌려줍니다. */
       try {
-        MailApp.sendEmail({
+        sendMail_({
           to: email,
           subject: subject,
           body: plainBody,
@@ -413,24 +413,30 @@ function doPost(e) {
         (nsUrl ? nsUrl + '\n\n' : '') +
         'Everafter · 永愛';
 
+      var NS_FONT = "'Apple SD Gothic Neo','Malgun Gothic',Arial,sans-serif";
       var nsButtonHtml = nsUrl
-        ? '<p style="margin:30px 0"><a href="' + escapeHtml_(nsUrl) + '" style="display:inline-block;background:#8A2540;color:#fff;text-decoration:none;padding:14px 24px;border-radius:999px;font-weight:700">대본 확인하기</a></p>'
+        ? '<p style="margin:32px 0 0"><a href="' + escapeHtml_(nsUrl) + '" style="display:inline-block;background:#64AAC3;color:#222222;text-decoration:none;padding:14px 26px;border-radius:8px;font-weight:800;font-size:15px;font-family:' + NS_FONT + '">대본 확인하기</a></p>'
         : '';
 
       var nsHtmlBody =
-        '<div style="max-width:600px;margin:0 auto;padding:36px 24px;background:#F4F1EB;color:#25231F;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.9">' +
-          '<div style="font-size:15px;letter-spacing:.14em;text-align:center;margin-bottom:36px">EVERAFTER · 永愛</div>' +
-          '<div style="background:#fff;border:1px solid #E3DDD3;border-radius:18px;padding:34px 28px">' +
-            '<p style="margin:0 0 24px;font-weight:700">' + escapeHtml_(nsNames) + ' 두 분께</p>' +
-            '<p>' + escapeHtml_(nsRound) + '이 준비되었습니다.</p>' +
-            '<p>아래 링크에서 편하게 둘러보시고,<br>더하고 싶은 이야기나 덜어내고 싶은 부분이 있다면 알려주세요.</p>' +
-            nsButtonHtml +
-            '<p style="margin-top:32px">Everafter · 永愛</p>' +
+        '<div style="margin:0;padding:34px 18px;background:#FFFDF5;color:#222222;font-family:' + NS_FONT + ';line-height:1.9">' +
+          '<div style="max-width:600px;margin:0 auto">' +
+            '<div style="text-align:center;padding:6px 0 32px">' +
+              '<div style="font-size:22px;font-weight:800;letter-spacing:-.01em;color:#222222">EVERAFTER</div>' +
+              '<div style="font-size:10px;font-weight:700;letter-spacing:.34em;color:#5C5B55;margin-top:8px">Y O U N G A E</div>' +
+            '</div>' +
+            '<div style="background:#FFF8E4;border:1px solid #E6E1D2;border-radius:6px;padding:34px 26px">' +
+              '<div style="font-size:16px;font-weight:700;margin:0 0 22px">' + escapeHtml_(nsNames) + ' 두 분께</div>' +
+              '<p style="margin:0 0 26px;font-size:15px">' + escapeHtml_(nsRound) + '이 준비되었습니다.</p>' +
+              '<p style="margin:0;font-size:15px">아래 링크에서 편하게 둘러보시고,<br>더하고 싶은 이야기나 덜어내고 싶은 부분이 있다면 알려주세요.</p>' +
+              nsButtonHtml +
+              '<div style="margin-top:36px;font-size:11px;font-weight:800;letter-spacing:.2em;color:#222222">E V E R A F T E R &nbsp;·&nbsp; 永 愛</div>' +
+            '</div>' +
+            '<p style="text-align:center;color:#87857D;font-size:12px;margin:22px 0 0">오래 기억될 하루를 함께 만듭니다.</p>' +
           '</div>' +
-          '<p style="text-align:center;color:#777;font-size:12px;margin-top:24px">오래 기억될 하루를 함께 만듭니다.</p>' +
         '</div>';
 
-      MailApp.sendEmail({
+      sendMail_({
         to: nsEmail,
         subject: nsSubject,
         body: nsPlainBody,
@@ -632,6 +638,26 @@ function doGet(e) {
   } catch (err) {
     return json_({ ok: false, error: String(err) });
   }
+}
+
+/* 메일은 스크립트를 소유한 계정에서 나가기 때문에, 그냥 두면 개인 주소가 그대로 보입니다.
+   Gmail 설정 → 계정 및 가져오기 → '다른 주소에서 메일 보내기' 로 브랜드 주소를 등록하고,
+   그 주소를 스크립트 속성 BRAND_FROM 에 적어두면 보내는 사람이 그 주소로 나갑니다.
+   등록되지 않은 주소면 구글이 막으므로, 그때는 원래 주소로 한 번 더 시도합니다. */
+function brandFrom_() {
+  return String(PropertiesService.getScriptProperties().getProperty('BRAND_FROM') || '').trim();
+}
+function sendMail_(opts) {
+  var from = brandFrom_();
+  if (from) {
+    var withFrom = {};
+    for (var k in opts) withFrom[k] = opts[k];
+    withFrom.from = from;
+    try { MailApp.sendEmail(withFrom); return from; }
+    catch (e) { /* 별칭으로 등록되지 않았으면 기본 주소로 보냅니다 */ }
+  }
+  MailApp.sendEmail(opts);
+  return '';
 }
 
 /* 편집기에서 이 함수를 한 번 실행하면 메일 권한 승인 창이 뜹니다.
