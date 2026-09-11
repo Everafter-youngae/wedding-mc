@@ -2647,8 +2647,9 @@ function letterDateText(w){
   return `${y}년 ${m}월 ${d}일`;
 }
 function drawLetterImage(w){
-  const W=1080, P=118, F='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
-  const PAPER='#FBF7EF', GOLD='#B99B58', LINE='rgba(178,155,110,.22)';
+  /* BRAND.md — Ivory 종이 · Charcoal 글자 · Sky는 한 곳에만. 금색·장식·도장은 쓰지 않습니다. */
+  const W=1080, P=112, F='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  const IVORY='#FFFDF5', INK='#222222', INK2='#5C5B55', SKY='#357289', RULE='rgba(34,34,34,.075)';
   const c=document.createElement('canvas'); c.width=W; c.height=10;
   let x=c.getContext('2d');
   /* 줄바꿈은 화면 글과 같게 어절 단위로 — 한 어절이 한 줄보다 길 때만 글자에서 끊습니다 */
@@ -2676,60 +2677,41 @@ function drawLetterImage(w){
   const IW=W-P*2, LH=62;
   const names=`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분께`;
   const sentence=quoteText(w.archiveSentence);
-  /* 문장이 여러 개 이어지면 글자를 조금 줄여야 한 덩어리로 보이지 않습니다 */
-  const qS=sentence.length>150?30:(sentence.length>80?34:38), qLH=qS+18;
-  const sLines=sentence?wrap('“'+sentence+'”',`600 ${qS}px `+F,IW-30):[];
+  const qS=sentence.length>150?28:(sentence.length>80?31:34), qLH=qS+20;
+  const sLines=sentence?wrap('“'+sentence+'”',`700 ${qS}px `+F,IW):[];
+  const nLines=wrap(names,'800 46px '+F,IW);
   const bLines=wrap(letterText(w),'30px '+F,IW);
   const dt=letterDateText(w);
-  const topH=132+56+(dt?44:0)+70;
-  const bodyH=bLines.length*LH;
-  const H=topH+(sLines.length?sLines.length*qLH+44:0)+bodyH+150;
+  const topH=118+30+80+nLines.length*58+(dt?46:0)+40;
+  const H=topH+(sLines.length?sLines.length*qLH+46:0)+bLines.length*LH+130;
   c.height=H; x=c.getContext('2d');
 
-  /* 편지지 — 미색 종이에 옅은 결, 금선 두 겹 테두리 */
-  x.fillStyle=PAPER; x.fillRect(0,0,W,H);
-  x.fillStyle='rgba(150,125,80,.05)';
-  for(let i=0;i<Math.round(W*H/900);i++) x.fillRect(Math.random()*W,Math.random()*H,1.6,1.6);
-  const grad=x.createLinearGradient(0,0,W,H);
-  grad.addColorStop(0,'rgba(255,255,255,.45)'); grad.addColorStop(.5,'rgba(255,255,255,0)'); grad.addColorStop(1,'rgba(170,145,100,.07)');
-  x.fillStyle=grad; x.fillRect(0,0,W,H);
-  x.strokeStyle='rgba(185,155,88,.55)'; x.lineWidth=2; x.strokeRect(36,36,W-72,H-72);
-  x.strokeStyle='rgba(185,155,88,.3)';  x.lineWidth=1; x.strokeRect(48,48,W-96,H-96);
+  x.fillStyle=IVORY; x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(34,34,34,.022)';
+  for(let i=0;i<Math.round(W*H/1100);i++) x.fillRect(Math.random()*W,Math.random()*H,1.5,1.5);
 
-  let y=132;
-  x.textAlign='center'; x.fillStyle=GOLD; x.font='600 23px '+F;
-  x.fillText('E V E R A F T E R', W/2, y); y+=56;
-  x.fillStyle='#1B1D22'; x.font='700 40px '+F; x.fillText(names, W/2, y);
-  if(dt){ y+=44; x.fillStyle='#8A8577'; x.font='25px '+F; x.fillText(dt, W/2, y); }
+  x.textAlign='left'; let y=118;
+  x.fillStyle=INK; x.font='800 34px '+F; x.fillText('EVERAFTER', P, y); y+=30;
+  x.fillStyle=INK2; x.font='700 15px '+F; x.fillText('Y O U N G A E', P+2, y); y+=80;
+  x.fillStyle=INK; x.font='800 46px '+F;
+  nLines.forEach(l=>{ x.fillText(l,P,y); y+=58; });
+  if(dt){ x.fillStyle=INK2; x.font='26px '+F; x.fillText(dt,P,y+8); y+=46; }
   y+=40;
-  /* 가운데 마름모를 둔 가는 금선 */
-  x.strokeStyle='rgba(185,155,88,.5)'; x.lineWidth=1;
-  x.beginPath(); x.moveTo(W/2-120,y); x.lineTo(W/2-16,y); x.moveTo(W/2+16,y); x.lineTo(W/2+120,y); x.stroke();
-  x.fillStyle=GOLD; x.save(); x.translate(W/2,y); x.rotate(Math.PI/4); x.fillRect(-4,-4,8,8); x.restore();
-  y+=46;
-
   if(sLines.length){
-    x.fillStyle='#8A2540'; x.font=`600 ${qS}px `+F;
-    sLines.forEach(l=>{ x.fillText(l, W/2, y+qS); y+=qLH; });
-    y+=44;
+    x.fillStyle=SKY; x.font=`700 ${qS}px `+F;
+    sLines.forEach(l=>{ x.fillText(l,P,y+qS); y+=qLH; });
+    y+=46;
   }
-  /* 본문 — 편지지 괘선 위에 앉힙니다 */
-  x.textAlign='left';
   /* 괘선은 빈 줄에도 이어 그어야 편지지처럼 보입니다 */
   bLines.forEach(l=>{
-    x.strokeStyle=LINE; x.lineWidth=1;
+    x.strokeStyle=RULE; x.lineWidth=1;
     x.beginPath(); x.moveTo(P,y+LH-14); x.lineTo(W-P,y+LH-14); x.stroke();
-    if(l){ x.fillStyle='#2B2A26'; x.font='30px '+F; x.fillText(l,P,y+LH-26); }
+    if(l){ x.fillStyle=INK; x.font='30px '+F; x.fillText(l,P,y+LH-26); }
     y+=LH;
   });
-  y+=54;
-  /* 서명과 도장 */
-  x.textAlign='right'; x.fillStyle=GOLD; x.font='600 27px '+F;
-  x.fillText('영애 · Everafter', W-P-76, y+30);
-  x.strokeStyle='rgba(138,37,64,.65)'; x.lineWidth=2;
-  x.beginPath(); x.arc(W-P-26,y+22,28,0,Math.PI*2); x.stroke();
-  x.fillStyle='rgba(138,37,64,.8)'; x.font='600 24px '+F; x.textAlign='center';
-  x.fillText('영애', W-P-26, y+31);
+  y+=66;
+  x.textAlign='right'; x.fillStyle=INK; x.font='800 20px '+F;
+  x.fillText('E V E R A F T E R   ·   永 愛', W-P, y);
   return c;
 }
 function openLetterImage(w){
