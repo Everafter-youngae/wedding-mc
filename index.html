@@ -2602,18 +2602,18 @@ document.getElementById('btnLetter').onclick=async()=>{
 };
 function emailValid(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email||''); }
 
-/* ---------- 편지를 한 장의 이미지로 ----------
-   메일 본문은 앱스 스크립트가 만들기 때문에 사진을 넣으려면 서버 쪽을 고쳐야 합니다.
-   대신 편지를 그림 한 장으로 그려 두면 카톡·메일 어디로든 그대로 보낼 수 있습니다.
-   사진은 이 화면에서만 들고 있습니다(저장하면 백업·용량이 금세 커집니다). */
-let LETTER_PHOTO=null;
+/* ---------- 편지를 편지지 한 장으로 ----------
+   메일 본문은 앱스 스크립트가 만들기 때문에 손대려면 서버를 다시 배포해야 합니다.
+   편지지에 옮겨 적은 모양으로 그려 두면 카톡·메일 어디로든 그대로 보낼 수 있습니다.
+   사진은 넣지 않습니다 — 편지는 편지대로, 사진은 따로 보내는 편이 깔끔합니다. */
 function letterDateText(w){
   if(!okDate(w.date)) return '';
   const [y,m,d]=w.date.split('-').map(Number);
   return `${y}년 ${m}월 ${d}일`;
 }
-function drawLetterImage(w,img){
-  const W=1080, P=92, F='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+function drawLetterImage(w){
+  const W=1080, P=118, F='"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  const PAPER='#FBF7EF', GOLD='#B99B58', LINE='rgba(178,155,110,.22)';
   const c=document.createElement('canvas'); c.width=W; c.height=10;
   let x=c.getContext('2d');
   /* 줄바꿈은 화면 글과 같게 어절 단위로 — 한 어절이 한 줄보다 길 때만 글자에서 끊습니다 */
@@ -2638,91 +2638,91 @@ function drawLetterImage(w,img){
     });
     return out;
   };
-  const IW=W-P*2;
+  const IW=W-P*2, LH=62;
   const names=`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분께`;
   const sentence=(w.archiveSentence||'').trim();
-  const sLines=sentence?wrap(`“${sentence}”`,'600 40px '+F,IW-40):[];
+  const sLines=sentence?wrap(`“${sentence}”`,'600 38px '+F,IW-30):[];
   const bLines=wrap(letterText(w),'30px '+F,IW);
-  let photoH=0;
-  if(img) photoH=Math.min(700,Math.round(IW*img.naturalHeight/img.naturalWidth));
-  /* 높이를 먼저 계산해 두어야 글이 길어도 잘리지 않습니다 */
-  const H=104+54+16+(letterDateText(w)?40:0)+(img?photoH+42+56:46)
-       +(sLines.length?sLines.length*58+34:0)+34
-       +bLines.reduce((a,l)=>a+(l?56:26),0)+60+40+64;
-  c.height=H; x=c.getContext('2d');
-  x.fillStyle='#FFFDF8'; x.fillRect(0,0,W,H);
-  x.strokeStyle='#E4D7C5'; x.lineWidth=2; x.strokeRect(24,24,W-48,H-48);
-  let y=104;
-  x.textAlign='center'; x.fillStyle='#A9863A'; x.font='600 24px '+F;
-  x.fillText('E V E R A F T E R', W/2, y); y+=54;
-  x.fillStyle='#15171C'; x.font='700 40px '+F; x.fillText(names, W/2, y); y+=16;
   const dt=letterDateText(w);
-  if(dt){ y+=40; x.fillStyle='#8A919B'; x.font='26px '+F; x.fillText(dt, W/2, y); }
-  y+=img?42:46;
-  if(img){
-    const pr=Math.min(IW/img.naturalWidth, photoH/img.naturalHeight);
-    const dw=img.naturalWidth*pr, dh=img.naturalHeight*pr;
-    const rx=P+(IW-dw)/2, ry=y, rr=18;
-    x.save(); x.beginPath();
-    x.moveTo(rx+rr,ry); x.arcTo(rx+dw,ry,rx+dw,ry+dh,rr); x.arcTo(rx+dw,ry+dh,rx,ry+dh,rr);
-    x.arcTo(rx,ry+dh,rx,ry,rr); x.arcTo(rx,ry,rx+dw,ry,rr); x.closePath(); x.clip();
-    x.drawImage(img,rx,ry,dw,dh); x.restore();
-    y+=photoH+56;
-  }
+  const topH=132+56+(dt?44:0)+70;
+  const bodyH=bLines.length*LH;
+  const H=topH+(sLines.length?sLines.length*56+44:0)+bodyH+150;
+  c.height=H; x=c.getContext('2d');
+
+  /* 편지지 — 미색 종이에 옅은 결, 금선 두 겹 테두리 */
+  x.fillStyle=PAPER; x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(150,125,80,.05)';
+  for(let i=0;i<Math.round(W*H/900);i++) x.fillRect(Math.random()*W,Math.random()*H,1.6,1.6);
+  const grad=x.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0,'rgba(255,255,255,.45)'); grad.addColorStop(.5,'rgba(255,255,255,0)'); grad.addColorStop(1,'rgba(170,145,100,.07)');
+  x.fillStyle=grad; x.fillRect(0,0,W,H);
+  x.strokeStyle='rgba(185,155,88,.55)'; x.lineWidth=2; x.strokeRect(36,36,W-72,H-72);
+  x.strokeStyle='rgba(185,155,88,.3)';  x.lineWidth=1; x.strokeRect(48,48,W-96,H-96);
+
+  let y=132;
+  x.textAlign='center'; x.fillStyle=GOLD; x.font='600 23px '+F;
+  x.fillText('E V E R A F T E R', W/2, y); y+=56;
+  x.fillStyle='#1B1D22'; x.font='700 40px '+F; x.fillText(names, W/2, y);
+  if(dt){ y+=44; x.fillStyle='#8A8577'; x.font='25px '+F; x.fillText(dt, W/2, y); }
+  y+=40;
+  /* 가운데 마름모를 둔 가는 금선 */
+  x.strokeStyle='rgba(185,155,88,.5)'; x.lineWidth=1;
+  x.beginPath(); x.moveTo(W/2-120,y); x.lineTo(W/2-16,y); x.moveTo(W/2+16,y); x.lineTo(W/2+120,y); x.stroke();
+  x.fillStyle=GOLD; x.save(); x.translate(W/2,y); x.rotate(Math.PI/4); x.fillRect(-4,-4,8,8); x.restore();
+  y+=46;
+
   if(sLines.length){
-    x.fillStyle='#8A2540'; x.font='600 40px '+F;
-    sLines.forEach(l=>{ x.fillText(l, W/2, y+40); y+=58; });
-    y+=34;
+    x.fillStyle='#8A2540'; x.font='600 38px '+F;
+    sLines.forEach(l=>{ x.fillText(l, W/2, y+34); y+=56; });
+    y+=44;
   }
-  x.strokeStyle='#E4D7C5'; x.lineWidth=1;
-  x.beginPath(); x.moveTo(W/2-40,y); x.lineTo(W/2+40,y); x.stroke(); y+=34;
-  x.textAlign='left'; x.fillStyle='#2C313A'; x.font='30px '+F;
-  bLines.forEach(l=>{ if(l){ x.fillText(l,P,y+30); y+=56; } else y+=26; });
-  y+=60;
-  x.textAlign='right'; x.fillStyle='#A9863A'; x.font='600 28px '+F;
-  x.fillText('영애 · Everafter', W-P, y+28);
+  /* 본문 — 편지지 괘선 위에 앉힙니다 */
+  x.textAlign='left';
+  /* 괘선은 빈 줄에도 이어 그어야 편지지처럼 보입니다 */
+  bLines.forEach(l=>{
+    x.strokeStyle=LINE; x.lineWidth=1;
+    x.beginPath(); x.moveTo(P,y+LH-14); x.lineTo(W-P,y+LH-14); x.stroke();
+    if(l){ x.fillStyle='#2B2A26'; x.font='30px '+F; x.fillText(l,P,y+LH-26); }
+    y+=LH;
+  });
+  y+=54;
+  /* 서명과 도장 */
+  x.textAlign='right'; x.fillStyle=GOLD; x.font='600 27px '+F;
+  x.fillText('영애 · Everafter', W-P-76, y+30);
+  x.strokeStyle='rgba(138,37,64,.65)'; x.lineWidth=2;
+  x.beginPath(); x.arc(W-P-26,y+22,28,0,Math.PI*2); x.stroke();
+  x.fillStyle='rgba(138,37,64,.8)'; x.font='600 24px '+F; x.textAlign='center';
+  x.fillText('영애', W-P-26, y+31);
   return c;
 }
 function openLetterImage(w){
-  const c=drawLetterImage(w,LETTER_PHOTO);
-  openModal('④ 마지막 편지 · 이미지',
-    `<div class="pv-note" style="margin-bottom:12px">이대로 저장해 카톡이나 메일로 보내시면 됩니다. 사진을 넣거나 바꾸면 다시 그려집니다.</div>
+  const c=drawLetterImage(w);
+  openModal('④ 마지막 편지 · 편지지',
+    `<div class="pv-note" style="margin-bottom:12px">이대로 저장해 카톡이나 메일로 보내시면 됩니다. 사진은 따로 보내세요.</div>
      <img src="${c.toDataURL('image/png')}" alt="Everafter 편지" style="width:100%;border:1px solid var(--line);border-radius:10px;display:block">`,
     `<button class="btn" id="imgBack">뒤로</button>
-     <label class="btn" style="margin:0">사진 ${LETTER_PHOTO?'바꾸기':'넣기'}<input type="file" id="imgPick" accept="image/*" hidden></label>
-     ${LETTER_PHOTO?'<button class="btn quiet" id="imgDrop">사진 빼기</button>':''}
-     <button class="btn primary" id="imgSave">이미지 저장</button>`);
+     <button class="btn primary" id="imgSave">편지지 저장</button>`);
   document.getElementById('imgBack').onclick=()=>openLetterPreview(w);
-  document.getElementById('imgPick').onchange=e=>pickLetterPhoto(e.target.files[0],()=>openLetterImage(w));
-  if(document.getElementById('imgDrop')) document.getElementById('imgDrop').onclick=()=>{ LETTER_PHOTO=null; openLetterImage(w); };
   document.getElementById('imgSave').onclick=()=>{
     c.toBlob(b=>{
       const a=document.createElement('a'); a.href=URL.createObjectURL(b);
       a.download=`everafter-편지-${w.bride||'신부'}·${w.groom||'신랑'}.png`; a.click();
       setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-      toast('이미지를 저장했습니다.');
+      toast('편지지를 저장했습니다.');
     },'image/png');
   };
-}
-function pickLetterPhoto(file,done){
-  if(!file) return;
-  const fr=new FileReader();
-  fr.onload=()=>{ const im=new Image(); im.onload=()=>{ LETTER_PHOTO=im; done(); };
-    im.onerror=()=>toast('사진을 읽지 못했습니다.'); im.src=fr.result; };
-  fr.onerror=()=>toast('사진을 읽지 못했습니다.');
-  fr.readAsDataURL(file);
 }
 function openLetterPreview(w){
   openModal('④ 마지막 편지 · 미리보기',
     `<div class="pv-note" style="margin-bottom:14px">받는 주소 · <b>${esc(w.email)}</b><br>아래 내용 그대로 메일로 발송됩니다.
-       사진까지 넣어 보내고 싶으시면 <b>이미지로 만들기</b>로 한 장짜리 편지를 만들어 카톡·메일로 보내세요.</div>
+       <b>편지지로 만들기</b>를 누르면 편지지에 옮겨 적은 한 장으로 저장돼, 카톡으로도 보낼 수 있습니다.</div>
      <div style="border:1px solid var(--line);border-radius:12px;padding:22px;background:#FFFEFB">
        <div style="font-size:14px;font-weight:600;margin-bottom:14px">${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')} 두 분께</div>
        ${w.archiveSentence?`<div style="text-align:center;color:var(--wine);font-weight:600;font-size:15px;padding:4px 0 18px">“${esc(w.archiveSentence)}”</div>`:''}
        <div style="white-space:pre-wrap;line-height:1.9;font-size:14px">${esc(letterText(w))}</div>
      </div>`,
     `<button class="btn" id="jBack">뒤로</button>
-     <button class="btn" id="jImage">이미지로 만들기</button>
+     <button class="btn" id="jImage">편지지로 만들기</button>
      <button class="btn primary" id="jSendGo">이대로 보내기</button>`);
   document.getElementById('jBack').onclick=()=>document.getElementById('btnJourney').click();
   document.getElementById('jImage').onclick=()=>openLetterImage(w);
