@@ -2535,7 +2535,7 @@ async function sendEverafterLetter(){
   const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
     body:JSON.stringify({type:'sendArchive',id:w.id,email:w.email,journeyUrl:journeyLink(),token:adminToken()})});
   const j=await r.json(); if(!j.ok) throw new Error(authErr_(j.error,'메일을 보내지 못했습니다.'));
-  w.archiveSentAt=new Date().toISOString(); markStep('s10'); save();
+  w.archiveSentAt=j.sentAt||new Date().toISOString(); markStep('s10'); save();
 }
 /* 고객에게 이야기 링크를 보낼 때 쓰는 기본 문구.
    카톡에서 줄이 아무 데서나 끊기지 않도록 문장을 미리 끊어둡니다. */
@@ -2627,6 +2627,10 @@ document.getElementById('btnLetter').onclick=async()=>{
   if(!(w.steps||{}).s8) toast('아직 “예식 마침”을 표시하지 않았습니다. 이야기 링크에서 먼저 눌러 주세요.',3200);
   openLetterPreview(w);
 };
+function sentAtText(iso){
+  const d=new Date(iso||''); if(isNaN(d)) return '';
+  return `${d.getMonth()+1}월 ${d.getDate()}일 ${d.getHours()<12?'오전':'오후'} ${((d.getHours()+11)%12)+1}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 function emailValid(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email||''); }
 
 /* ---------- 편지를 편지지 한 장으로 ----------
@@ -2735,7 +2739,8 @@ function openLetterPreview(w){
   const edited=!!(w.archiveBody||'').trim();
   openModal('④ 마지막 편지 · 미리보기',
     `<div class="pv-note" style="margin-bottom:16px">받는 주소 · <b>${esc(w.email)}</b><br>
-       아래 글이 고객 화면의 Everafter 편지가 됩니다. 고쳐 쓰신 뒤 <b>저장</b>을 누르면 고객 화면까지 반영됩니다.</div>
+       아래 글이 고객 화면의 Everafter 편지가 됩니다. 고쳐 쓰신 뒤 <b>저장</b>을 누르면 고객 화면까지 반영됩니다.
+       ${w.archiveSentAt?`<br>마지막으로 보낸 시각 · <b>${esc(sentAtText(w.archiveSentAt))}</b> — 다시 보내면 이 시각이 갱신됩니다.`:''}</div>
      <div class="letter-edit">
        <div class="le-head">${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')} 두 분께</div>
        <div class="f"><label for="leQuote">그날의 대표 문장</label>
@@ -2775,8 +2780,9 @@ function openLetterPreview(w){
   document.getElementById('jSendGo').onclick=async()=>{
     sync();
     if(!confirm(`Everafter 편지를 보내시겠어요?\n\n받는 주소: ${w.email}\n발송 후에는 취소할 수 없습니다.`)) return;
-    try{ await sendEverafterLetter(); toast('Everafter 편지를 보냈습니다.'); closeModal(); }
-    catch(e){ toast(e.message); }
+    /* 보냈는지 아닌지가 늘 헷갈려서, 서버가 기록한 발송 시각을 그대로 보여줍니다 */
+    try{ await sendEverafterLetter(); toast(`Everafter 편지를 보냈습니다. (${sentAtText(w.archiveSentAt)})`,4200); openLetterPreview(w); }
+    catch(e){ toast(e.message,4200); }
   };
 }
 
