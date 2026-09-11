@@ -72,9 +72,11 @@ ul.sc.soft li{font-size:13.5px;color:var(--ink2)}ul.sc.soft li b{color:var(--ink
 @keyframes current-ripple{0%{transform:scale(.82);opacity:0}25%{opacity:.65}70%,100%{transform:scale(1.2);opacity:0}}
 @media (prefers-reduced-motion:reduce){.step.now .dot,.step.now .dot::after{animation:none}}
 /* 편지 — 이 화면의 주인공이라 유일하게 면을 씁니다 */
-.letter-card{background:none;border:0;border-top:1px solid var(--line);border-radius:0;padding:34px 0 6px;margin:0}
-.letter-img{display:block;width:100%;height:auto;margin:16px 0 0;border:1px solid var(--line);border-radius:6px}
-.letter-save{display:inline-block;width:auto;margin:14px 0 0;padding:11px 18px;border:1px solid var(--sky);background:none;color:var(--sky-ink);border-radius:8px;font-weight:700;font-size:14px;text-decoration:none}
+/* 편지지도 아이보리라 바탕과 같은 색이면 화면에 묻힙니다 — 한 톤 따뜻한 면 위에 올려
+   종이 한 장이 놓인 것처럼 보이게 합니다 */
+.letter-card{background:var(--ivory-soft);border:1px solid var(--line);border-top:1px solid var(--line);border-radius:8px;padding:20px 16px 18px;margin:34px 0 0}
+.letter-img{display:block;width:100%;height:auto;margin:14px 0 0;border:1px solid #E2DCC8;border-radius:4px;box-shadow:0 8px 22px rgba(34,34,34,.09)}
+.letter-save{display:inline-block;width:auto;margin:16px 0 2px;padding:11px 18px;border:1px solid var(--sky);background:none;color:var(--sky-ink);border-radius:8px;font-weight:700;font-size:14px;text-decoration:none}
 .letter-alt{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 .letter{font-size:17px;line-height:2.05;white-space:pre-line;letter-spacing:-.015em;word-break:keep-all}
