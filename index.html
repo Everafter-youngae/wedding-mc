@@ -1162,6 +1162,20 @@ function flowHTML(){
    ========================================================= */
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+/* 한 줄 칸에 여러 줄 글을 붙여넣으면 브라우저가 줄바꿈을 지워 '이유를물었습니다'처럼
+   글자가 붙어버립니다. 줄바꿈을 빈칸으로 바꿔 넣어 띄어쓰기를 지킵니다. */
+document.addEventListener('paste',e=>{
+  const el=e.target;
+  if(!el||el.tagName!=='INPUT'||(el.type&&el.type!=='text')) return;
+  const t=(e.clipboardData||window.clipboardData).getData('text');
+  if(!t||!/[\r\n]/.test(t)) return;
+  e.preventDefault();
+  const clean=t.replace(/\s*[\r\n]+\s*/g,' ').trim();
+  const a=el.selectionStart??el.value.length, b=el.selectionEnd??el.value.length;
+  el.value=el.value.slice(0,a)+clean+el.value.slice(b);
+  el.setSelectionRange(a+clean.length,a+clean.length);
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+});
 function txt(label,k,ph='',hint=''){
   return `<div class="f"><label>${label}</label>
     <input type="text" data-k="${k}" value="${esc(cur()[k])}" placeholder="${esc(ph)}">
@@ -1285,7 +1299,7 @@ ${retentionHTML(w)}
 ${secGroups}
 
 <details class="group" id="g-after" ${op('g-after')}><summary>예식 이후 · Everafter 편지</summary><div class="gbody">
-  ${txt('그날의 대표 문장','archiveSentence','서로를 향한 마음은 이제 평생의 약속이 됩니다.')}
+  ${area('그날의 대표 문장','archiveSentence','서로를 향한 마음은 이제 평생의 약속이 됩니다.','줄을 나눠 적으시면 고객 화면과 편지지에도 그대로 나뉘어 보입니다.')}
   ${area('사회자가 기억하는 한 장면','archiveScene','행진을 앞두고 서로를 바라보며 웃던 두 분의 표정이 오래 남았습니다.')}
   ${txt('마지막 문장','archiveClosing','두 분이 함께할 시간마다 오늘의 마음이 오래 이어지기를 바랍니다.')}
   <div class="hint">고객 화면과 Everafter 편지에 사용됩니다. 비워두면 기본 문장이 들어갑니다.</div>
@@ -2606,6 +2620,14 @@ function emailValid(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email||'');
    메일 본문은 앱스 스크립트가 만들기 때문에 손대려면 서버를 다시 배포해야 합니다.
    편지지에 옮겨 적은 모양으로 그려 두면 카톡·메일 어디로든 그대로 보낼 수 있습니다.
    사진은 넣지 않습니다 — 편지는 편지대로, 사진은 따로 보내는 편이 깔끔합니다. */
+/* 대표 문장은 여러 문장이 이어지는 일이 많습니다. 줄을 나눠 적었으면 그대로 두고,
+   한 줄로 길게 적혔으면 문장 끝에서 나눠 읽기 쉽게 보여줍니다. */
+function quoteText(t){
+  const v=String(t||'').trim();
+  if(!v) return '';
+  if(v.indexOf('\n')>=0) return v.split('\n').map(l=>l.trim()).filter(Boolean).join('\n');
+  return v.length<40?v:v.replace(/([.!?])\s*(?=\S)/g,'$1\n');
+}
 function letterDateText(w){
   if(!okDate(w.date)) return '';
   const [y,m,d]=w.date.split('-').map(Number);
@@ -2640,13 +2662,15 @@ function drawLetterImage(w){
   };
   const IW=W-P*2, LH=62;
   const names=`${w.bride||'신부'} · ${w.groom||'신랑'} 두 분께`;
-  const sentence=(w.archiveSentence||'').trim();
-  const sLines=sentence?wrap(`“${sentence}”`,'600 38px '+F,IW-30):[];
+  const sentence=quoteText(w.archiveSentence);
+  /* 문장이 여러 개 이어지면 글자를 조금 줄여야 한 덩어리로 보이지 않습니다 */
+  const qS=sentence.length>150?30:(sentence.length>80?34:38), qLH=qS+18;
+  const sLines=sentence?wrap('“'+sentence+'”',`600 ${qS}px `+F,IW-30):[];
   const bLines=wrap(letterText(w),'30px '+F,IW);
   const dt=letterDateText(w);
   const topH=132+56+(dt?44:0)+70;
   const bodyH=bLines.length*LH;
-  const H=topH+(sLines.length?sLines.length*56+44:0)+bodyH+150;
+  const H=topH+(sLines.length?sLines.length*qLH+44:0)+bodyH+150;
   c.height=H; x=c.getContext('2d');
 
   /* 편지지 — 미색 종이에 옅은 결, 금선 두 겹 테두리 */
@@ -2672,8 +2696,8 @@ function drawLetterImage(w){
   y+=46;
 
   if(sLines.length){
-    x.fillStyle='#8A2540'; x.font='600 38px '+F;
-    sLines.forEach(l=>{ x.fillText(l, W/2, y+34); y+=56; });
+    x.fillStyle='#8A2540'; x.font=`600 ${qS}px `+F;
+    sLines.forEach(l=>{ x.fillText(l, W/2, y+qS); y+=qLH; });
     y+=44;
   }
   /* 본문 — 편지지 괘선 위에 앉힙니다 */
@@ -2718,7 +2742,7 @@ function openLetterPreview(w){
        <b>편지지로 만들기</b>를 누르면 편지지에 옮겨 적은 한 장으로 저장돼, 카톡으로도 보낼 수 있습니다.</div>
      <div style="border:1px solid var(--line);border-radius:12px;padding:22px;background:#FFFEFB">
        <div style="font-size:14px;font-weight:600;margin-bottom:14px">${esc(w.bride||'신부')} · ${esc(w.groom||'신랑')} 두 분께</div>
-       ${w.archiveSentence?`<div style="text-align:center;color:var(--wine);font-weight:600;font-size:15px;padding:4px 0 18px">“${esc(w.archiveSentence)}”</div>`:''}
+       ${w.archiveSentence?`<div style="text-align:center;color:var(--wine);font-weight:600;font-size:15px;line-height:1.85;padding:4px 0 18px;white-space:pre-line;word-break:keep-all">“${esc(quoteText(w.archiveSentence))}”</div>`:''}
        <div style="white-space:pre-wrap;line-height:1.9;font-size:14px">${esc(letterText(w))}</div>
      </div>`,
     `<button class="btn" id="jBack">뒤로</button>
