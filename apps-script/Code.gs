@@ -185,6 +185,7 @@ function saveJourney_(id, data) {
     archiveSentence: String(data.archiveSentence || ''),
     archiveScene: String(data.archiveScene || ''),
     archiveClosing: String(data.archiveClosing || ''),
+    archiveBody: String(data.archiveBody || ''),
     reviewLink: String(data.reviewLink || ''),
     archiveSentAt: String(data.archiveSentAt || ''),
     sentencePicks: Array.isArray(data.sentencePicks)
