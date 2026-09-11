@@ -1910,10 +1910,23 @@ async function maybeCheckNewInquiries(){
     if(document.getElementById('dashboard').style.display==='block') renderDashboard();
   }catch(e){ /* 배지는 부가 기능이라 실패해도 조용히 무시합니다 */ }
 }
+/* 문의 시트의 '예식 날짜'는 날짜 칸으로 저장되면 ISO 시각으로 넘어옵니다
+   (2026-12-24T15:00:00.000Z = 한국 시간 12월 25일). 앞 열 글자만 자르면 하루가
+   밀리므로, 그 기기의 날짜로 바꿔서 씁니다. */
+function inqDate(v){
+  const t=String(v||'').trim();
+  if(!t||/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  if(/^\d{4}-\d{2}-\d{2}T/.test(t)){
+    const d=new Date(t);
+    if(!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  const m=t.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  return m?`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`:t;
+}
 function createWeddingFromInquiry(inq){
   const w=blank();
-  const m=String(inq.date||'').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
-  if(m) w.date=`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  const dt=inqDate(inq.date);
+  if(okDate(dt)) w.date=dt;
   w.venue=inq.venue||'';
   /* 연락처는 메모에 묻어두지 않고 전용 칸으로 넣습니다 — 매번 찾아 옮기지 않도록.
      문의 폼에서 온 값은 형식이 제각각이라, 번호처럼 보이면 연락처로 자동 분리합니다. */
@@ -1923,7 +1936,7 @@ function createWeddingFromInquiry(inq){
   else if(ci) w.kakao=ci;
   if(ci&&inq.consentAt){ w.consentAt=inq.consentAt; w.consentVer=inq.consentVer||''; w.consentSrc='inquiry'; }
   else if(ci) w.consentSrc='inquiry';
-  w.memo=`[홈페이지 문의]\n이름: ${inq.names||''}\n날짜: ${inq.date||''}\n장소: ${inq.venue||''}\n메시지: ${inq.message||'(없음)'}`;
+  w.memo=`[홈페이지 문의]\n이름: ${inq.names||''}\n날짜: ${dt||''}\n장소: ${inq.venue||''}\n메시지: ${inq.message||'(없음)'}`;
   DB.list.push(w); DB.cur=w.id; save();
   return w;
 }
@@ -1947,7 +1960,7 @@ async function drawInquiries(){
       const isNew=it.status==='신규';
       return `<div class="opt" style="align-items:flex-start;flex-direction:column;gap:10px">
         <span class="lbl">${esc(it.names||'이름 미기재')}
-          <span class="sub">${esc(it.date||'')} · ${esc(it.venue||'')} · ${esc(it.contactInfo||'')} · ${when} · ${isNew?'<b style="color:var(--wine)">신규</b>':esc(it.status||'')}</span></span>
+          <span class="sub">${esc(inqDate(it.date))} · ${esc(it.venue||'')} · ${esc(it.contactInfo||'')} · ${when} · ${isNew?'<b style="color:var(--wine)">신규</b>':esc(it.status||'')}</span></span>
         ${it.message?`<div class="hint" style="white-space:pre-wrap">${esc(it.message)}</div>`:''}
         <div style="display:flex;gap:8px;width:100%">
           <button class="btn primary" data-mkwed="${i}" style="flex:1">새 예식으로 만들기</button>
