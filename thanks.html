@@ -171,17 +171,29 @@ const $=id=>document.getElementById(id);
 })();
 
 function conf(){
+  /* 주소 형태: thanks.html#<배포ID>.<열쇠>
+     열쇠에 점이 들어 있을 수 있으므로 첫 점에서만 나눕니다.
+     ?gs=...&k=... 로 주셔도 받습니다. */
   let h=location.hash.slice(1);
   try{ h=decodeURIComponent(h); }catch(e){}
-  const [gsId,key]=h.split('.');
-  return {gs:gsId?('https://script.google.com/macros/s/'+gsId+'/exec'):'', key:key||''};
+  let gsId='', key='';
+  if(h){
+    const i=h.indexOf('.');
+    gsId = i<0 ? h : h.slice(0,i);
+    key  = i<0 ? '' : h.slice(i+1);
+  }
+  const q=new URLSearchParams(location.search);
+  gsId = gsId || (q.get('gs')||'');
+  key  = key  || (q.get('k')||'');
+  return {gs:gsId?('https://script.google.com/macros/s/'+gsId+'/exec'):'', key:key};
 }
 
 $('send').onclick=async()=>{
   const c=conf();
   const bride=$('bride').value.trim(), groom=$('groom').value.trim();
   const sentence=$('sentence').value.trim(), best=$('best').value.trim();
-  if(!c.gs||!c.key){ $('state').textContent='주소가 올바르지 않습니다. 받으신 링크를 처음부터 끝까지 복사해 다시 열어 주세요.'; return; }
+  if(!c.gs){ $('state').textContent='주소가 올바르지 않습니다. 받으신 링크를 처음부터 끝까지 복사해 다시 열어 주세요.'; return; }
+  if(!c.key){ $('state').textContent='주소 뒷부분이 잘렸습니다. 링크 끝까지 복사해 다시 열어 주세요.'; return; }
   if(!bride&&!groom){ $('state').textContent='두 분의 이름을 적어 주세요.'; return; }
   if(!sentence&&!best){ $('state').textContent='한 문장이어도 좋으니 남겨 주세요.'; return; }
 
