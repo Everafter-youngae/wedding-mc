@@ -2696,6 +2696,7 @@ function openLetterPreview(w){
          <textarea id="leBody" rows="12">${esc(letterText(w))}</textarea>
          <div class="le-foot">
            <span class="hint" id="leState">${edited?'직접 고쳐 쓴 글입니다.':'기본 문장입니다. 고쳐 쓰면 그대로 저장됩니다.'}</span>
+           <button type="button" class="btn quiet" id="lePull">고객 화면에 올라간 글 가져오기</button>
            <button type="button" class="btn quiet" id="leReset">기본 문장으로</button>
          </div></div>
      </div>`,
@@ -2714,6 +2715,26 @@ function openLetterPreview(w){
   };
   q.oninput=sync; b.oninput=sync;
   document.getElementById('leReset').onclick=()=>{ w.archiveBody=''; save(); openLetterPreview(w); };
+  /* 고객 화면(여정)에 올라간 글을 도로 가져옵니다. 편지는 캔버스로 그린 그림이라
+     고객 화면에서 글자를 복사할 수 없고, 시트의 공개데이터 칸은 JSON 이라 손으로
+     꺼내기 번거롭습니다. 백업이 뒤처져 빌더만 옛 글이 된 경우의 복구 경로입니다. */
+  document.getElementById('lePull').onclick=async()=>{
+    const btn=document.getElementById('lePull'); const c=DB.conn||{};
+    if(!c.gs){ toast('앱스 스크립트 주소가 아직 없습니다.'); return; }
+    btn.disabled=true; btn.textContent='가져오는 중…';
+    try{
+      const t=await ensureLinkKey(w);
+      const r=await fetch(c.gs+'?journey='+encodeURIComponent(w.id)+'&t='+encodeURIComponent(t)+'&cb='+Date.now());
+      const j=await r.json();
+      const body=String(((j||{}).journey||{}).archiveBody||'').trim();
+      if(!j.ok){ toast('가져오지 못했습니다.'); return; }
+      if(!body){ toast('고객 화면에 올라간 글이 기본 문장입니다.'); return; }
+      if(body===String(w.archiveBody||'').trim()){ toast('이미 같은 글입니다.'); return; }
+      b.value=body; sync();
+      toast('고객 화면의 글을 가져왔습니다.');
+    }catch(e){ toast('가져오지 못했습니다.'); }
+    finally{ btn.disabled=false; btn.textContent='고객 화면에 올라간 글 가져오기'; }
+  };
   document.getElementById('jBack').onclick=()=>document.getElementById('btnJourney').click();
   document.getElementById('jImage').onclick=()=>{ sync(); openLetterImage(w); };
   document.getElementById('jSave').onclick=async()=>{
