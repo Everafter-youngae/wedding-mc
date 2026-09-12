@@ -177,14 +177,21 @@ function conf(){
   let h=location.hash.slice(1);
   try{ h=decodeURIComponent(h); }catch(e){}
   let gsId='', key='';
+  /* #뒤에 &k= 나 ?k= 가 섞여 들어오는 경우도 받습니다. 해시 영역에서는 그것이
+     값으로 읽히지 않고 글자로 붙어버리는데, 링크를 만들다 보면 흔히 섞입니다. */
   if(h){
+    const m=h.search(/[&?]/);
+    if(m>=0){
+      try{ key=new URLSearchParams(h.slice(m+1)).get('k')||''; }catch(e){}
+      h=h.slice(0,m);
+    }
     const i=h.indexOf('.');
     gsId = i<0 ? h : h.slice(0,i);
-    key  = i<0 ? '' : h.slice(i+1);
+    if(!key) key = i<0 ? '' : h.slice(i+1);
   }
   const q=new URLSearchParams(location.search);
-  gsId = gsId || (q.get('gs')||'');
-  key  = key  || (q.get('k')||'');
+  gsId = (gsId||'').trim() || (q.get('gs')||'').trim();
+  key  = (key ||'').trim() || (q.get('k') ||'').trim();
   return {gs:gsId?('https://script.google.com/macros/s/'+gsId+'/exec'):'', key:key};
 }
 
