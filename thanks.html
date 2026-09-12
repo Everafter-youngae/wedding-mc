@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>후기 남기기 · Everafter</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFDF5">
+<style>
+
+/* BRAND.md v1.0 — Ivory 바탕 · Charcoal 글자 · Sky/Banana는 면으로.
+   금색·serif·과한 카드/그림자는 쓰지 않습니다. */
+:root{--ivory:#FFFDF5;--ivory-soft:#FFF8E4;--sky:#64AAC3;--sky-ink:#357289;--sky-deep:#2C5E70;--banana:#FFEBB0;--ink:#222222;--ink2:#5C5B55;--ink3:#87857D;--line:#E6E1D2;--card:#FFFFFF;--sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background-color:var(--ivory);background-image:radial-gradient(rgba(34,34,34,.018) .6px,transparent .65px);background-size:9px 9px;color:var(--ink);font-family:var(--sans);line-height:1.75;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.wrap{max-width:680px;margin:auto;padding:34px 18px 110px}
+.brand{text-align:center;font-size:25px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase;line-height:1}
+.subbrand{text-align:center;color:var(--ink2);font-size:10.5px;font-weight:700;letter-spacing:.42em;text-indent:.42em;margin-top:9px;text-transform:uppercase}
+.hero{text-align:center;padding:58px 0 42px}
+.code-label{font-size:10.5px;color:var(--ink3);letter-spacing:.2em;text-transform:uppercase;font-weight:700}
+.code{display:inline-block;margin-top:8px;padding:7px 15px;border:1px solid var(--sky);border-radius:999px;color:var(--sky-ink);font-size:13px;font-weight:700;letter-spacing:.06em}
+.hero h1{font-size:clamp(30px,8vw,42px);line-height:1.26;letter-spacing:-.045em;font-weight:800;margin:24px 0 14px;word-break:keep-all}
+.hero p{color:var(--ink2);margin:0;word-break:keep-all}
+/* 카드 상자 대신 가는 선과 여백으로 나눕니다 */
+.card{background:none;border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;padding:34px 0 6px;margin:0}
+.eyebrow{font-size:11px;letter-spacing:.16em;color:var(--sky-ink);font-weight:800;text-transform:uppercase}
+.card.state{background:var(--ivory-soft);border:1px solid var(--line);border-top:1px solid var(--line);border-left:4px solid var(--banana);border-radius:6px;padding:26px 24px 24px;margin:0 0 6px}
+.card.state .eyebrow{color:var(--sky-ink)}
+.state h2{font-size:23px;letter-spacing:-.03em;margin:10px 0 12px;font-weight:800;word-break:keep-all}
+.state p{color:var(--ink2);margin:0}
+.next{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);font-size:14px}
+.next b{display:block;margin-bottom:3px}
+.sc-sub{margin:16px 0 8px;font-size:14px;font-weight:700;color:var(--ink);word-break:keep-all}
+.sc-sub.soft{margin-top:20px;color:var(--ink2);font-size:13px;font-weight:600}
+ul.sc{list-style:none;margin:0;padding:0}
+ul.sc li{display:flex;gap:10px;align-items:baseline;padding:5px 0;font-size:14.5px;line-height:1.6;word-break:keep-all}
+ul.sc li b{flex:none;min-width:66px;color:var(--sky-ink);font-weight:700;font-variant-numeric:tabular-nums}
+ul.sc.soft li{font-size:13.5px;color:var(--ink2)}ul.sc.soft li b{color:var(--ink2);font-weight:600}
+.sc-note{margin:18px 0 0;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2);line-height:1.65;word-break:keep-all}
+.timeline{padding:14px 0 4px}
+.step{display:grid;grid-template-columns:22px 1fr;gap:14px;position:relative;min-height:72px;padding:0 0 14px}
+.step:last-child{min-height:auto;padding-bottom:0}
+.step:not(:last-child):before{content:"";position:absolute;left:6px;top:14px;bottom:-2px;width:1px;background:var(--line)}
+.dot{width:13px;height:13px;margin-top:2px;border:1.5px solid #D6D0BE;border-radius:50%;background:var(--ivory);position:relative;z-index:1}
+.step.done .dot{width:9px;height:9px;margin:4px 0 0 2px;background:var(--sky);border-color:var(--sky)}
+.step.now .dot{background:var(--ivory);border:2px solid var(--sky-ink);animation:current-breathe 2.8s ease-in-out infinite}
+.step.now .dot::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:1px solid rgba(53,114,137,.3);animation:current-ripple 2.8s ease-out infinite}
+.step .title{font-size:16px;color:var(--ink3);line-height:1.45;font-weight:400;word-break:keep-all}
+.step.done .title{color:var(--ink)}
+.step.now .title{color:var(--sky-ink);font-size:17px;font-weight:700}
+.when{font-size:12px;color:var(--ink3);margin-top:5px}
+.step.now .when{color:var(--sky-ink);font-weight:600}
+@keyframes current-breathe{0%,100%{transform:scale(1);box-shadow:0 0 0 4px rgba(53,114,137,.08)}50%{transform:scale(1.08);box-shadow:0 0 0 8px rgba(53,114,137,.14)}}
+@keyframes current-ripple{0%{transform:scale(.82);opacity:0}25%{opacity:.65}70%,100%{transform:scale(1.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){.step.now .dot,.step.now .dot::after{animation:none}}
+/* 편지 — 이 화면의 주인공이라 유일하게 면을 씁니다 */
+/* 편지지도 아이보리라 바탕과 같은 색이면 화면에 묻힙니다 — 한 톤 따뜻한 면 위에 올려
+   종이 한 장이 놓인 것처럼 보이게 합니다 */
+.letter-card{background:var(--ivory-soft);border:1px solid var(--line);border-top:1px solid var(--line);border-radius:8px;padding:20px 16px 18px;margin:34px 0 0}
+.letter-img{display:block;width:100%;height:auto;margin:14px 0 0;border:1px solid #E2DCC8;border-radius:4px;box-shadow:0 8px 22px rgba(34,34,34,.09)}
+.letter-save{display:inline-block;width:auto;margin:16px 0 2px;padding:11px 18px;border:1px solid var(--sky);background:none;color:var(--sky-ink);border-radius:8px;font-weight:700;font-size:14px;text-decoration:none}
+.letter-alt{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.letter{font-size:17px;line-height:2.05;white-space:pre-line;letter-spacing:-.015em;word-break:keep-all}
+
+
+
+button,.btn{display:block;width:100%;border:1px solid var(--sky);background:var(--sky);color:var(--ink);border-radius:8px;padding:15px 18px;font:800 15px var(--sans);text-align:center;text-decoration:none;cursor:pointer}
+button:active,.btn:active{background:#589FB9;border-color:#589FB9}
+.reply label{display:block;font-size:13px;color:var(--ink2);margin:18px 0 7px}
+.reply textarea,.reply input,.reply select{width:100%;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:14px 13px;font:16px var(--sans);color:var(--ink)}
+.reply textarea{min-height:110px;resize:vertical}
+.reply textarea:focus,.reply input:focus,.reply select:focus{border-color:var(--sky-ink);outline:none}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{width:auto;min-height:46px;background:var(--card);color:var(--ink2);border-color:var(--line);padding:12px 16px;font-weight:600}
+.chips button.on{background:var(--banana);color:var(--ink);border-color:var(--ink)}
+.lookup{max-width:460px;margin:80px auto}
+.lookup h1{text-align:center;font-size:27px;font-weight:800;letter-spacing:-.035em}
+.lookup p{text-align:center;color:var(--ink2);word-break:keep-all}
+.lookup input{width:100%;padding:16px;min-height:52px;border:1px solid var(--line);border-radius:8px;margin:7px 0;background:var(--card);font-size:16px}
+.lookup input:focus{border-color:var(--sky-ink);outline:none}
+.error{text-align:center;color:var(--sky-deep);padding:20px}
+.foot{text-align:right;color:var(--ink2);font-size:13px;margin-top:48px;padding-right:2px;line-height:1.8}
+.foot b{display:block;font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--ink)}
+
+/* 이 페이지에만 필요한 것 */
+.two{display:flex;gap:10px}
+.two > div{flex:1;min-width:0}
+.two label{margin-top:0}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.done{text-align:center;padding:70px 0}
+.done h2{font-size:26px;font-weight:800;letter-spacing:-.03em;margin:0 0 12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="brand">EVERAFTER</p>
+  <p class="subbrand">YOUNGAE</p>
+
+  <div id="form">
+    <div class="hero">
+      <h1>그날은 어떤 하루였나요.</h1>
+      <p>함께한 예식의 이야기를 남겨주세요.<br>한 문장이어도 충분합니다.</p>
+    </div>
+
+    <section class="card reply">
+      <div class="eyebrow">두 분</div>
+      <div class="two">
+        <div><label for="bride">한 분의 이름</label><input id="bride" placeholder="신부"></div>
+        <div><label for="groom">다른 한 분의 이름</label><input id="groom" placeholder="신랑"></div>
+      </div>
+      <label for="month">예식을 올린 때</label>
+      <input id="month" type="month" max="">
+      <div class="hint">후기를 소개할 때 "26년 8월의 영애씨" 처럼 달만 적습니다. 날짜는 쓰지 않습니다.</div>
+    </section>
+
+    <section class="card reply">
+      <div class="eyebrow">그날의 기억</div>
+      <label>그날은 어떤 하루로 기억되나요?</label>
+      <div class="chips" id="chips"></div>
+      <label for="best">Everafter와 함께하며 가장 좋았던 순간</label>
+      <textarea id="best" placeholder="편하게 들려주세요."></textarea>
+      <label for="sentence">Everafter에 남기고 싶은 한 문장</label>
+      <textarea id="sentence" placeholder="한 문장이어도 충분합니다."></textarea>
+    </section>
+
+    <section class="card reply">
+      <div class="eyebrow">소개 범위</div>
+      <label for="consent">남겨주신 문장을 어떻게 쓸까요?</label>
+      <select id="consent">
+        <option value="private">Everafter에게만 남길게요</option>
+        <option value="anonymous">이름을 가리고 소개해도 좋아요</option>
+        <option value="named">두 사람의 이름과 함께 소개해도 좋아요</option>
+      </select>
+      <div class="hint">"소개해도 좋아요" 를 고르신 경우에만 홈페이지 후기에 실립니다. 언제든 말씀해 주시면 내립니다.</div>
+      <div class="hp"><label for="website">이 칸은 비워두세요</label><input id="website" tabindex="-1" autocomplete="off"></div>
+      <button id="send" style="margin-top:20px">후기 보내기</button>
+      <p class="hint" id="state" style="margin-top:12px"></p>
+    </section>
+  </div>
+
+  <div id="done" class="done" style="display:none">
+    <h2>고맙습니다.</h2>
+    <p style="color:var(--ink2)">남겨주신 문장을 오래 간직하겠습니다.</p>
+  </div>
+
+  <div class="foot"><b>Everafter · 永愛</b><br>오래 기억될 하루를 함께 만듭니다.</div>
+</div>
+
+<script>
+/* 빌더가 생기기 전에 함께한 분들에게서 후기만 따로 받는 화면입니다.
+   예식 기록도 링크키도 없으므로, 이름과 달을 직접 적어주시는 것으로 대신합니다.
+   주소의 #뒤에 앱스크립트 주소와 열쇠가 들어옵니다:
+     thanks.html#<앱스크립트ID>.<열쇠>                                        */
+const TAGS=['따뜻한 하루','웃음이 많았던 하루','편안했던 하루','우리다웠던 하루','오래 기억하고 싶은 하루'];
+const picked=[];
+const $=id=>document.getElementById(id);
+
+(function initTags(){
+  $('chips').innerHTML=TAGS.map(t=>'<button type="button">'+t+'</button>').join('');
+  $('chips').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    b.classList.toggle('on');
+    const i=picked.indexOf(b.textContent);
+    if(i<0) picked.push(b.textContent); else picked.splice(i,1);
+  }));
+})();
+
+(function initMonth(){
+  const d=new Date();
+  $('month').max=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+})();
+
+function conf(){
+  let h=location.hash.slice(1);
+  try{ h=decodeURIComponent(h); }catch(e){}
+  const [gsId,key]=h.split('.');
+  return {gs:gsId?('https://script.google.com/macros/s/'+gsId+'/exec'):'', key:key||''};
+}
+
+$('send').onclick=async()=>{
+  const c=conf();
+  const bride=$('bride').value.trim(), groom=$('groom').value.trim();
+  const sentence=$('sentence').value.trim(), best=$('best').value.trim();
+  if(!c.gs||!c.key){ $('state').textContent='주소가 올바르지 않습니다. 받으신 링크를 처음부터 끝까지 복사해 다시 열어 주세요.'; return; }
+  if(!bride&&!groom){ $('state').textContent='두 분의 이름을 적어 주세요.'; return; }
+  if(!sentence&&!best){ $('state').textContent='한 문장이어도 좋으니 남겨 주세요.'; return; }
+
+  $('send').disabled=true; $('state').textContent='보내는 중입니다…';
+  try{
+    const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({type:'pastReview',k:c.key,hp:$('website').value,
+        bride:bride,groom:groom,
+        review:{memoryTags:picked,bestMoment:best,sentence:sentence,
+          publishConsent:$('consent').value,weddingMonth:$('month').value,
+          submittedAt:new Date().toISOString()}})});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'보내지 못했습니다.');
+    $('form').style.display='none'; $('done').style.display='block';
+    window.scrollTo({top:0});
+  }catch(e){
+    $('send').disabled=false;
+    $('state').textContent='보내지 못했습니다. 잠시 뒤 다시 눌러 주세요.';
+  }
+};
+</script>
+</body>
+</html>

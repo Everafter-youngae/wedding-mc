@@ -2947,8 +2947,12 @@ document.getElementById('btnReplies').onclick=async()=>{
        const text=(r.review.sentence||r.review.bestMoment||'').trim();
        const names=[r.bride,r.groom].filter(Boolean).join(' · ');
        const when=r.ts?new Date(r.ts).toLocaleDateString('ko-KR',{year:'numeric',month:'numeric',day:'numeric'}):'';
+       /* 빌더 이전 예식은 기록이 없어 예식 월을 직접 적어 주십니다. 후기에 "26년 8월의
+          영애씨" 처럼 적으려면 받은 날짜가 아니라 이 달이 필요합니다. */
+       const wm=String(r.review.weddingMonth||'').trim();
+       const wmLabel=/^\d{4}-\d{2}$/.test(wm)?`예식 ${wm.slice(2,4)}년 ${+wm.slice(5,7)}월 · `:'';
        return `<div class="opt" style="align-items:flex-start"><span class="lbl">${esc(text||'(남긴 문장 없음)')}
-         <span class="sub">${esc(names)} · ${CONSENT_LABEL[r.review.publishConsent]||r.review.publishConsent} · ${when}</span></span>
+         <span class="sub">${esc(names)} · ${wmLabel}${CONSENT_LABEL[r.review.publishConsent]||r.review.publishConsent} · 받은날 ${when}</span></span>
          <button class="btn" data-copy-reply="${i}" ${text?'':'disabled'}>복사</button></div>`;
      }).join('')}`,
     `<button class="btn primary" id="rClose">닫기</button>`);

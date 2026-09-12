@@ -310,6 +310,39 @@ function doPost(e) {
       return json_({ ok: true });
     }
 
+    /* 빌더가 생기기 전에 함께한 분들에게서 후기만 받을 때 (공개 링크 · 예식 기록 없음)
+       예식ID도 링크키도 없으므로 이름과 달을 직접 적어주신 것을 그대로 받습니다.
+       아무나 부를 수 있는 통로라 두 겹으로 막습니다 — 링크에 실린 열쇠(REVIEW_KEY)와
+       사람이면 비워두는 칸(hp). 열쇠는 스크립트 속성에 넣어 두세요. */
+    if (data.type === 'pastReview') {
+      if (String(data.hp || '')) return json_({ ok: true });
+      var reviewKey = String(PropertiesService.getScriptProperties().getProperty('REVIEW_KEY') || '');
+      if (!reviewKey || String(data.k || '') !== reviewKey) return badLink_();
+
+      var pr = data.review || {};
+      var pastReview = {
+        memoryTags: Array.isArray(pr.memoryTags) ? pr.memoryTags.slice(0, 10) : [],
+        bestMoment: String(pr.bestMoment || '').slice(0, 3000),
+        sentence: String(pr.sentence || '').slice(0, 3000),
+        publishConsent: ['private', 'anonymous', 'named'].indexOf(pr.publishConsent) > -1
+          ? pr.publishConsent : 'private',
+        weddingMonth: String(pr.weddingMonth || '').slice(0, 7),
+        source: 'past',
+        submittedAt: String(pr.submittedAt || new Date().toISOString())
+      };
+      if (!pastReview.sentence && !pastReview.bestMoment) throw new Error('review is empty');
+
+      replies_().appendRow([
+        new Date(),
+        '',
+        '',
+        String(data.bride || '').slice(0, 40),
+        String(data.groom || '').slice(0, 40),
+        JSON.stringify(pastReview)
+      ]);
+      return json_({ ok: true });
+    }
+
     // Everafter 편지 이메일 발송 (관리자 전용)
     if (data.type === 'sendArchive') {
       if (!isAdmin_(data.token)) return unauthorized_();
