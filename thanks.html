@@ -193,7 +193,14 @@ $('send').onclick=async()=>{
   const bride=$('bride').value.trim(), groom=$('groom').value.trim();
   const sentence=$('sentence').value.trim(), best=$('best').value.trim();
   if(!c.gs){ $('state').textContent='주소가 올바르지 않습니다. 받으신 링크를 처음부터 끝까지 복사해 다시 열어 주세요.'; return; }
-  if(!c.key){ $('state').textContent='주소 뒷부분이 잘렸습니다. 링크 끝까지 복사해 다시 열어 주세요.'; return; }
+  if(!c.key){
+    /* 무엇이 들어왔는지 보여줍니다. 짐작으로 고치는 것보다 빠릅니다. */
+    const raw=(location.hash||location.search||'(없음)');
+    $('state').innerHTML='주소 뒷부분이 잘렸습니다. 링크 끝까지 복사해 다시 열어 주세요.'
+      +'<br><span style="color:var(--ink3)">읽은 주소 끝: '
+      +String(raw).slice(-60).replace(/[<>&]/g,'')+'</span>';
+    return;
+  }
   if(!bride&&!groom){ $('state').textContent='두 분의 이름을 적어 주세요.'; return; }
   if(!sentence&&!best){ $('state').textContent='한 문장이어도 좋으니 남겨 주세요.'; return; }
 
