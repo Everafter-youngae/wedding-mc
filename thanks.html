@@ -22,7 +22,7 @@ body{margin:0;background-color:var(--ivory);background-image:radial-gradient(rgb
 /* 두 줄 사이 간격도 글자 크기를 따라갑니다. 고정값으로 두면 크기를 바꿀 때마다
    어긋납니다. 홈페이지는 0.105 인데 거기선 YOUNGAE 가 EVERAFTER 의 0.14배라
    비례가 다릅니다. 이 크기에서는 0.16 이 한 덩어리로 읽힙니다. */
-.subbrand{display:flex;justify-content:space-between;width:100%;
+.subbrand{display:flex;justify-content:space-between;width:min(100%,15em);
   margin:calc(var(--wm) * .16) 0 0;
   color:var(--ink2);font-size:calc(var(--wm) * .42);font-weight:800;
   letter-spacing:0;text-transform:uppercase}
