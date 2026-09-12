@@ -221,12 +221,21 @@ $('send').onclick=async()=>{
           publishConsent:$('consent').value,weddingMonth:$('month').value,
           submittedAt:new Date().toISOString()}})});
     const j=await r.json();
-    if(!j.ok) throw new Error(j.error||'보내지 못했습니다.');
+    if(!j.ok){
+      /* 서버가 왜 거절했는지 그대로 알려줍니다. '보내지 못했습니다' 한 줄로
+         뭉뚱그리면 열쇠가 틀린 것인지 다른 문제인지 알 수가 없습니다. */
+      if(String(j.error||'')==='link key required'){
+        const k=c.key;
+        throw new Error('열쇠가 맞지 않습니다. 링크 끝의 값과 스크립트 속성 REVIEW_KEY 값이 같아야 합니다.'
+          +' (지금 보낸 열쇠: '+k.slice(0,2)+'…'+k.slice(-1)+' · 총 '+k.length+'자)');
+      }
+      throw new Error(j.error||'보내지 못했습니다.');
+    }
     $('form').style.display='none'; $('done').style.display='block';
     window.scrollTo({top:0});
   }catch(e){
     $('send').disabled=false;
-    $('state').textContent='보내지 못했습니다. 잠시 뒤 다시 눌러 주세요.';
+    $('state').textContent=(e&&e.message)?e.message:'보내지 못했습니다. 잠시 뒤 다시 눌러 주세요.';
   }
 };
 </script>
