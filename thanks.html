@@ -29,7 +29,9 @@ body{margin:0;background-color:var(--ivory);background-image:radial-gradient(rgb
 .hero{text-align:center;padding:58px 0 42px}
 .code-label{font-size:10.5px;color:var(--ink3);letter-spacing:.2em;text-transform:uppercase;font-weight:700}
 .code{display:inline-block;margin-top:8px;padding:7px 15px;border:1px solid var(--sky);border-radius:999px;color:var(--sky-ink);font-size:13px;font-weight:700;letter-spacing:.06em}
-.hero h1{font-size:clamp(30px,8vw,42px);line-height:1.26;letter-spacing:-.045em;font-weight:800;margin:24px 0 14px;word-break:keep-all}
+/* 고객에게 말을 거는 첫 문장이라 강조색으로 둡니다. Sky 원색(#64AAC3)은
+   아이보리 위 2.55:1 이라 쓸 수 없고, 글자용 Sky Ink 는 5.26:1 입니다. */
+.hero h1{color:var(--sky-ink);font-size:clamp(30px,8vw,42px);line-height:1.26;letter-spacing:-.045em;font-weight:800;margin:24px 0 14px;word-break:keep-all}
 .hero p{color:var(--ink2);margin:0;word-break:keep-all}
 /* 카드 상자 대신 가는 선과 여백으로 나눕니다 */
 .card{background:none;border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;padding:34px 0 6px;margin:0}
