@@ -17,10 +17,15 @@ body{margin:0;background-color:var(--ivory);background-image:radial-gradient(rgb
 /* 워드마크. 홈페이지(home.css)와 같은 값입니다 — EVERAFTER 자간 -.028em,
    YOUNGAE 는 800. 자간을 숫자로 주면 크기가 바뀔 때마다 어긋나므로, 잠금 상자를
    글자 폭만큼(fit-content) 잡고 YOUNGAE 를 균등 배분합니다. */
-.lockup{width:fit-content;margin:0 auto}
-.brand{font-size:25px;font-weight:800;letter-spacing:-.028em;text-transform:uppercase;line-height:1}
-.subbrand{display:flex;justify-content:space-between;width:100%;margin-top:9px;
-  color:var(--ink2);font-size:10.5px;font-weight:800;letter-spacing:0;text-transform:uppercase}
+.lockup{--wm:25px;width:fit-content;margin:0 auto}
+.brand{margin:0;font-size:var(--wm);font-weight:800;letter-spacing:-.028em;text-transform:uppercase;line-height:1}
+/* 두 줄 사이 간격도 글자 크기를 따라갑니다. 고정값으로 두면 크기를 바꿀 때마다
+   어긋납니다. 홈페이지는 0.105 인데 거기선 YOUNGAE 가 EVERAFTER 의 0.14배라
+   비례가 다릅니다. 이 크기에서는 0.16 이 한 덩어리로 읽힙니다. */
+.subbrand{display:flex;justify-content:space-between;width:100%;
+  margin:calc(var(--wm) * .16) 0 0;
+  color:var(--ink2);font-size:calc(var(--wm) * .42);font-weight:800;
+  letter-spacing:0;text-transform:uppercase}
 .hero{text-align:center;padding:58px 0 42px}
 .code-label{font-size:10.5px;color:var(--ink3);letter-spacing:.2em;text-transform:uppercase;font-weight:700}
 .code{display:inline-block;margin-top:8px;padding:7px 15px;border:1px solid var(--sky);border-radius:999px;color:var(--sky-ink);font-size:13px;font-weight:700;letter-spacing:.06em}
