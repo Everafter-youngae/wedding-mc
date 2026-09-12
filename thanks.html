@@ -198,7 +198,8 @@ $('send').onclick=async()=>{
     const raw=(location.hash||location.search||'(없음)');
     $('state').innerHTML='주소 뒷부분이 잘렸습니다. 링크 끝까지 복사해 다시 열어 주세요.'
       +'<br><span style="color:var(--ink3)">읽은 주소 끝: '
-      +String(raw).slice(-60).replace(/[<>&]/g,'')+'</span>';
+      +String(raw).slice(-60).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      +'</span>';
     return;
   }
   if(!bride&&!groom){ $('state').textContent='두 분의 이름을 적어 주세요.'; return; }
