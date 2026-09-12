@@ -18,6 +18,10 @@ body{margin:0;background-color:var(--ivory);background-image:radial-gradient(rgb
    YOUNGAE 는 800. 자간을 숫자로 주면 크기가 바뀔 때마다 어긋나므로, 잠금 상자를
    글자 폭만큼(fit-content) 잡고 YOUNGAE 를 균등 배분합니다. */
 .lockup{--wm:25px;width:fit-content;margin:0 auto}
+/* A-F 는 벌어지고 F-T 는 붙는 짝이라 그 둘만 되돌립니다 */
+.brand i{font-style:normal}
+.brand .kf{margin-left:-.035em}
+.brand .kt{margin-left:.05em}
 .brand{margin:0;font-size:var(--wm);font-weight:800;letter-spacing:-.028em;text-transform:uppercase;line-height:1}
 /* 두 줄 사이 간격도 글자 크기를 따라갑니다. 고정값으로 두면 크기를 바꿀 때마다
    어긋납니다. 홈페이지는 0.105 인데 거기선 YOUNGAE 가 EVERAFTER 의 0.14배라
@@ -106,7 +110,7 @@ button:active,.btn:active{background:#589FB9;border-color:#589FB9}
 </head>
 <body>
 <div class="wrap">
-  <div class="lockup"><p class="brand">EVERAFTER</p><p class="subbrand"><span>Y</span><span>O</span><span>U</span><span>N</span><span>G</span><span>A</span><span>E</span></p></div>
+  <div class="lockup"><p class="brand">EVERA<i class="kf">F</i><i class="kt">T</i>ER</p><p class="subbrand"><span>Y</span><span>O</span><span>U</span><span>N</span><span>G</span><span>A</span><span>E</span></p></div>
 
   <div id="form">
     <div class="hero">
