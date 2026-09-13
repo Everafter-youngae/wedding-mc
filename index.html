@@ -2976,6 +2976,7 @@ document.getElementById('btnReplies').onclick=async()=>{
              <option value="">올리지 않음</option>
              <option value="sentence" ${site&&site.on&&site.field!=='best'?'selected':''} ${sentence?'':'disabled'}>한 줄평으로 올리기</option>
              <option value="best" ${site&&site.on&&site.field==='best'?'selected':''} ${best?'':'disabled'}>좋았던 순간으로 올리기</option>
+             <option value="both" ${site&&site.on&&site.field==='both'?'selected':''} ${sentence&&best?'':'disabled'}>둘 다 올리기</option>
            </select>
            <span class="sub" data-pubstate="${i}"></span>
          </span>
@@ -2994,7 +2995,7 @@ document.getElementById('btnReplies').onclick=async()=>{
     try{
       const res=await fetch(gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
         body:JSON.stringify({type:'publishReview',ts:r.ts,on:!!sel.value,
-          field:sel.value==='best'?'best':'sentence',token:adminToken()})});
+          field:sel.value||'sentence',token:adminToken()})});
       const j=await res.json();
       if(!j.ok) throw new Error(authErr_(j.error,'저장하지 못했습니다.'));
       r.site=j.site;

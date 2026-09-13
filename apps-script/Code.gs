@@ -361,7 +361,7 @@ function doPost(e) {
         if (!obj) throw new Error('reply not found');
         obj.site = {
           on: !!data.on,
-          field: data.field === 'best' ? 'best' : 'sentence'
+          field: ['best', 'both'].indexOf(String(data.field)) > -1 ? String(data.field) : 'sentence'
         };
         sheet.getRange(pi + 1, 6).setValue(JSON.stringify(obj));
         return json_({ ok: true, site: obj.site });
@@ -650,12 +650,26 @@ function doGet(e) {
       for (var pr = 1; pr < pubRows.length; pr++) {
         var pd = parseJson_(pubRows[pr][5], null);
         if (!pd || !pd.site || !pd.site.on) continue;
-        var body = String(pd.site.field === 'best' ? pd.bestMoment : pd.sentence || '').trim();
+        var one = String(pd.sentence || '').trim();
+        var two = String(pd.bestMoment || '').trim();
+        var body = pd.site.field === 'best' ? two
+                 : pd.site.field === 'both' ? [one, two].filter(String).join('\n\n')
+                 : one;
         if (!body) continue;
+
+        /* 여정 답장에는 예식 월 칸이 없습니다. 적어주신 값이 없으면 예식 기록에서
+           날짜를 꺼내 씁니다 — 후기에 "26년 8월의 영애씨" 로 적으려면 달이 필요합니다. */
+        var mon = String(pd.weddingMonth || '');
+        if (!/^\d{4}-\d{2}$/.test(mon)) {
+          var jrow = getJourneyById_(String(pubRows[pr][1] || ''));
+          var jdate = jrow && jrow.data ? String(jrow.data.date || '') : '';
+          if (/^\d{4}-\d{2}/.test(jdate)) mon = jdate.slice(0, 7);
+        }
+
         published.push({
           ts: pubRows[pr][0],
           text: body,
-          month: String(pd.weddingMonth || '')
+          month: mon
         });
       }
       /* 예식이 오래된 것부터 — 후기 페이지의 번호가 기록의 순서가 됩니다 */
