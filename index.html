@@ -2956,18 +2956,26 @@ document.getElementById('btnReplies').onclick=async()=>{
        const best=String(r.review.bestMoment||'').trim();
        const tags=Array.isArray(r.review.memoryTags)?r.review.memoryTags.filter(Boolean):[];
        const sentence=String(r.review.sentence||'').trim();
-       return `<div class="opt" style="align-items:flex-start;flex-wrap:wrap">
-         <span class="lbl" style="flex:1 1 260px">${esc(sentence||'(한 문장 없음)')}
-         ${best?`<span class="sub" style="display:block;margin-top:8px;color:var(--ink2);white-space:pre-wrap">가장 좋았던 순간 — ${esc(best)}</span>`:''}
-         ${tags.length?`<span class="sub" style="display:block;margin-top:6px">${tags.map(t=>esc(t)).join(' · ')}</span>`:''}
-         <span class="sub" style="display:block;margin-top:8px">${esc(names)} · ${wmLabel}${CONSENT_LABEL[r.review.publishConsent]||r.review.publishConsent} · 받은날 ${when}</span></span>
-         <button class="btn" data-copy-reply="${i}" ${text?'':'disabled'}>복사</button></div>`;
+       /* 칸마다 복사 버튼을 답니다. '가장 좋았던 순간' 쪽에 더 긴 이야기가
+          담기는 일이 많아, 후기로 옮길 문장이 한 줄평이 아닐 수 있습니다. */
+       return `<div class="opt" style="align-items:flex-start;flex-wrap:wrap;gap:10px">
+         <span class="lbl" style="flex:1 1 260px">
+         <span style="display:flex;align-items:flex-start;gap:10px">
+           <span style="flex:1">${esc(sentence||'(한 문장 없음)')}</span>
+           ${sentence?`<button class="btn" data-copy-reply="${i}" data-field="sentence">복사</button>`:''}
+         </span>
+         ${best?`<span class="sub" style="display:flex;align-items:flex-start;gap:10px;margin-top:10px;color:var(--ink2)">
+           <span style="flex:1;white-space:pre-wrap">가장 좋았던 순간 — ${esc(best)}</span>
+           <button class="btn" data-copy-reply="${i}" data-field="best">복사</button></span>`:''}
+         ${tags.length?`<span class="sub" style="display:block;margin-top:8px">${tags.map(t=>esc(t)).join(' · ')}</span>`:''}
+         <span class="sub" style="display:block;margin-top:8px">${esc(names)} · ${wmLabel}${CONSENT_LABEL[r.review.publishConsent]||r.review.publishConsent} · 받은날 ${when}</span>
+         </span></div>`;
      }).join('')}`,
     `<button class="btn primary" id="rClose">닫기</button>`);
   document.getElementById('rClose').onclick=closeModal;
   document.querySelectorAll('[data-copy-reply]').forEach(btn=>btn.onclick=async()=>{
     const r=list[+btn.dataset.copyReply];
-    const text=(r.review.sentence||r.review.bestMoment||'').trim();
+    const text=String((btn.dataset.field==='best'?r.review.bestMoment:r.review.sentence)||'').trim();
     try{ await navigator.clipboard.writeText(text); toast('문장을 복사했습니다.'); }
     catch(e){ toast('복사하지 못했습니다. 직접 선택해 복사해 주세요.'); }
   });
