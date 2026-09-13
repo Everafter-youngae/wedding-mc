@@ -343,6 +343,32 @@ function doPost(e) {
       return json_({ ok: true });
     }
 
+    /* 답장을 홈페이지 후기로 올리거나 내립니다 (관리자 전용)
+       받은시각으로 줄을 찾습니다. 답장데이터 JSON 안에 site 를 넣어 두면
+       시트에 칸을 새로 만들지 않아도 되고, 이미 쌓인 줄도 그대로 쓸 수 있습니다. */
+    if (data.type === 'publishReview') {
+      if (!isAdmin_(data.token)) return unauthorized_();
+      var wantTs = String(data.ts || '');
+      if (!wantTs) throw new Error('ts is required');
+
+      var sheet = replies_();
+      var rows = sheet.getDataRange().getValues();
+      for (var pi = 1; pi < rows.length; pi++) {
+        var rowTs = rows[pi][0];
+        var iso = rowTs instanceof Date ? rowTs.toISOString() : String(rowTs);
+        if (iso !== wantTs) continue;
+        var obj = parseJson_(rows[pi][5], null);
+        if (!obj) throw new Error('reply not found');
+        obj.site = {
+          on: !!data.on,
+          field: data.field === 'best' ? 'best' : 'sentence'
+        };
+        sheet.getRange(pi + 1, 6).setValue(JSON.stringify(obj));
+        return json_({ ok: true, site: obj.site });
+      }
+      throw new Error('reply not found');
+    }
+
     // Everafter 편지 이메일 발송 (관리자 전용)
     if (data.type === 'sendArchive') {
       if (!isAdmin_(data.token)) return unauthorized_();
@@ -573,6 +599,7 @@ function doGet(e) {
           bride: String(replyRows[r][3]),
           groom: String(replyRows[r][4]),
           ts: replyRows[r][0],
+          site: reviewData.site || null,
           review: reviewData
         });
       }
@@ -612,6 +639,30 @@ function doGet(e) {
       var journey = getJourneyById_(String(p.journey));
       if (!journey) return json_({ ok: false, error: 'journey not found' });
       return json_({ ok: true, journey: journey.data });
+    }
+
+    /* 홈페이지 후기 페이지가 읽어 가는 목록 (공개 · 인증 없음)
+       게시 표시를 켠 답장만, 화면에 필요한 것만 내보냅니다. 이름은 내보내지
+       않습니다 — 후기 페이지가 "26년 8월의 영애씨" 로만 적기 때문입니다. */
+    if (p.reviews) {
+      var pubRows = replies_().getDataRange().getValues();
+      var published = [];
+      for (var pr = 1; pr < pubRows.length; pr++) {
+        var pd = parseJson_(pubRows[pr][5], null);
+        if (!pd || !pd.site || !pd.site.on) continue;
+        var body = String(pd.site.field === 'best' ? pd.bestMoment : pd.sentence || '').trim();
+        if (!body) continue;
+        published.push({
+          ts: pubRows[pr][0],
+          text: body,
+          month: String(pd.weddingMonth || '')
+        });
+      }
+      /* 예식이 오래된 것부터 — 후기 페이지의 번호가 기록의 순서가 됩니다 */
+      published.sort(function (a, b) {
+        return String(a.month || '9999-99').localeCompare(String(b.month || '9999-99'));
+      });
+      return json_({ ok: true, reviews: published });
     }
 
     // 영애 코드로 고객 Story 페이지 조회 (고객 화면 · 인증 없음)
