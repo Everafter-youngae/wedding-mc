@@ -582,6 +582,7 @@ const SEC_DEFS = [
   {key:'preshow',  title:'식전 안내',        dur:0,   cue:'예식 15분 전 / 5분 전 2회'},
   {key:'opening',  title:'개식사',           dur:10,  cue:''},
   {key:'candle',   title:'화촉점화',         dur:70,  cue:'입장 동선 확인 · 동시 점화'},
+  {key:'together', title:'신랑·신부 동시 입장',dur:60, cue:'두 사람 걸음 맞추기 · 하객 기립 유도', off:true},
   {key:'groom',    title:'신랑 입장',        dur:35,  cue:'입장 속도 체크'},
   {key:'bride',    title:'신부 입장',        dur:60,  cue:'신랑 맞이 동선 · 드레스 정돈'},
   {key:'bow',      title:'신랑·신부 맞절',   dur:25,  cue:'마주 선 자세 확인'},
@@ -620,7 +621,7 @@ function blank(){
     relation:'신부', relationText:'대학 동기', story:'',
     farGuests:'',
     candleParent:'어머님', candleOn:true,
-    groomExtra:'',
+    groomExtra:'', togetherExtra:'',
     brideTwoStep:false, brideEscort:'없음',
     vowBy:'셀프', declareBy:'사회자',
     speechWho:'신부', speechRel:'', speechNames:'',
@@ -705,6 +706,23 @@ candle:w=>{
 (내빈께 인사)
 
 양가 ${P}께서는 / 혼주석으로 이동하여 / 착석해 주시기 바랍니다.`;
+},
+
+together:w=>{
+  const extra=w.togetherExtra?`\n\n${w.togetherExtra}`:'';
+  return `자, 그럼 이제 / 모두 뒤편을 함께 바라봐 주시기 바랍니다. / 오늘의 두 주인공이 / 나란히 들어오는 순서입니다.
+
+따로 걸어와 만나는 대신, / 처음부터 같은 걸음으로 / 이 길을 걷기로 한 두 사람입니다.${extra}
+
+하객 여러분께서는 / 그 어느 때보다 뜨거운 축복의 박수로 / 두 사람을 맞아주시기 바랍니다.
+
+듬직한 ${gGun(w)}과 / 세상에서 가장 아름다운 ${bYang(w)}, / 신랑 신부 입장!
+
+(동시 입장 · 음악 크게 / 하객 기립)
+
+두 사람이 나란히 걸어오고 있습니다. / 한 사람의 인생이, / 또 다른 사람과 나란히 걷기 위한 / 첫 걸음입니다. / 이 아름다운 걸음을 / 아낌없는 큰 박수로 함께 해주시길 부탁드립니다.
+
+(단상 앞 도착 · 신랑 신부는 하객 여러분을 향해 서주시기 바랍니다.)`;
 },
 
 groom:w=>{
@@ -1035,7 +1053,7 @@ async function load(){
   DB.list.forEach(w=>{ w.date=fixDate(w.date); });
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
-    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; w.togetherExtra=w.togetherExtra||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
   maybeNudgeBackup();
@@ -1046,7 +1064,14 @@ async function load(){
 }
 
 function set(k,v){ const w=cur(); w[k]=v; save(); renderAll(); }
-function setSec(key,k,v){ const w=cur(); w.sections[key][k]=v; save(); renderAll(); }
+/* 동시 입장은 신랑 입장·신부 입장을 대신하는 순서라, 둘이 같이 켜지면 입장을 두 번
+   하는 대본이 됩니다. 어느 쪽을 켜든 다른 쪽을 끕니다. 빌더·질문지 반영 모두 이 함수로. */
+const ENTRANCE_PAIR={together:['groom','bride'],groom:['together'],bride:['together']};
+function setSecOn(w,key,on){
+  w.sections[key].on=on;
+  if(on) (ENTRANCE_PAIR[key]||[]).forEach(k=>{ w.sections[k].on=false; });
+}
+function setSec(key,k,v){ const w=cur(); if(k==='on') setSecOn(w,key,v); else w.sections[key][k]=v; save(); renderAll(); }
 
 function toast(msg,ms){
   const t=document.getElementById('toast');
@@ -1228,6 +1253,7 @@ const SEC_FIELDS={
     +txt('먼 길 오신 하객 지역','farGuests','서울, 양산, 부산','비워두면 해당 문장이 빠집니다.')
     +area('두 사람과의 인연 한 문단','story','신부 김민주 양과 저는 대학 시절 과 동기로 처음 만났습니다. …','개식사 중간에 그대로 들어갑니다.'),
   candle:()=>seg('점화 주체','candleParent',['어머님','아버님']),
+  together:()=>area('특별 연출 멘트','togetherExtra','준비한 멘트를 넣으면 기본 멘트 사이에 들어갑니다.','이 순서를 켜면 신랑 입장·신부 입장은 자동으로 빠집니다.'),
   groom:()=>area('특별 연출 멘트','groomExtra','밸런스 게임, 팔씨름 등 준비한 멘트를 넣으면 기본 멘트 사이에 들어갑니다.'),
   bride:()=>chk('문 뒤 “등장” 후 다시 “입장”하는 2단 구성','brideTwoStep')
     +seg('동행자','brideEscort',['없음','아버님','어머님','부모님']),
@@ -2089,7 +2115,8 @@ function askConfig(){
       declareBy:w.declareBy, speechWho:w.speechWho, speechRel:w.speechRel, speechNames:w.speechNames,
       songWho:w.songWho, songRel:w.songRel, songName:w.songName, songTitle:w.songTitle,
       parentsFirst:w.parentsFirst+' 부모님', parentsStyle:w.parentsStyle==='포옹'?'따뜻하게 포옹':'다 같이 화이팅',
-      marchYears:w.marchYears, photoNotice:w.photoNotice?'있음':'없음', groomExtra:w.groomExtra},
+      marchYears:w.marchYears, photoNotice:w.photoNotice?'있음':'없음', groomExtra:w.groomExtra,
+      togetherExtra:w.togetherExtra},
   };
 }
 function askLink(){
@@ -3194,13 +3221,15 @@ const OPT_MAP={
   marchYears:{f:'marchYears'},
   photoNotice:{f:'photoNotice',to:v=>v==='있음',disp:v=>v?'있음':'없음'},
   groomExtra:{f:'groomExtra'},
+  togetherExtra:{f:'togetherExtra'},
 };
 const FIELD_LABEL={date:'예식일',time:'예식 시간',venue:'예식장',floor:'연회장 층',
   candleParent:'화촉 점화 주체',brideTwoStep:'신부 입장 방식',brideEscort:'신부 동행자',
   vowBy:'혼인 서약',declareBy:'성혼 선언문 낭독',speechWho:'축사 – 누구 측',speechRel:'축사자 관계',
   speechNames:'축사자 이름',songWho:'축가 – 누구 측',songRel:'축가자 관계',songName:'축가자 이름',
   songTitle:'축가 곡명',parentsFirst:'부모님 인사 순서',parentsStyle:'부모님 인사 연출',
-  marchYears:'함께한 시간',photoNotice:'기념 촬영 안내',groomExtra:'신랑 입장 연출'};
+  marchYears:'함께한 시간',photoNotice:'기념 촬영 안내',groomExtra:'신랑 입장 연출',
+  togetherExtra:'동시 입장 연출'};
 const show=v=>v===true?'포함':v===false?'제외':(v===''||v==null?'(비어 있음)':String(v));
 
 function diffOf(res){
@@ -3246,8 +3275,8 @@ function diffOf(res){
     if(res.skipSecs) return;
     const r=(res.secs||{})[d.key]; if(!r) return;
     const s=w.sections[d.key];
-    if(r.use==='on'&&!s.on) out.push({t:d.title+' – 순서',now:false,val:true,apply:()=>{s.on=true;}});
-    if(r.use==='off'&&s.on) out.push({t:d.title+' – 순서',now:true,val:false,apply:()=>{s.on=false;}});
+    if(r.use==='on'&&!s.on) out.push({t:d.title+' – 순서',now:false,val:true,apply:()=>{setSecOn(w,d.key,true);}});
+    if(r.use==='off'&&s.on) out.push({t:d.title+' – 순서',now:true,val:false,apply:()=>{setSecOn(w,d.key,false);}});
     if(r.music&&r.music!==s.music) out.push({t:d.title+' – 음악',now:s.music,val:r.music,apply:()=>{s.music=r.music;}});
     if(r.note&&(s.cue||'').indexOf(r.note)<0)
       out.push({t:d.title+' – 요청사항',now:s.cue,val:r.note,apply:()=>{s.cue=(s.cue?s.cue+' / ':'')+r.note;}});
