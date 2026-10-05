@@ -623,7 +623,7 @@ function blank(){
     candleParent:'어머님', candleOn:true,
     groomExtra:'', togetherExtra:'',
     brideTwoStep:false, brideEscort:'없음',
-    ringBy:'직접', ringBearerName:'', ringBearerRel:'',
+    ringBy:'직접', ringBearers:'',
     vowBy:'셀프', declareBy:'사회자',
     speechWho:'신부', speechRel:'', speechNames:'',
     songWho:'신랑', songRel:'', songName:'', songTitle:'',
@@ -778,25 +778,41 @@ bow:w=>`드디어 오늘의 두 주인공이 / 세상에서 가장 중요하고 
 신랑, 신부 / 서로에게 / 인사!`,
 
 ring:w=>{
-  /* 화동이 있으면 소개 → 입장 → 전달 → 돌려보내기까지가 한 덩어리로 앞에 붙습니다.
-     이름·관계가 비어 있어도 문장이 깨지지 않게 둡니다. */
-  let bearer='';
-  if(w.ringBy==='화동'){
-    const who=[w.ringBearerRel,w.ringBearerName].filter(Boolean).join(' ');
-    const nm=w.ringBearerName||'화동';
-    bearer=`오늘 두 사람의 반지는 / 아주 특별한 손님이 전해주겠습니다. / ${who?who+' 화동입니다. / ':''}큰 박수로 맞아주시기 바랍니다.
+  /* 화동이 있으면 소개 → 입장 → 큐피트 박수 → 퇴장 → 이름 불러 한 번 더 박수 → 교환.
+     실제 진행했던 예식(기류 · 0607) 대본의 순서입니다. 여러 명이면 소개는 '…과 /
+     …이 전달합니다' 로 잇고, 마지막 박수에는 각자의 「이름 양/군」만 다시 부릅니다. */
+  const kids=String(w.ringBearers||'').split(/[\n,]/).map(x=>x.trim()).filter(Boolean);
+  if(w.ringBy!=='화동'||!kids.length) return `다음은 반지 교환입니다.
 
-(화동 입장 · 반지 전달)
+반지는 / 시작도 끝도 없는 원의 모양으로, / 두 사람의 사랑이 / 끊어짐 없이 이어지기를 바라는 약속입니다.
 
-${nm}${w.ringBearerName?' 화동':''}, / 고맙습니다. / 하객 여러분, / 한 번 더 큰 박수 부탁드립니다.
+신랑은 신부에게, / 신부는 신랑에게 / 반지를 끼워 주시기 바랍니다.
 
-(화동 퇴장)
+(반지 교환)
 
-`;
-  }
-  return `다음은 반지 교환입니다.
+하객 여러분께서는 / 따뜻한 박수로 / 두 사람의 약속을 함께 축복해주시기 바랍니다.`;
+  const jong=t=>{ const c=t.charCodeAt(t.length-1); return c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28!==0; };
+  const intro=kids.map((k,i)=>i<kids.length-1?k+(jong(k)?'과':'와'):k+(jong(k)?'이':'가')).join(' / ');
+  const short=kids.map(k=>k.split(/\s+/).slice(-2).join(' ')).join(', ');
+  const n=['','','두','세','네','다섯'][kids.length]||'';
+  const many=kids.length>1;
+  return `이어서 / 신랑 신부의 반지 교환식이 있겠습니다.
 
-${bearer}반지는 / 시작도 끝도 없는 원의 모양으로, / 두 사람의 사랑이 / 끊어짐 없이 이어지기를 바라는 약속입니다.
+(음악 시작 · 신랑 신부 위치 체크 · 화동 입장 준비 15초)
+
+오늘 이 소중한 반지는, / ${intro} 전달합니다.
+
+사랑의 결실이 / 사랑의 약속을 전하러 / 나옵니다. / 화동 입장!
+
+(화동 입장 · 걸음 속도 체크 · 반지 전달)
+
+떨지 않고 잘 입장하는 / 사랑의 큐피트${many?'들':''}에게 / 따뜻한 박수 부탁드립니다.
+
+우리의 사랑스러운 ${n?n+' ':''}화동, / 임무를 마치고 퇴장합니다. / ${short}에게 / 다시 한번 / 따뜻한 박수 부탁드립니다.
+
+(화동 퇴장 체크)
+
+이제, 신랑 신부는 / 서로에게 / 평생을 함께하겠다는 / 진심을 담아 / 반지를 교환하겠습니다.
 
 신랑은 신부에게, / 신부는 신랑에게 / 반지를 끼워 주시기 바랍니다.
 
@@ -1072,7 +1088,7 @@ async function load(){
   DB.list.forEach(w=>{ w.date=fixDate(w.date); });
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
-    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; w.togetherExtra=w.togetherExtra||''; w.ringBy=w.ringBy||'직접'; w.ringBearerName=w.ringBearerName||''; w.ringBearerRel=w.ringBearerRel||''; SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; w.togetherExtra=w.togetherExtra||''; w.ringBy=w.ringBy||'직접'; if(w.ringBearers==null) w.ringBearers=[w.ringBearerRel,w.ringBearerName].filter(Boolean).join(' '); SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
   maybeNudgeBackup();
@@ -1277,8 +1293,7 @@ const SEC_FIELDS={
   bride:()=>chk('문 뒤 “등장” 후 다시 “입장”하는 2단 구성','brideTwoStep')
     +seg('동행자','brideEscort',['없음','아버님','어머님','부모님']),
   ring:()=>seg('반지 전달','ringBy',['직접','화동'])
-    +txt('화동 이름','ringBearerName','김하준','화동을 골랐을 때만 대본에 들어갑니다.')
-    +txt('화동과의 관계','ringBearerRel','신랑 조카'),
+    +area('화동 — 한 줄에 한 명, 관계와 이름까지','ringBearers','신랑의 예쁜 첫째 조카 이서연 양\n재간둥이 둘째 조카 이서진 군','화동을 골랐을 때만 들어갑니다. 줄 끝의 「이름 양/군」이 마지막 박수 문장에 다시 불립니다.'),
   vow:()=>seg('진행 방식','vowBy',['셀프','주례']),
   declare:()=>seg('낭독자','declareBy',['사회자','주례']),
   speech:()=>seg('누구 측','speechWho',['신부','신랑'])
@@ -2134,7 +2149,7 @@ function askConfig(){
       brideTwoStep:w.brideTwoStep?'문 뒤에서 등장 후 입장':'한 번에 입장',
       brideEscort:w.brideEscort,
       ringBy:w.ringBy==='화동'?'화동이 전달합니다':'미리 준비해 둡니다',
-      ringBearerName:w.ringBearerName, ringBearerRel:w.ringBearerRel,
+      ringBearers:w.ringBearers,
       vowBy:w.vowBy==='셀프'?'두 사람이 직접 낭독':'주례가 진행',
       declareBy:w.declareBy, speechWho:w.speechWho, speechRel:w.speechRel, speechNames:w.speechNames,
       songWho:w.songWho, songRel:w.songRel, songName:w.songName, songTitle:w.songTitle,
@@ -3237,7 +3252,7 @@ const OPT_MAP={
   brideTwoStep:{f:'brideTwoStep',to:v=>v.indexOf('등장')>-1,disp:v=>v?'등장 후 입장':'한 번에 입장'},
   brideEscort:{f:'brideEscort'},
   ringBy:{f:'ringBy',to:v=>v.indexOf('화동')>-1?'화동':'직접',disp:v=>v==='화동'?'화동이 전달합니다':'미리 준비해 둡니다'},
-  ringBearerName:{f:'ringBearerName'},ringBearerRel:{f:'ringBearerRel'},
+  ringBearers:{f:'ringBearers'},
   vowBy:{f:'vowBy',to:v=>v.indexOf('주례')>-1?'주례':'셀프'},
   declareBy:{f:'declareBy'},
   speechWho:{f:'speechWho'},speechRel:{f:'speechRel'},speechNames:{f:'speechNames'},
@@ -3251,7 +3266,7 @@ const OPT_MAP={
 };
 const FIELD_LABEL={date:'예식일',time:'예식 시간',venue:'예식장',floor:'연회장 층',
   candleParent:'화촉 점화 주체',brideTwoStep:'신부 입장 방식',brideEscort:'신부 동행자',
-  ringBy:'반지 전달',ringBearerName:'화동 이름',ringBearerRel:'화동과의 관계',
+  ringBy:'반지 전달',ringBearers:'화동',
   vowBy:'혼인 서약',declareBy:'성혼 선언문 낭독',speechWho:'축사 – 누구 측',speechRel:'축사자 관계',
   speechNames:'축사자 이름',songWho:'축가 – 누구 측',songRel:'축가자 관계',songName:'축가자 이름',
   songTitle:'축가 곡명',parentsFirst:'부모님 인사 순서',parentsStyle:'부모님 인사 연출',
