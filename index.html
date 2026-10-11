@@ -628,7 +628,7 @@ function blank(){
     speechWho:'신부', speechRel:'', speechNames:'',
     songWho:'신랑', songRel:'', songName:'', songTitle:'',
     parentsStyle:'포옹', parentsFirst:'신부',
-    parentsStyleBride:'기본', parentsStyleGroom:'기본', parentsBride:'두 분', parentsGroom:'두 분',
+    parentsStyleBride:'기본', parentsStyleGroom:'기본', parentsBride:'두 분', parentsGroom:'두 분', parentsMode:'단상',
     marchYears:'', humble:true, photoNotice:true, memo:'',
     sections:secs,
   };
@@ -963,7 +963,54 @@ ${hug}
 
 ${tail}`;
   };
+  /* 이동형 — 신랑 신부가 부모님 석으로 걸어가서 인사합니다. 받은 샘플 대본의 신부 측
+     문장을 그대로 두고, 신랑 측은 같은 틀입니다. 걷는 동안 한마디로 빈 시간을 메웁니다.
+     마무리(기본·감동·화이팅)는 부모님이 앉아 계신 자리라 '일어나셔서' 로 받습니다. */
+  const walk=(side,last)=>{
+    const bride=side==='신부';
+    const who=bride?w.parentsBride:w.parentsGroom, style=bride?w.parentsStyleBride:w.parentsStyleGroom;
+    const single=who!=='두 분';
+    const seat=single?`${side} ${who} 석`:`${side}측 부모님 석`;
+    const n=single?'세':'네';
+    const kids=bride?'사위와 딸':'아들과 며느리';
+    const head=last
+      ?`다음은 / ${single?`${side} ${who}`:`${side}측 부모님`}께 / 인사를 올리겠습니다.
+
+(${seat}으로 이동)`
+      :`먼저 / 우리 ${seat}으로 / 천천히 한걸음 한걸음 / 이동을 부탁드리겠습니다.
+
+(이동 중)
+
+오늘의 주인공 신랑 신부님을 / 있게 해주신 부모님이시죠. / 얼마나 뿌듯하실까요.`;
+    const tail=style==='화이팅'
+      ?`${single?who:'부모님'}께서는 / 잠시 일어나 주시고, / ${n} 분 손을 가운데 모으시고, / 잘 살라는 의미로 / 파이팅 한번 외치겠습니다. / 하나 둘 셋 — 화이팅!
+
+${last?`아우 정말 기운차네요. / 앞으로 이 기운처럼 / 화이팅 넘치는 행복만 가득하시길 바랍니다.`:`(토닥토닥 / 잘 살거라 하는 그 마음이 / 여기까지 전해집니다.)`}`
+      :style==='감동'
+      ?`${single?who:'부모님'}께서는 / 잠시 일어나셔서 / 우리 ${kids}을 / 따뜻하게 안아주시기 바랍니다.
+
+(포옹)
+
+토닥토닥, / 잘 살거라 하는 그 마음이 / 여기까지 전해집니다.`
+      :``;
+    return `${head}
+
+(이동 완료)
+
+그동안 낳아주시고 / 정성껏 키워주신 은혜에 감사하며 / 잘 살겠다는 마음을 담아 / 인사드리겠습니다.
+
+(신랑, 신부 인사)
+
+네, 여러분 / 큰 박수 부탁드리겠습니다.${tail?`
+
+${tail}`:''}`;
+  };
   const order=w.parentsFirst==='신부'?['신부','신랑']:['신랑','신부'];
+  if(w.parentsMode==='이동') return `다음은 / 축복된 이 자리가 있기까지 / 사랑과 정성으로 길러주신 / 양가 부모님께 / 감사 인사를 드리겠습니다.
+
+${walk(order[0],false)}
+
+${walk(order[1],true)}`;
   return `다음은 / 사랑과 정성으로 길러 주신 부모님께 / 감사 인사 드리는 순서를 갖겠습니다.
 
 ${block(order[0],false)}
@@ -1115,7 +1162,7 @@ async function load(){
   DB.list.forEach(w=>{ w.date=fixDate(w.date); });
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
-    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; w.togetherExtra=w.togetherExtra||''; w.ringBy=w.ringBy||'직접'; if(!w.parentsStyleBride){ const v=w.parentsStyle==='화이팅'?'화이팅':'기본'; w.parentsStyleBride=v; w.parentsStyleGroom=v; } w.parentsBride=w.parentsBride||'두 분'; w.parentsGroom=w.parentsGroom||'두 분'; if(w.ringBearers==null) w.ringBearers=[w.ringBearerRel,w.ringBearerName].filter(Boolean).join(' '); SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; w.togetherExtra=w.togetherExtra||''; w.ringBy=w.ringBy||'직접'; if(!w.parentsStyleBride){ const v=w.parentsStyle==='화이팅'?'화이팅':'기본'; w.parentsStyleBride=v; w.parentsStyleGroom=v; } w.parentsBride=w.parentsBride||'두 분'; w.parentsGroom=w.parentsGroom||'두 분'; w.parentsMode=w.parentsMode||'단상'; if(w.ringBearers==null) w.ringBearers=[w.ringBearerRel,w.ringBearerName].filter(Boolean).join(' '); SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
   maybeNudgeBackup();
@@ -1330,7 +1377,8 @@ const SEC_FIELDS={
     +txt('관계','songRel','신랑의 고등학교 친구')
     +txt('이름','songName','이원주')
     +txt('곡명','songTitle','이클립스 – 소나기'),
-  parents:()=>seg('인사 순서','parentsFirst',['신부','신랑'])
+  parents:()=>seg('진행 방식','parentsMode',['단상','이동'])
+    +seg('인사 순서','parentsFirst',['신부','신랑'])
     +seg('신부 부모님','parentsBride',['두 분','아버님','어머님'])
     +seg('신부 측 마무리','parentsStyleBride',['기본','감동','화이팅'])
     +seg('신랑 부모님','parentsGroom',['두 분','아버님','어머님'])
@@ -2184,6 +2232,7 @@ function askConfig(){
       declareBy:w.declareBy, speechWho:w.speechWho, speechRel:w.speechRel, speechNames:w.speechNames,
       songWho:w.songWho, songRel:w.songRel, songName:w.songName, songTitle:w.songTitle,
       parentsFirst:w.parentsFirst+' 부모님',
+      parentsMode:w.parentsMode==='이동'?'부모님 석으로 걸어가서':'단상 앞에서',
       parentsStyle:w.parentsStyleBride==='화이팅'?'다 같이 화이팅':w.parentsStyleBride==='감동'?'다 함께 한 번 더 포옹':'포옹으로 조용히',
       parentsBride:w.parentsBride==='두 분'?'두 분 모두':w.parentsBride, parentsGroom:w.parentsGroom==='두 분'?'두 분 모두':w.parentsGroom,
       marchYears:w.marchYears, photoNotice:w.photoNotice?'있음':'없음', groomExtra:w.groomExtra,
@@ -3292,6 +3341,7 @@ const OPT_MAP={
   parentsFirst:{f:'parentsFirst',to:v=>v.indexOf('신랑')>-1?'신랑':'신부'},
   parentsStyle:{f:'parentsStyleBride',to:v=>v.indexOf('화이팅')>-1?'화이팅':v.indexOf('한 번 더')>-1?'감동':'기본',
     disp:v=>v==='화이팅'?'다 같이 화이팅':v==='감동'?'다 함께 한 번 더 포옹':'포옹으로 조용히'},
+  parentsMode:{f:'parentsMode',to:v=>v.indexOf('걸어')>-1?'이동':'단상',disp:v=>v==='이동'?'부모님 석으로 걸어가서':'단상 앞에서'},
   parentsBride:{f:'parentsBride',to:v=>v.indexOf('두 분')>-1?'두 분':v},
   parentsGroom:{f:'parentsGroom',to:v=>v.indexOf('두 분')>-1?'두 분':v},
   marchYears:{f:'marchYears'},
@@ -3305,7 +3355,7 @@ const FIELD_LABEL={date:'예식일',time:'예식 시간',venue:'예식장',floor
   vowBy:'혼인 서약',declareBy:'성혼 선언문 낭독',speechWho:'축사 – 누구 측',speechRel:'축사자 관계',
   speechNames:'축사자 이름',songWho:'축가 – 누구 측',songRel:'축가자 관계',songName:'축가자 이름',
   songTitle:'축가 곡명',parentsFirst:'부모님 인사 순서',parentsStyle:'부모님 인사 연출',
-  parentsBride:'신부 부모님',parentsGroom:'신랑 부모님',
+  parentsMode:'부모님 인사 진행 방식',parentsBride:'신부 부모님',parentsGroom:'신랑 부모님',
   marchYears:'함께한 시간',photoNotice:'기념 촬영 안내',groomExtra:'신랑 입장 연출',
   togetherExtra:'동시 입장 연출'};
 const show=v=>v===true?'포함':v===false?'제외':(v===''||v==null?'(비어 있음)':String(v));
