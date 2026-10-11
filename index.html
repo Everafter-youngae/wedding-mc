@@ -117,6 +117,9 @@ select.sel{border:1px solid var(--line);background:var(--card);border-radius:8px
 .row{display:flex;gap:12px}
 .row>*{flex:1;min-width:0}
 .hint{font-size:12px;color:var(--ink3);margin-top:6px;line-height:1.5}
+.edited-note{font-size:12.5px;line-height:1.6;color:var(--wine);background:#FBF4EE;border:1px solid #E9D7C8;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.edited-note b{font-weight:700}
+.edited-note .btn{display:inline-block;margin-top:8px;font-size:12px;padding:6px 10px}
 .linklike{border:0;background:none;padding:0;font:inherit;color:var(--ink3);text-decoration:underline;cursor:pointer}
 .sched-row .who{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:100px;font-size:10.5px;font-weight:700;vertical-align:middle}
 .sched-row .who.couple{background:var(--wine-soft);color:var(--wine)}
@@ -1419,7 +1422,13 @@ function renderForm(){
 
   const secGroups=SEC_DEFS.map((d,i)=>{
     const s=w.sections[d.key];
-    const fields=(SEC_FIELDS[d.key]?SEC_FIELDS[d.key]():'')+musicCue(d.key);
+    /* 멘트를 직접 고쳐 둔 순서는 고친 글이 생성 문구보다 우선이라, 여기서 무엇을
+       골라도 대본이 안 바뀝니다. 그걸 모르면 "선택이 안 먹는다"로 보입니다 — 그래서
+       선택 칸 맨 위에서 알려주고, 되돌리기를 바로 옆에 둡니다. */
+    const edited=(s.text!=null&&SEC_FIELDS[d.key])
+      ?`<div class="edited-note"><b>멘트를 직접 고쳐 둔 순서입니다.</b> 고친 글이 그대로 쓰여서, 아래 선택은 대본에 반영되지 않습니다.
+         <button type="button" class="btn ghost" data-form-reset="${d.key}">기본 멘트로 되돌리기</button></div>`:'';
+    const fields=edited+(SEC_FIELDS[d.key]?SEC_FIELDS[d.key]():'')+musicCue(d.key);
     return `<details class="group sec ${s.on?'':'is-off'}" id="g-${d.key}" ${op('g-'+d.key)}>
       <summary><span class="sn">${String(i+1).padStart(2,'0')}</span><span class="st">${d.title}</span>
         ${s.on?'':'<span class="off">미사용</span>'}</summary>
@@ -1679,6 +1688,13 @@ document.getElementById('form').addEventListener('click',e=>{
   if(e.target.id==='btnWipeContact'||e.target.id==='btnWipeExpired'){
     const w=cur();
     if(confirm('연락처와 카카오톡 ID, 동의 기록을 지웁니다.\n대본과 나머지 내용은 그대로 남습니다. 지울까요?')) wipeContact(w);
+    return;
+  }
+  const fr=e.target.closest('[data-form-reset]');
+  if(fr){
+    const k=fr.dataset.formReset, prev=cur().sections[k].text;
+    setSecText(k,null); editingKey=null; renderAll();
+    toastUndo('기본 멘트로 되돌렸습니다. 이제 선택이 대본에 반영됩니다.','되돌리기',()=>{ setSecText(k,prev); renderAll(); });
     return;
   }
   const b=e.target.closest('[data-seg]');
