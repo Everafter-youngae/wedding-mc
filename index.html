@@ -117,6 +117,7 @@ select.sel{border:1px solid var(--line);background:var(--card);border-radius:8px
 .row{display:flex;gap:12px}
 .row>*{flex:1;min-width:0}
 .hint{font-size:12px;color:var(--ink3);margin-top:6px;line-height:1.5}
+.blk.pv-flash{outline:2px solid var(--wine);outline-offset:6px;border-radius:6px;transition:outline-color 1.2s}
 .edited-note{font-size:12.5px;line-height:1.6;color:var(--wine);background:#FBF4EE;border:1px solid #E9D7C8;border-radius:8px;padding:10px 12px;margin-bottom:12px}
 .edited-note b{font-weight:700}
 .edited-note .btn{display:inline-block;margin-top:8px;font-size:12px;padding:6px 10px}
@@ -1497,6 +1498,18 @@ ${secGroups}
   const p=document.querySelector('.pane-l'); if(p) p.scrollTop=scroll;
 }
 
+/* 왼쪽에서 선택을 바꾸면 오른쪽 대본의 그 순서로 데려갑니다. 대본이 길어 바뀐
+   블록이 화면 밖(아래로 수천 px)에 있으면, 바뀌었는데도 "아무것도 안 바뀐다"로
+   보입니다 — 실제로 그렇게 보고됐습니다. 형태가 바뀌는 선택(버튼·체크)에만 붙이고,
+   글자를 치는 중에는 흔들지 않습니다. */
+function showInPreview(key){
+  const blk=document.getElementById('pv-'+key); if(!blk) return;
+  if(getComputedStyle(blk).display==='none') return;
+  blk.scrollIntoView({behavior:'smooth',block:'start'});
+  blk.classList.add('pv-flash'); setTimeout(()=>blk.classList.remove('pv-flash'),1400);
+}
+function secKeyOf(el){ const g=el.closest&&el.closest('details.group.sec'); return g?g.id.replace(/^g-/,''):null; }
+
 function jumpTo(key){
   const g=document.getElementById('g-'+key); if(!g) return;
   g.open=true;
@@ -1571,7 +1584,7 @@ function renderPreview(){
            <button data-act="cue" data-key="${d.key}">큐 / 음악</button>
            <button data-act="copy1" data-key="${d.key}">이 순서만 복사</button>
          </div>`;
-    return `<div class="blk">
+    return `<div class="blk" id="pv-${d.key}">
       <div class="cue">
         <div class="num">${String(i+1).padStart(2,'0')}</div>
         <div class="ttl">${d.title}${s.text!=null?'<span class="edited-flag">수정됨</span>':''}</div>
@@ -1675,7 +1688,7 @@ document.getElementById('form').addEventListener('input',e=>{
 });
 document.getElementById('form').addEventListener('change',e=>{
   const t=e.target;
-  if(t.dataset.chk){ set(t.dataset.chk,t.checked); }
+  if(t.dataset.chk){ const sk=secKeyOf(t); set(t.dataset.chk,t.checked); if(sk) showInPreview(sk); }
   if(t.dataset.secon){ setSec(t.dataset.secon,'on',t.checked); }
 });
 document.getElementById('form').addEventListener('click',e=>{
@@ -1693,12 +1706,12 @@ document.getElementById('form').addEventListener('click',e=>{
   const fr=e.target.closest('[data-form-reset]');
   if(fr){
     const k=fr.dataset.formReset, prev=cur().sections[k].text;
-    setSecText(k,null); editingKey=null; renderAll();
+    setSecText(k,null); editingKey=null; renderAll(); showInPreview(k);
     toastUndo('기본 멘트로 되돌렸습니다. 이제 선택이 대본에 반영됩니다.','되돌리기',()=>{ setSecText(k,prev); renderAll(); });
     return;
   }
   const b=e.target.closest('[data-seg]');
-  if(b){ set(b.dataset.seg,b.dataset.v); }
+  if(b){ const sk=secKeyOf(b); set(b.dataset.seg,b.dataset.v); if(sk) showInPreview(sk); }
   const fs=e.target.closest('[data-step]');
   if(fs){ const k=fs.dataset.step; stepDone(k, !((cur().steps||{})[k])); return; }
   const j=e.target.closest('[data-jump]');
