@@ -1166,7 +1166,7 @@ async function load(){
   DB.list.forEach(w=>{ w.date=fixDate(w.date); });
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
-    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; w.togetherExtra=w.togetherExtra||''; w.ringBy=w.ringBy||'직접'; if(!w.parentsStyleBride){ const v=w.parentsStyle==='화이팅'?'화이팅':'기본'; w.parentsStyleBride=v; w.parentsStyleGroom=v; } w.parentsBride=w.parentsBride||'두 분'; w.parentsGroom=w.parentsGroom||'두 분'; w.parentsMode=w.parentsMode||'단상'; if(w.ringBearers==null) w.ringBearers=[w.ringBearerRel,w.ringBearerName].filter(Boolean).join(' '); SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; w.togetherExtra=w.togetherExtra||''; w.ringBy=w.ringBy||'직접'; if(!w.parentsStyleBride){ const v=w.parentsStyle==='화이팅'?'화이팅':'기본'; w.parentsStyleBride=v; w.parentsStyleGroom=v; } w.parentsBride=w.parentsBride||'두 분'; w.parentsGroom=w.parentsGroom||'두 분'; w.parentsMode=w.parentsMode||'단상'; Object.keys(w.sections).forEach(k=>{ const sec=w.sections[k]; if(sec&&sec.text!=null&&GEN[k]){ try{ if(String(sec.text).trim()===GEN[k](w).trim()) sec.text=null; }catch(e){} } }); if(w.ringBearers==null) w.ringBearers=[w.ringBearerRel,w.ringBearerName].filter(Boolean).join(' '); SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
   maybeNudgeBackup();
@@ -1732,7 +1732,11 @@ document.getElementById('preview').addEventListener('click',e=>{
     const ta=document.querySelector('[data-edit]'); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); }
   if(b.dataset.act==='done'){
     const ta=document.querySelector(`[data-edit="${k}"]`);
-    setSecText(k,ta.value); editingKey=null; renderPreview();
+    /* 고치지 않고 완료를 누른 글은 '고친 글'이 아닙니다. 그대로 저장해 두면 그때부터
+       선택 칸이 조용히 먹통이 됩니다 — 실제로 한 예식이 그렇게 걸려 있었습니다. */
+    const same=ta.value.trim()===GEN[k](cur()).trim();
+    setSecText(k,same?null:ta.value); editingKey=null; renderPreview();
+    if(same) toast('고친 내용이 없어 기본 멘트로 둡니다.');
   }
   if(b.dataset.act==='reset'){ setSecText(k,null); editingKey=null; renderPreview(); toast('기본 멘트로 되돌렸습니다.'); }
   if(b.dataset.act==='cue'){ jumpTo(k); }
