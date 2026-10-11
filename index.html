@@ -628,6 +628,7 @@ function blank(){
     speechWho:'신부', speechRel:'', speechNames:'',
     songWho:'신랑', songRel:'', songName:'', songTitle:'',
     parentsStyle:'포옹', parentsFirst:'신부',
+    parentsStyleBride:'기본', parentsStyleGroom:'기본', parentsBride:'두 분', parentsGroom:'두 분',
     marchYears:'', humble:true, photoNotice:true, memo:'',
     sections:secs,
   };
@@ -917,39 +918,57 @@ song:w=>{
 },
 
 parents:w=>{
-  const cheer=w.parentsStyle==='화이팅';
-  const brideBlock=`${w.parentsFirst==='신부'?'':'이제 '}신랑, 신부는 / 신부 부모님을 향해 서주시기 바랍니다.
+  /* 실제 진행본(기류 0607 · 보경·진우 0801 · 하연·준성 0626)에서 가져온 세 가지 마무리.
+       기본   — 포옹 뒤 지문 한 줄로 조용히 넘어갑니다 (보경·진우 신부 측)
+       감동   — 네 분이 다 함께 한 번 더 포옹하고 "토닥토닥…" (기류 신부 측)
+       화이팅 — 손 모아 "하나 둘 셋 화이팅!" (기류 · 하연 신랑 측)
+     측마다 따로 고릅니다. 기류 예식이 그랬습니다 — 신부 측은 포옹, 신랑 측은 화이팅.
+     부모님이 한 분이면 안는 문장과 '네 분/세 분'이 달라집니다 (보경·진우 아버님 · 하연 어머님). */
+  const block=(side,last)=>{
+    const bride=side==='신부';
+    const who=bride?w.parentsBride:w.parentsGroom, style=bride?w.parentsStyleBride:w.parentsStyleGroom;
+    const single=who!=='두 분';
+    const target=single?`${side} ${who}`:`${side} 부모님`;
+    const n=single?'세':'네';
+    const body=bride
+      ?`예쁘게 키운 딸이 / 참 멋진 사람을 만나 / 이 자리에 섰습니다. / 수없이 변곡될 앞으로의 삶에 / 한결같이 지지해 줄 사람이 얼마나 중요한지 / 먼저 살아보신 우리 부모님들은 잘 아실 겁니다.
 
-예쁘게 키운 딸이 / 참 멋진 사람을 만나 / 이 자리에 섰습니다. / 수없이 변곡될 앞으로의 삶에 / 한결같이 지지해 줄 사람이 얼마나 중요한지 / 먼저 살아보신 우리 부모님들은 잘 아실 겁니다.
+두 사람, / 앞으로 어떠한 어려운 일이 있더라도 / 서로의 곁에서 한결같이 지지하고 응원하며 잘 살거라 / 마음을 담아 / 따뜻하게 안아주세요.`
+      :`우리 멋지고 자랑스러운 아들이 / 참 아름다운 사람을 만나 / 두 손 꼭 잡고 이 자리에 섰습니다.
 
-두 사람, / 앞으로 어떠한 어려운 일이 있더라도 / 서로의 곁에서 한결같이 지지하고 응원하며 잘 살거라 / 마음을 담아 / 따뜻하게 안아주세요.
+이 두 사람, / 서로의 세상이 만나 / 그 누구보다 따뜻한 가정을 만들기를, / 서로를 예뻐하고 아끼고 사랑하며 / 오래도록 함께하거라 / 마음을 담아 따뜻하게 안아주십시오.`;
+    const hug=bride
+      ?(who==='두 분'?`아버님은 사위를, / 어머님은 딸을 / 한 번씩 안아 주시기 바랍니다.`
+        :`${who}, 일어나셔서 / 우리 사랑스러운 사위와 딸을 / 따뜻하게 안아 주시기 바랍니다.`)
+      :(who==='두 분'?`어머님은 며느리를, / 아버님은 아들을 / 한 번씩 안아 주시기 바랍니다.`
+        :`${who}, 일어나셔서 / 아들과 며느리를 / 따뜻하게 안아 주시기 바랍니다.`);
+    const tail=style==='화이팅'
+      ?`${last?'마지막으로':'자,'} ${n} 분 / 손을 가운데 모으시고, / 잘 살라는 의미로 / 파이팅 한번 외치겠습니다. / 하나 둘 셋 — 화이팅!
+
+${last?`아우 정말 기운차네요. / 앞으로 이 기운처럼 / 화이팅 넘치는 행복만 가득하시길 바랍니다.`:`(토닥토닥 / 잘 살거라 하는 그 마음이 / 여기까지 전해집니다.)`}`
+      :style==='감동'
+      ?`네, 정말 다정한 모습입니다. / 자, 축하의 의미로 / ${n} 분 다 함께 / 포옹 한번 해볼까요?
+
+(다 함께 포옹)
+
+토닥토닥, / 잘 살거라 하는 그 마음이 / 여기까지 전해집니다.`
+      :`(잘 살거라 하는 그 마음이 / 여기까지 전해집니다.)`;
+    return `${last?'이제 ':''}신랑, 신부는 / ${target}을 향해 서주시기 바랍니다.
+
+${body}
 
 (신랑, 신부 인사)
 
-아버님은 사위를, / 어머님은 딸을 / 한 번씩 안아 주시기 바랍니다.${cheer?`
+${hug}
 
-자, 네 분 / 손을 가운데 모으시고, / 잘 살라는 의미로 / 파이팅 한번 외치겠습니다. / 하나 둘 셋 — 화이팅!`:`
-
-(잘 살거라 하는 그 마음이 / 여기까지 전해집니다.)`}`;
-  const groomBlock=`${w.parentsFirst==='신부'?'이제 ':''}신랑, 신부는 / 신랑 부모님을 향해 서주시기 바랍니다.
-
-우리 멋지고 자랑스러운 아들이 / 참 아름다운 사람을 만나 / 두 손 꼭 잡고 이 자리에 섰습니다.
-
-이 두 사람, / 서로의 세상이 만나 / 그 누구보다 따뜻한 가정을 만들기를, / 서로를 예뻐하고 아끼고 사랑하며 / 오래도록 함께하거라 / 마음을 담아 따뜻하게 안아주십시오.
-
-(신랑, 신부 인사)
-
-어머님은 며느리를, / 아버님은 아들을 / 한 번씩 안아 주시기 바랍니다.${cheer?`
-
-마지막으로 네 분 / 손을 가운데 모으시고, / 잘 살라는 의미로 / 파이팅 한번 외치겠습니다. / 하나 둘 셋 — 화이팅!
-
-아우 정말 기운차네요. / 앞으로 이 기운처럼 / 화이팅 넘치는 행복만 가득하시길 바랍니다.`:''}`;
-  const first=w.parentsFirst==='신부'?[brideBlock,groomBlock]:[groomBlock,brideBlock];
+${tail}`;
+  };
+  const order=w.parentsFirst==='신부'?['신부','신랑']:['신랑','신부'];
   return `다음은 / 사랑과 정성으로 길러 주신 부모님께 / 감사 인사 드리는 순서를 갖겠습니다.
 
-${first[0]}
+${block(order[0],false)}
 
-${first[1]}`;
+${block(order[1],true)}`;
 },
 
 guests:w=>`이제 신랑, 신부는 / 하객을 향하여 주시기 바랍니다.
@@ -1096,7 +1115,7 @@ async function load(){
   DB.list.forEach(w=>{ w.date=fixDate(w.date); });
   // 새로 추가된 섹션 보정
   DB.list.forEach(w=>{ w.youngaeCode=w.youngaeCode||''; w.email=w.email||'';
-    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; w.togetherExtra=w.togetherExtra||''; w.ringBy=w.ringBy||'직접'; if(w.ringBearers==null) w.ringBearers=[w.ringBearerRel,w.ringBearerName].filter(Boolean).join(' '); SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
+    w.phone=w.phone||''; w.kakao=w.kakao||''; w.consentAt=w.consentAt||''; w.consentVer=w.consentVer||''; w.consentSrc=w.consentSrc||''; w.archiveSentence=w.archiveSentence||''; w.archiveScene=w.archiveScene||''; w.archiveClosing=w.archiveClosing||''; w.archiveBody=w.archiveBody||''; w.sentencePicks=w.sentencePicks||[]; w.linkKey=w.linkKey||''; w.togetherExtra=w.togetherExtra||''; w.ringBy=w.ringBy||'직접'; if(!w.parentsStyleBride){ const v=w.parentsStyle==='화이팅'?'화이팅':'기본'; w.parentsStyleBride=v; w.parentsStyleGroom=v; } w.parentsBride=w.parentsBride||'두 분'; w.parentsGroom=w.parentsGroom||'두 분'; if(w.ringBearers==null) w.ringBearers=[w.ringBearerRel,w.ringBearerName].filter(Boolean).join(' '); SEC_DEFS.forEach(d=>{ if(!w.sections[d.key]) w.sections[d.key]={on:!d.off,cue:d.cue,music:'',text:null}; }); });
   renderAll();
   setStatus(storageOK===false?'off':'saved');
   maybeNudgeBackup();
@@ -1312,7 +1331,10 @@ const SEC_FIELDS={
     +txt('이름','songName','이원주')
     +txt('곡명','songTitle','이클립스 – 소나기'),
   parents:()=>seg('인사 순서','parentsFirst',['신부','신랑'])
-    +seg('마무리 연출','parentsStyle',['포옹','화이팅']),
+    +seg('신부 부모님','parentsBride',['두 분','아버님','어머님'])
+    +seg('신부 측 마무리','parentsStyleBride',['기본','감동','화이팅'])
+    +seg('신랑 부모님','parentsGroom',['두 분','아버님','어머님'])
+    +seg('신랑 측 마무리','parentsStyleGroom',['기본','감동','화이팅']),
   march:()=>txt('함께한 시간','marchYears','7년 / 열 번의 사계절','행진 첫 문장에 들어갑니다.'),
   closing:()=>chk('기념 촬영 안내 넣기','photoNotice')
     +chk('“전문 사회자가 아니다 보니…” 마무리 인사 넣기','humble'),
@@ -2161,7 +2183,9 @@ function askConfig(){
       vowBy:w.vowBy==='셀프'?'두 사람이 직접 낭독':'주례가 진행',
       declareBy:w.declareBy, speechWho:w.speechWho, speechRel:w.speechRel, speechNames:w.speechNames,
       songWho:w.songWho, songRel:w.songRel, songName:w.songName, songTitle:w.songTitle,
-      parentsFirst:w.parentsFirst+' 부모님', parentsStyle:w.parentsStyle==='포옹'?'따뜻하게 포옹':'다 같이 화이팅',
+      parentsFirst:w.parentsFirst+' 부모님',
+      parentsStyle:w.parentsStyleBride==='화이팅'?'다 같이 화이팅':w.parentsStyleBride==='감동'?'다 함께 한 번 더 포옹':'포옹으로 조용히',
+      parentsBride:w.parentsBride==='두 분'?'두 분 모두':w.parentsBride, parentsGroom:w.parentsGroom==='두 분'?'두 분 모두':w.parentsGroom,
       marchYears:w.marchYears, photoNotice:w.photoNotice?'있음':'없음', groomExtra:w.groomExtra,
       togetherExtra:w.togetherExtra},
   };
@@ -3266,7 +3290,10 @@ const OPT_MAP={
   speechWho:{f:'speechWho'},speechRel:{f:'speechRel'},speechNames:{f:'speechNames'},
   songWho:{f:'songWho'},songRel:{f:'songRel'},songName:{f:'songName'},songTitle:{f:'songTitle'},
   parentsFirst:{f:'parentsFirst',to:v=>v.indexOf('신랑')>-1?'신랑':'신부'},
-  parentsStyle:{f:'parentsStyle',to:v=>v.indexOf('화이팅')>-1?'화이팅':'포옹'},
+  parentsStyle:{f:'parentsStyleBride',to:v=>v.indexOf('화이팅')>-1?'화이팅':v.indexOf('한 번 더')>-1?'감동':'기본',
+    disp:v=>v==='화이팅'?'다 같이 화이팅':v==='감동'?'다 함께 한 번 더 포옹':'포옹으로 조용히'},
+  parentsBride:{f:'parentsBride',to:v=>v.indexOf('두 분')>-1?'두 분':v},
+  parentsGroom:{f:'parentsGroom',to:v=>v.indexOf('두 분')>-1?'두 분':v},
   marchYears:{f:'marchYears'},
   photoNotice:{f:'photoNotice',to:v=>v==='있음',disp:v=>v?'있음':'없음'},
   groomExtra:{f:'groomExtra'},
@@ -3278,6 +3305,7 @@ const FIELD_LABEL={date:'예식일',time:'예식 시간',venue:'예식장',floor
   vowBy:'혼인 서약',declareBy:'성혼 선언문 낭독',speechWho:'축사 – 누구 측',speechRel:'축사자 관계',
   speechNames:'축사자 이름',songWho:'축가 – 누구 측',songRel:'축가자 관계',songName:'축가자 이름',
   songTitle:'축가 곡명',parentsFirst:'부모님 인사 순서',parentsStyle:'부모님 인사 연출',
+  parentsBride:'신부 부모님',parentsGroom:'신랑 부모님',
   marchYears:'함께한 시간',photoNotice:'기념 촬영 안내',groomExtra:'신랑 입장 연출',
   togetherExtra:'동시 입장 연출'};
 const show=v=>v===true?'포함':v===false?'제외':(v===''||v==null?'(비어 있음)':String(v));
@@ -3319,7 +3347,8 @@ function diffOf(res){
     let nv=res.opts[k]; if(nv==null||nv==='') return;
     if(m.to) nv=m.to(nv);
     if(String(w[m.f])!==String(nv)) out.push({t:FIELD_LABEL[k]||k,
-      now:m.disp?m.disp(w[m.f]):w[m.f], val:m.disp?res.opts[k]:nv, apply:()=>{w[m.f]=nv;}});
+      now:m.disp?m.disp(w[m.f]):w[m.f], val:m.disp?res.opts[k]:nv,
+      apply:()=>{w[m.f]=nv; if(k==='parentsStyle') w.parentsStyleGroom=nv;}});
   });
   SEC_DEFS.forEach(d=>{
     if(res.skipSecs) return;
