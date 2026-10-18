@@ -274,6 +274,11 @@ async function init(){
 
   A.basic=Object.assign({date:CFG.date||'',time:CFG.time||'',venue:CFG.venue||'',floor:CFG.floor||''},A.basic);
   const d=CFG.def||{};
+  /* 사회자가 빌더에서 정한 순서가 있으면 그 순서로 보여줍니다. 목록에 없는 카드는 뒤에. */
+  if(Array.isArray(CFG.order)&&CFG.order.length){
+    const pos=k=>{ const i=CFG.order.indexOf(k); return i<0?999:i; };
+    SECS.sort((a,b)=>pos(a.k)-pos(b.k));
+  }
   STORY.forEach(q=>{ if(A.story[q.k]===undefined) A.story[q.k]=(q.type==='chips'?{sel:[],etc:''}:''); });
   SECS.forEach(s=>{
     A.secs[s.k]=A.secs[s.k]||{use:(d.on&&d.on[s.k]===false)?'off':'on',music:(d.music&&d.music[s.k])||'',note:''};

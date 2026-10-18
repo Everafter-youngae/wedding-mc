@@ -152,7 +152,17 @@ select.sel{border:1px solid var(--line);background:var(--card);border-radius:8px
   padding:20px 16px 8px;font-size:12px;letter-spacing:.1em;color:var(--ink2);font-weight:600;
   border-top:1px solid var(--line);background:#FCFAF2;
 }
-.group.sec>summary{padding-left:16px;font-weight:500}
+.group.sec>summary{padding-left:10px;font-weight:500}
+.group.sec>summary .drag{color:var(--ink3);font-size:13px;letter-spacing:-3px;cursor:grab;padding:0 2px 0 0;user-select:none}
+.group.sec>summary .mv{display:flex;gap:2px;margin-left:6px}
+.group.sec>summary .mv button{border:1px solid var(--line);background:transparent;color:var(--ink3);border-radius:4px;font-size:9px;line-height:1;padding:4px 5px;cursor:pointer}
+.group.sec>summary .mv button:hover:not([disabled]){color:var(--wine);border-color:var(--wine)}
+.group.sec>summary .mv button[disabled]{opacity:.3;cursor:default}
+.group.sec.dragging{opacity:.45}
+.group.sec.drop-before{box-shadow:0 -2px 0 0 var(--wine) inset}
+.group.sec.drop-after{box-shadow:0 2px 0 0 var(--wine) inset}
+.sec-head-r{float:right;font-weight:400;letter-spacing:0;color:var(--ink3)}
+.sec-head-r .lnk{border:0;background:none;color:var(--wine);font:inherit;cursor:pointer;padding:0;text-decoration:underline}
 .group.sec>summary .sn{font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums;min-width:17px}
 .group.sec>summary .st{flex:1}
 .group.sec>summary .off{font-size:12px;color:var(--ink3);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
@@ -1177,6 +1187,40 @@ async function load(){
 }
 
 function set(k,v){ const w=cur(); w[k]=v; save(); renderAll(); }
+/* 식순의 순서는 예식마다 다릅니다(축사·축가가 바뀌기도). w.order 에 키 배열로 둡니다.
+   비어 있으면 SEC_DEFS 기본 순서이고, 나중에 새로 생긴 식순(w.order 에 없는 키)은
+   기본 순서에서 바로 앞에 있던 식순 뒤에 끼워 넣습니다 — 맨 뒤로 보내면 '동시 입장'
+   같은 게 폐식사 뒤에 가서 앉습니다. */
+function secOrder(w){
+  const valid=new Set(SEC_DEFS.map(d=>d.key));
+  const order=(w.order||[]).filter(k=>valid.has(k));
+  if(!order.length) return SEC_DEFS.slice();
+  SEC_DEFS.forEach((d,i)=>{
+    if(order.includes(d.key)) return;
+    let at=0;
+    for(let j=i-1;j>=0;j--){ const p=order.indexOf(SEC_DEFS[j].key); if(p>-1){ at=p+1; break; } }
+    order.splice(at,0,d.key);
+  });
+  return order.map(k=>SEC_DEFS.find(d=>d.key===k));
+}
+function setOrder(keys){ const w=cur(); w.order=keys; save(); renderAll(); }
+function moveSec(key,delta){
+  const keys=secOrder(cur()).map(d=>d.key), i=keys.indexOf(key), j=i+delta;
+  if(i<0||j<0||j>=keys.length) return;
+  keys.splice(i,1); keys.splice(j,0,key); setOrder(keys);
+}
+function placeSec(key,before,where){
+  /* key 를 before 의 앞(where='before') 또는 뒤에 놓습니다 — 끌어다 놓기용 */
+  const keys=secOrder(cur()).map(d=>d.key).filter(k=>k!==key);
+  let at=keys.indexOf(before); if(at<0) return;
+  if(where==='after') at++;
+  keys.splice(at,0,key); setOrder(keys);
+}
+function isCustomOrder(w){
+  const cur_=secOrder(w).map(d=>d.key).join(), def=SEC_DEFS.map(d=>d.key).join();
+  return cur_!==def;
+}
+
 /* 동시 입장은 신랑 입장·신부 입장을 대신하는 순서라, 둘이 같이 켜지면 입장을 두 번
    하는 대본이 됩니다. 어느 쪽을 켜든 다른 쪽을 끕니다. 빌더·질문지 반영 모두 이 함수로. */
 const ENTRANCE_PAIR={together:['groom','bride'],groom:['together'],bride:['together']};
@@ -1408,10 +1452,11 @@ function renderForm(){
   const op=id=>(first?['g-sched','g-basic','g-order'].includes(id):prev.has(id))?'open':'';
 
   const w=cur();
-  const active=SEC_DEFS.filter(d=>w.sections[d.key].on);
+  const ORDER=secOrder(w);
+  const active=ORDER.filter(d=>w.sections[d.key].on);
   const total=active.reduce((s,d)=>s+estimate(d.key),0);
 
-  const orderList=SEC_DEFS.map((d,i)=>{
+  const orderList=ORDER.map((d,i)=>{
     const s=w.sections[d.key];
     return `<div class="ord">
       <input type="checkbox" data-secon="${d.key}" ${s.on?'checked':''} aria-label="${d.title} 사용">
@@ -1421,7 +1466,7 @@ function renderForm(){
     </div>`;
   }).join('');
 
-  const secGroups=SEC_DEFS.map((d,i)=>{
+  const secGroups=ORDER.map((d,i)=>{
     const s=w.sections[d.key];
     /* 멘트를 직접 고쳐 둔 순서는 고친 글이 생성 문구보다 우선이라, 여기서 무엇을
        골라도 대본이 안 바뀝니다. 그걸 모르면 "선택이 안 먹는다"로 보입니다 — 그래서
@@ -1430,9 +1475,9 @@ function renderForm(){
       ?`<div class="edited-note"><b>멘트를 직접 고쳐 둔 순서입니다.</b> 고친 글이 그대로 쓰여서, 아래 선택은 대본에 반영되지 않습니다.
          <button type="button" class="btn ghost" data-form-reset="${d.key}">기본 멘트로 되돌리기</button></div>`:'';
     const fields=edited+(SEC_FIELDS[d.key]?SEC_FIELDS[d.key]():'')+musicCue(d.key);
-    return `<details class="group sec ${s.on?'':'is-off'}" id="g-${d.key}" ${op('g-'+d.key)}>
-      <summary><span class="sn">${String(i+1).padStart(2,'0')}</span><span class="st">${d.title}</span>
-        ${s.on?'':'<span class="off">미사용</span>'}</summary>
+    return `<details class="group sec ${s.on?'':'is-off'}" id="g-${d.key}" data-sec="${d.key}" ${op('g-'+d.key)}>
+      <summary draggable="true" title="끌어서 순서를 바꿀 수 있습니다"><span class="drag" aria-hidden="true">⋮⋮</span><span class="sn">${String(i+1).padStart(2,'0')}</span><span class="st">${d.title}</span>
+        ${s.on?'':'<span class="off">미사용</span>'}<span class="mv"><button type="button" data-up="${d.key}" aria-label="${d.title} 위로" ${i===0?'disabled':''}>▲</button><button type="button" data-down="${d.key}" aria-label="${d.title} 아래로" ${i===ORDER.length-1?'disabled':''}>▼</button></span></summary>
       <div class="gbody">${fields}</div></details>`;
   }).join('');
 
@@ -1472,7 +1517,7 @@ ${retentionHTML(w)}
   <div class="hint" style="margin-top:8px;color:var(--wine)">사용 중인 순서 ${active.length}개 · 예상 진행 시간 약 ${Math.round(total/60)}분</div>
 </div></details>
 
-<div class="sec-head">순서별 세부 설정</div>
+<div class="sec-head">순서별 세부 설정<span class="sec-head-r">끌어서, 또는 ▲▼로 순서를 바꿉니다${isCustomOrder(w)?' · <button type="button" class="lnk" id="btnOrderReset">기본 순서로</button>':''}</span></div>
 ${secGroups}
 
 <details class="group" id="g-after" ${op('g-after')}><summary>예식 이후 · Everafter 편지</summary><div class="gbody">
@@ -1548,7 +1593,7 @@ function scriptHTML(t){
 let editingKey=null;
 function renderPreview(){
   const w=cur();
-  const list=SEC_DEFS.filter(d=>w.sections[d.key].on);
+  const list=secOrder(w).filter(d=>w.sections[d.key].on);
   const head=`
   <div class="sheet-head">
     <div class="dt">${esc(dateShort(w))}${w.time?' · '+esc(timeKo(w)):''}</div>
@@ -1692,6 +1737,9 @@ document.getElementById('form').addEventListener('change',e=>{
   if(t.dataset.secon){ setSec(t.dataset.secon,'on',t.checked); }
 });
 document.getElementById('form').addEventListener('click',e=>{
+  const up=e.target.closest('[data-up]'), dn=e.target.closest('[data-down]');
+  if(up||dn){ e.preventDefault(); moveSec((up||dn).dataset.up||(up||dn).dataset.down, up?-1:1); return; }
+  if(e.target.id==='btnOrderReset'){ setOrder([]); toast('기본 순서로 되돌렸습니다.'); return; }
   if(e.target.id==='btnSchedCopy'){ copyText(schedText(cur())); return; }
   if(e.target.id==='btnSchedReset'){
     const w=cur();
@@ -1724,6 +1772,31 @@ document.getElementById('form').addEventListener('change',e=>{
   if(e.target.id==='fileJson') importJson(e.target.files[0]);
   if(e.target.id==='fileJsonAll') importAllJson(e.target.files[0]);
 });
+
+(()=>{
+  const form=document.getElementById('form'); let dragKey=null;
+  const clear=()=>form.querySelectorAll('.drop-before,.drop-after,.dragging').forEach(el=>el.classList.remove('drop-before','drop-after','dragging'));
+  form.addEventListener('dragstart',e=>{
+    const sm=e.target.closest&&e.target.closest('summary[draggable]'); if(!sm) return;
+    const d=sm.closest('details[data-sec]'); dragKey=d.dataset.sec; d.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',dragKey); }catch(_){}
+  });
+  form.addEventListener('dragover',e=>{
+    if(!dragKey) return; const d=e.target.closest&&e.target.closest('details[data-sec]'); if(!d||d.dataset.sec===dragKey) return;
+    e.preventDefault(); e.dataTransfer.dropEffect='move';
+    const r=d.getBoundingClientRect(), before=(e.clientY-r.top)<r.height/2;
+    form.querySelectorAll('.drop-before,.drop-after').forEach(el=>{ if(el!==d) el.classList.remove('drop-before','drop-after'); });
+    d.classList.toggle('drop-before',before); d.classList.toggle('drop-after',!before);
+  });
+  form.addEventListener('drop',e=>{
+    if(!dragKey) return; const d=e.target.closest&&e.target.closest('details[data-sec]'); if(!d) return;
+    e.preventDefault();
+    const r=d.getBoundingClientRect(), before=(e.clientY-r.top)<r.height/2, key=dragKey;
+    dragKey=null; clear();
+    if(d.dataset.sec!==key) placeSec(key,d.dataset.sec,before?'before':'after');
+  });
+  form.addEventListener('dragend',()=>{ dragKey=null; clear(); });
+})();
 
 document.getElementById('preview').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]'); if(!b) return;
@@ -1894,7 +1967,7 @@ document.getElementById('btnPrint').onclick=()=>{
 };
 document.getElementById('btnCopy').onclick=()=>{
   const w=cur();
-  const out=SEC_DEFS.filter(d=>w.sections[d.key].on).map((d,i)=>{
+  const out=secOrder(w).filter(d=>w.sections[d.key].on).map((d,i)=>{
     const s=w.sections[d.key];
     const note=[s.music&&('♪ '+s.music),s.cue].filter(Boolean).join(' | ');
     return `[${String(i+1).padStart(2,'0')}] ${d.title}${note?`  (${note})`:''}\n\n${textOf(d.key)}`;
@@ -2175,7 +2248,7 @@ async function drawInquiries(){
    7. 무대 모드
    ========================================================= */
 let smIdx=0;
-function smList(){ const w=cur(); return SEC_DEFS.filter(d=>w.sections[d.key].on); }
+function smList(){ const w=cur(); return secOrder(w).filter(d=>w.sections[d.key].on); }
 function smRender(){
   const l=smList(); if(!l.length) return;
   smIdx=Math.max(0,Math.min(smIdx,l.length-1));
@@ -2255,6 +2328,7 @@ function askConfig(){
   return {
     id:w.id, bride:w.bride, groom:w.groom, mc:w.mcName, dateLabel:dateShort(w),
     date:w.date, time:w.time, venue:w.venue, floor:w.floor,
+    order:secOrder(w).map(d=>d.key),
     sched:schedList(w).filter(r=>r.date).map(r=>({t:r.t,who:r.who,label:r.label})),
     def:{on,music,candleParent:w.candleParent,
       brideTwoStep:w.brideTwoStep?'문 뒤에서 등장 후 입장':'한 번에 입장',
@@ -3251,7 +3325,7 @@ async function pushScript(round){
   const c=DB.conn||{}, w=cur();
   if(!c.gs) throw new Error('앱스 스크립트 주소가 아직 없습니다.');
   const doc={id:w.id,round:round,bride:w.bride,groom:w.groom,dateLabel:dateShort(w),
-    sections:SEC_DEFS.filter(d=>w.sections[d.key].on).map(d=>({
+    sections:secOrder(w).filter(d=>w.sections[d.key].on).map(d=>({
       key:d.key,title:d.title,music:w.sections[d.key].music||'',text:textOf(d.key)}))};
   const r=await fetch(c.gs,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
     body:JSON.stringify({type:'script',id:w.id,script:doc,token:adminToken()})});
